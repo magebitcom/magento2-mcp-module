@@ -24,4 +24,27 @@
         </arguments>
     </type>
 
+    <type name="Magebit\Mcp\Model\JsonRpc\Dispatcher">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="initialize" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler</item>
+                <item name="ping" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\PingHandler</item>
+                <item name="notifications_initialized" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\InitializedNotificationHandler</item>
+                <item name="tools_list" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler</item>
+                <item name="tools_call" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\Validator\OriginValidator">
+        <arguments>
+            <argument name="allowedOrigins" xsi:type="array">
+                <item name="localhost_http" xsi:type="string">http://localhost*</item>
+                <item name="localhost_https" xsi:type="string">https://localhost*</item>
+                <item name="loopback_http" xsi:type="string">http://127.0.0.1*</item>
+                <item name="loopback_https" xsi:type="string">https://127.0.0.1*</item>
+            </argument>
+        </arguments>
+    </type>
+
 </config>
