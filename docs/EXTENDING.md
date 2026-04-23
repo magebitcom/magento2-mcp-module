@@ -158,7 +158,7 @@ To ship a write tool, return `WriteMode::WRITE` from `getWriteMode()`. The dispa
 
 Both must pass; either fails → `-32012 Write not allowed`.
 
-Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. The PoC `sales.order.get` is read-only so the flag is `false`.
+Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. The built-in `sales.order.get` is read-only so the flag is `false`.
 
 ## Testing a tool locally
 

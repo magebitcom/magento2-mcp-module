@@ -18,7 +18,7 @@ use stdClass;
 /**
  * Handles the `initialize` JSON-RPC method.
  *
- * Advertises only the `tools` capability for the PoC; `resources`, `prompts`,
+ * Advertises only the `tools` capability; `resources`, `prompts`,
  * `sampling`, `logging` etc. are deliberately omitted.
  *
  * `protocolVersion` is sourced from {@see ProtocolVersionValidator::LATEST}

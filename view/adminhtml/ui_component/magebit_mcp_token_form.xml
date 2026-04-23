@@ -103,7 +103,7 @@
                 <dataType>boolean</dataType>
                 <label translate="true">Allow write tools</label>
                 <dataScope>allow_writes</dataScope>
-                <notice translate="true">Also requires the global `magebit_mcp/general/allow_writes` kill-switch to be on. No write tools ship in the PoC.</notice>
+                <notice translate="true">Also requires the global `magebit_mcp/general/allow_writes` kill-switch to be on.</notice>
             </settings>
             <formElements>
                 <checkbox>

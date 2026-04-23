@@ -8,14 +8,15 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Validator;
 
-use InvalidArgumentException;
+use Magebit\Mcp\Model\Config\ModuleConfig;
+use RuntimeException;
 
 /**
  * DNS-rebinding defense required by the MCP Streamable HTTP transport spec.
  *
- * The allowlist is configured via etc/di.xml — default entries cover the
- * loopback origins every bundled MCP client uses. Patterns accept either an
- * exact match or a trailing `*` wildcard that is anchored to a host-component
+ * The allowlist is sourced from store config
+ * (`magebit_mcp/security/allowed_origins`) — one origin per line, exact
+ * match or a trailing `*` wildcard that is anchored to a host-component
  * boundary: after the prefix, the only allowed characters are end-of-string,
  * `:` (port), or `/` (path). This rejects hosts crafted to match the prefix
  * via subdomains, e.g. `http://localhost.attacker.com` does NOT match
@@ -31,24 +32,9 @@ use InvalidArgumentException;
  */
 class OriginValidator
 {
-    /** @var array<int, string> */
-    private array $allowedOrigins;
-
-    /**
-     * @param array<int, string> $allowedOrigins Exact match or trailing-`*` wildcard patterns.
-     */
-    public function __construct(array $allowedOrigins = [])
-    {
-        $list = array_values($allowedOrigins);
-        if ($list === []) {
-            // Empty list combined with the "missing Origin → allow" rule would
-            // silently admit every request. Fail loud at boot time instead of
-            // discovering the misconfiguration after a breach.
-            throw new InvalidArgumentException(
-                'OriginValidator allowlist is empty — check etc/di.xml for a broken argument merge.'
-            );
-        }
-        $this->allowedOrigins = $list;
+    public function __construct(
+        private readonly ModuleConfig $config
+    ) {
     }
 
     public function isAllowed(?string $origin): bool
@@ -60,7 +46,18 @@ class OriginValidator
             return false;
         }
 
-        foreach ($this->allowedOrigins as $pattern) {
+        $allowlist = $this->config->getAllowedOrigins();
+        if ($allowlist === []) {
+            // Empty list combined with the "missing Origin → allow" rule would
+            // silently admit every browser request. Fail loud instead of
+            // discovering the misconfiguration after a breach. The store-config
+            // default in etc/config.xml seeds the loopback entries.
+            throw new RuntimeException(
+                'MCP allowed-origins list is empty — set magebit_mcp/security/allowed_origins.'
+            );
+        }
+
+        foreach ($allowlist as $pattern) {
             if ($this->matches($origin, $pattern)) {
                 return true;
             }

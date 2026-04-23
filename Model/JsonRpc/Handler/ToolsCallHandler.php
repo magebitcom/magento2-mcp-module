@@ -15,13 +15,13 @@ use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -43,15 +43,13 @@ use Throwable;
  */
 class ToolsCallHandler implements HandlerInterface
 {
-    private const CONFIG_ALLOW_WRITES = 'magebit_mcp/general/allow_writes';
-
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly AclChecker $aclChecker,
         private readonly JsonSchemaValidator $schemaValidator,
         private readonly RateLimiterInterface $rateLimiter,
         private readonly EventManager $eventManager,
-        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly ModuleConfig $config,
         private readonly AuditContext $auditContext,
         private readonly LoggerInterface $logger
     ) {
@@ -94,8 +92,7 @@ class ToolsCallHandler implements HandlerInterface
         }
 
         if ($tool->getWriteMode() === WriteMode::WRITE) {
-            $globalAllow = $this->scopeConfig->isSetFlag(self::CONFIG_ALLOW_WRITES);
-            if (!$globalAllow || !$context->token->getAllowWrites()) {
+            if (!$this->config->isAllowWrites() || !$context->token->getAllowWrites()) {
                 return $this->fail($request, ErrorCode::WRITE_NOT_ALLOWED, 'Write tools are disabled for this server or token.');
             }
         }

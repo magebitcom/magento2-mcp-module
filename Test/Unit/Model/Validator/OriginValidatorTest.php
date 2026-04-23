@@ -8,53 +8,57 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Model\Validator;
 
-use InvalidArgumentException;
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\Validator\OriginValidator;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 class OriginValidatorTest extends TestCase
 {
-    private OriginValidator $validator;
-
-    protected function setUp(): void
-    {
-        $this->validator = new OriginValidator([
-            'http://localhost*',
-            'https://localhost*',
-            'http://127.0.0.1*',
-            'https://127.0.0.1*',
-        ]);
+    /**
+     * @param array<int, string> $allowlist
+     */
+    private function validator(array $allowlist = [
+        'http://localhost*',
+        'https://localhost*',
+        'http://127.0.0.1*',
+        'https://127.0.0.1*',
+    ]): OriginValidator {
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getAllowedOrigins')->willReturn($allowlist);
+        return new OriginValidator($config);
     }
 
     public function testAcceptsMissingOrigin(): void
     {
-        $this->assertTrue($this->validator->isAllowed(null));
-        $this->assertTrue($this->validator->isAllowed(''));
+        $validator = $this->validator();
+        $this->assertTrue($validator->isAllowed(null));
+        $this->assertTrue($validator->isAllowed(''));
     }
 
     public function testRejectsOriginLiteralNull(): void
     {
         // Sandboxed iframes and data: URIs send `Origin: null` — precisely the
         // attacker shapes the DNS-rebinding defense is there to catch.
-        $this->assertFalse($this->validator->isAllowed('null'));
+        $this->assertFalse($this->validator()->isAllowed('null'));
     }
 
     public function testAcceptsLoopbackWithoutPort(): void
     {
-        $this->assertTrue($this->validator->isAllowed('http://localhost'));
-        $this->assertTrue($this->validator->isAllowed('http://127.0.0.1'));
+        $this->assertTrue($this->validator()->isAllowed('http://localhost'));
+        $this->assertTrue($this->validator()->isAllowed('http://127.0.0.1'));
     }
 
     public function testAcceptsLoopbackWithPort(): void
     {
-        $this->assertTrue($this->validator->isAllowed('http://localhost:3000'));
-        $this->assertTrue($this->validator->isAllowed('https://localhost:8443'));
-        $this->assertTrue($this->validator->isAllowed('http://127.0.0.1:6277'));
+        $this->assertTrue($this->validator()->isAllowed('http://localhost:3000'));
+        $this->assertTrue($this->validator()->isAllowed('https://localhost:8443'));
+        $this->assertTrue($this->validator()->isAllowed('http://127.0.0.1:6277'));
     }
 
     public function testAcceptsLoopbackWithPath(): void
     {
-        $this->assertTrue($this->validator->isAllowed('http://localhost/mcp'));
+        $this->assertTrue($this->validator()->isAllowed('http://localhost/mcp'));
     }
 
     /**
@@ -75,19 +79,26 @@ class OriginValidatorTest extends TestCase
      */
     public function testRejectsDnsRebindingShapes(string $origin): void
     {
-        $this->assertFalse($this->validator->isAllowed($origin));
+        $this->assertFalse($this->validator()->isAllowed($origin));
     }
 
     public function testRejectsNonListedHost(): void
     {
-        $this->assertFalse($this->validator->isAllowed('https://evil.example.com'));
+        $this->assertFalse($this->validator()->isAllowed('https://evil.example.com'));
     }
 
-    public function testConstructorThrowsOnEmptyAllowlist(): void
+    public function testThrowsOnEmptyAllowlist(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessageMatches('/allowlist is empty/');
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/allowed-origins list is empty/');
 
-        new OriginValidator([]);
+        $this->validator([])->isAllowed('http://localhost');
+    }
+
+    public function testEmptyAllowlistStillAcceptsMissingOrigin(): void
+    {
+        // Non-browser clients omit the Origin header. They shouldn't be blocked
+        // by a misconfigured allowlist — the bearer token is still required.
+        $this->assertTrue($this->validator([])->isAllowed(null));
     }
 }

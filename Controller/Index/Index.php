@@ -15,6 +15,7 @@ use Magebit\Mcp\Exception\UnauthorizedException;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\AuditLog\AuditLogger;
 use Magebit\Mcp\Model\Auth\TokenAuthenticator;
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\Dispatcher;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Request as RpcRequest;
@@ -61,7 +62,8 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         private readonly ProtocolVersionValidator $protocolVersionValidator,
         private readonly TokenAuthenticator $authenticator,
         private readonly AuditContext $auditContext,
-        private readonly AuditLogger $auditLogger
+        private readonly AuditLogger $auditLogger,
+        private readonly ModuleConfig $config
     ) {
     }
 
@@ -70,6 +72,13 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         $this->seedAuditEnvironment();
 
         try {
+            if (!$this->config->isEnabled()) {
+                // Log the attempt so operators can see what was blocked while
+                // the server is taken offline — but don't reveal the reason
+                // beyond a generic "unavailable" signal.
+                return $this->failRpc(503, null, ErrorCode::SERVER_DISABLED, 'MCP server is disabled.');
+            }
+
             $origin = $this->header('Origin');
             if (!$this->originValidator->isAllowed($origin)) {
                 return $this->failRpc(403, null, ErrorCode::INVALID_ORIGIN, 'Origin not allowed.');

@@ -10,6 +10,7 @@
                         <resource id="Magebit_Mcp::tools" title="MCP Tools" sortOrder="30">
                             <resource id="Magebit_Mcp::tool_sales_order_get" title="Tool: Get Order" sortOrder="10"/>
                         </resource>
+                        <resource id="Magebit_Mcp::config" title="MCP Configuration" sortOrder="40"/>
                     </resource>
                 </resource>
             </resource>

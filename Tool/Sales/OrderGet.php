@@ -20,7 +20,7 @@ use Magento\Sales\Api\Data\OrderItemInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 
 /**
- * PoC MCP tool: fetch summary data for a single order by increment ID.
+ * MCP tool: fetch summary data for a single order by increment ID.
  *
  * Read-only. Gated by the Magebit_Mcp::tool.sales.order.get ACL resource,
  * independent of the admin UI's Magento_Sales::sales_order resource — an admin

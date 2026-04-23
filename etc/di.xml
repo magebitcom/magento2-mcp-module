@@ -73,17 +73,6 @@
         </arguments>
     </type>
 
-    <type name="Magebit\Mcp\Model\Validator\OriginValidator">
-        <arguments>
-            <argument name="allowedOrigins" xsi:type="array">
-                <item name="localhost_http" xsi:type="string">http://localhost*</item>
-                <item name="localhost_https" xsi:type="string">https://localhost*</item>
-                <item name="loopback_http" xsi:type="string">http://127.0.0.1*</item>
-                <item name="loopback_https" xsi:type="string">https://127.0.0.1*</item>
-            </argument>
-        </arguments>
-    </type>
-
     <type name="Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler">
         <arguments>
             <argument name="serverName" xsi:type="string">Magebit MCP</argument>

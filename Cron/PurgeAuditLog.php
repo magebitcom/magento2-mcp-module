@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Cron;
 
-use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\Framework\App\ResourceConnection;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -23,11 +23,10 @@ use Throwable;
 class PurgeAuditLog
 {
     private const TABLE = 'magebit_mcp_audit_log';
-    private const CONFIG_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
 
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
-        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly ModuleConfig $config,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -35,8 +34,7 @@ class PurgeAuditLog
     public function execute(): void
     {
         try {
-            $raw = $this->scopeConfig->getValue(self::CONFIG_RETENTION_DAYS);
-            $days = is_scalar($raw) ? (int) $raw : 0;
+            $days = $this->config->getAuditRetentionDays();
         } catch (Throwable $e) {
             $this->logger->warning('MCP audit retention config unreadable, skipping purge.', ['exception' => $e]);
             return;

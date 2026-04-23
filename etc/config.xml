@@ -4,8 +4,30 @@
     <default>
         <magebit_mcp>
             <general>
+                <enabled>1</enabled>
                 <allow_writes>0</allow_writes>
             </general>
+            <security>
+                <allowed_origins># Local development — MCP Inspector, Claude Desktop, Claude Code, ChatGPT Desktop
+http://localhost*
+https://localhost*
+http://127.0.0.1*
+https://127.0.0.1*
+# Claude (Anthropic) — web + remote MCP connectors
+https://claude.ai
+https://claude.com
+# ChatGPT (OpenAI) — web
+https://chatgpt.com
+https://chat.openai.com
+# Google Gemini
+https://gemini.google.com
+# Microsoft Copilot
+https://copilot.microsoft.com
+# xAI Grok
+https://grok.com
+# Perplexity
+https://www.perplexity.ai</allowed_origins>
+            </security>
             <audit>
                 <retention_days>90</retention_days>
             </audit>

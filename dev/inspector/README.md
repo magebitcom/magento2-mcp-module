@@ -64,7 +64,7 @@ CLIENT_PORT=6280 SERVER_PORT=6281 npx @modelcontextprotocol/inspector ...
 ## What to try once connected
 
 - **`tools/list`** — the UI fetches it automatically on connect. Scan which tools the current admin's ACL grants (empty list is the signal that the ACL isn't wired for your role — not a bug).
-- **`tools/call sales.order.get`** with `{"increment_id": "000000001"}` — round-trips the PoC tool.
+- **`tools/call sales.order.get`** with `{"increment_id": "000000001"}` — round-trips the built-in tool.
 - **Malformed inputs** — toggle "Show raw request" in the UI to watch `-32014` schema-validation errors come back with the `errors` payload.
 
 Every Inspector-driven call is captured in the admin audit grid at `System → MCP → Audit Log`; use it to confirm the `token_id`, `duration_ms`, and redacted `arguments_json` match what you expect.

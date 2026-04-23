@@ -29,6 +29,7 @@ final class ErrorCode
     public const WRITE_NOT_ALLOWED = -32012;
     public const RATE_LIMITED = -32013;
     public const SCHEMA_VALIDATION_FAILED = -32014;
+    public const SERVER_DISABLED = -32015;
 
     private function __construct()
     {

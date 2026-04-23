@@ -11,7 +11,7 @@
         "magento/module-authorization": "^100.4",
         "magento/module-sales": "^103.0",
         "opis/json-schema": "^2.3",
-        "magebitcom/magento2-core": "^0.1.1"
+        "magebitcom/magento2-core": "*"
     },
     "autoload": {
         "files": [
