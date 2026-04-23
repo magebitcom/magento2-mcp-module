@@ -18,6 +18,20 @@
                     <comment><![CDATA[Master kill-switch. When disabled, every <code>POST /mcp</code> request
                     returns HTTP 503 before authentication runs. Existing tokens remain intact.]]></comment>
                 </field>
+                <field id="server_name" translate="label comment" type="text" sortOrder="15"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Server Name</label>
+                    <comment><![CDATA[Advertised to MCP clients via <code>initialize.serverInfo.name</code>.
+                    Defaults to <code>Magebit MCP</code>; override per deployment so operators and AI clients
+                    can tell staging from production at a glance.]]></comment>
+                </field>
+                <field id="server_description" translate="label comment" type="textarea" sortOrder="16"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Server Description</label>
+                    <comment><![CDATA[Optional free-text hint advertised to MCP clients via
+                    <code>initialize.instructions</code>. Describe what this store sells, its currency/locale,
+                    or any operator-specific guidance the AI should keep in mind when selecting tools.]]></comment>
+                </field>
                 <field id="allow_writes" translate="label comment" type="select" sortOrder="20"
                        showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Allow Write Tools</label>

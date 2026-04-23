@@ -8,7 +8,14 @@
                     <resource id="Magebit_Mcp::mcp" title="MCP" sortOrder="200">
                         <resource id="Magebit_Mcp::mcp_tokens" title="MCP Connections" sortOrder="10"/>
                         <resource id="Magebit_Mcp::mcp_audit" title="MCP Audit Log" sortOrder="20"/>
-                        <resource id="Magebit_Mcp::tools" title="MCP Tools" sortOrder="30"/>
+                        <resource id="Magebit_Mcp::tools" title="MCP Tools" sortOrder="30">
+                            <resource id="Magebit_Mcp::tool_system_store_list"
+                                      title="Tool: List Stores &amp; Websites" sortOrder="10"/>
+                            <resource id="Magebit_Mcp::tool_system_store_info"
+                                      title="Tool: Get Store Information" sortOrder="20"/>
+                            <resource id="Magebit_Mcp::tool_system_config_get"
+                                      title="Tool: Get System Configuration Value" sortOrder="30"/>
+                        </resource>
                         <resource id="Magebit_Mcp::config" title="MCP Configuration" sortOrder="40"/>
                     </resource>
                 </resource>

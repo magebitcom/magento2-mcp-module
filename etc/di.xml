@@ -97,8 +97,23 @@
 
     <type name="Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler">
         <arguments>
-            <argument name="serverName" xsi:type="string">Magebit MCP</argument>
             <argument name="serverVersion" xsi:type="string">0.1.0</argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
+        <arguments>
+            <argument name="tools" xsi:type="array">
+                <item name="system.store.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\StoreList
+                </item>
+                <item name="system.store.info" xsi:type="object">
+                    Magebit\Mcp\Tool\System\StoreInfo
+                </item>
+                <item name="system.config.get" xsi:type="object">
+                    Magebit\Mcp\Tool\System\ConfigGet
+                </item>
+            </argument>
         </arguments>
     </type>
 

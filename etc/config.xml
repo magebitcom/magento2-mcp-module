@@ -5,6 +5,7 @@
         <magebit_mcp>
             <general>
                 <enabled>1</enabled>
+                <server_name>Magento MCP</server_name>
                 <allow_writes>0</allow_writes>
             </general>
             <security>

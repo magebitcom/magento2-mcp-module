@@ -23,9 +23,13 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 class ModuleConfig
 {
     public const XML_PATH_ENABLED = 'magebit_mcp/general/enabled';
+    public const XML_PATH_SERVER_NAME = 'magebit_mcp/general/server_name';
+    public const XML_PATH_SERVER_DESCRIPTION = 'magebit_mcp/general/server_description';
     public const XML_PATH_ALLOW_WRITES = 'magebit_mcp/general/allow_writes';
     public const XML_PATH_ALLOWED_ORIGINS = 'magebit_mcp/security/allowed_origins';
     public const XML_PATH_AUDIT_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
+
+    public const DEFAULT_SERVER_NAME = 'Magento MCP';
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -53,6 +57,33 @@ class ModuleConfig
     public function isAllowWrites(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_ALLOW_WRITES);
+    }
+
+    /**
+     * Server name advertised to MCP clients via `initialize.serverInfo.name`.
+     *
+     * Falls back to {@see self::DEFAULT_SERVER_NAME} when the admin leaves the
+     * field blank so clients never see an empty identifier.
+     *
+     * @return string
+     */
+    public function getServerName(): string
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_SERVER_NAME);
+        $value = is_string($value) ? trim($value) : '';
+        return $value !== '' ? $value : self::DEFAULT_SERVER_NAME;
+    }
+
+    /**
+     * Optional free-text description surfaced via `initialize.instructions`.
+     *
+     * @return string|null
+     */
+    public function getServerDescription(): ?string
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_SERVER_DESCRIPTION);
+        $value = is_string($value) ? trim($value) : '';
+        return $value !== '' ? $value : null;
     }
 
     /**
