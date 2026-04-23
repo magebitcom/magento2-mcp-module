@@ -21,10 +21,21 @@
         </arguments>
     </virtualType>
 
+    <!-- Admin grid data source for the token listing. -->
+    <virtualType name="Magebit\Mcp\Ui\Component\Listing\TokenCollection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">magebit_mcp_token</argument>
+            <argument name="resourceModel" xsi:type="string">Magebit\Mcp\Model\ResourceModel\Token</argument>
+            <argument name="identifierName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
                 <item name="magebit_mcp_audit_log_listing_data_source" xsi:type="string">Magebit\Mcp\Ui\Component\Listing\AuditLogCollection</item>
+                <item name="magebit_mcp_token_listing_data_source" xsi:type="string">Magebit\Mcp\Ui\Component\Listing\TokenCollection</item>
             </argument>
         </arguments>
     </type>

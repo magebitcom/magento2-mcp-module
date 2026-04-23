@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">magebit_mcp_token_form.magebit_mcp_token_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">New MCP Connection</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="save" class="Magebit\Mcp\Block\Adminhtml\Token\Edit\SaveButton"/>
+            <button name="back" class="Magebit\Mcp\Block\Adminhtml\Token\Edit\BackButton"/>
+        </buttons>
+        <namespace>magebit_mcp_token_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>magebit_mcp_token_form.magebit_mcp_token_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="magebit_mcp_token_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="magebit_mcp/token/save"/>
+        </settings>
+        <dataProvider class="Magebit\Mcp\Ui\DataProvider\Form\TokenDataProvider" name="magebit_mcp_token_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Connection</label>
+        </settings>
+        <field name="admin_user_id" sortOrder="10" formElement="select">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">magebit_mcp_token</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Admin user</label>
+                <dataScope>admin_user_id</dataScope>
+                <notice translate="true">Token ACL intersects with this admin's role at every request — deactivating the admin revokes the token implicitly.</notice>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Magebit\Mcp\Ui\Component\Form\AdminUser\Options"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="name" sortOrder="20" formElement="input">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">magebit_mcp_token</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Name</label>
+                <dataScope>name</dataScope>
+                <notice translate="true">A human-readable label, e.g. "Claude Desktop, laptop".</notice>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="max_text_length" xsi:type="number">128</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="expires_at" sortOrder="30" formElement="date">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">magebit_mcp_token</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>date</dataType>
+                <label translate="true">Expires at (UTC)</label>
+                <dataScope>expires_at</dataScope>
+                <notice translate="true">Leave blank for a non-expiring token. Revoke manually when the device is retired.</notice>
+            </settings>
+        </field>
+        <field name="allow_writes" sortOrder="40" formElement="checkbox">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">magebit_mcp_token</item>
+                    <item name="default" xsi:type="number">0</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>boolean</dataType>
+                <label translate="true">Allow write tools</label>
+                <dataScope>allow_writes</dataScope>
+                <notice translate="true">Also requires the global `magebit_mcp/general/allow_writes` kill-switch to be on. No write tools ship in the PoC.</notice>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="number">0</map>
+                            <map name="true" xsi:type="number">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="scopes" sortOrder="50" formElement="multiselect">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="source" xsi:type="string">magebit_mcp_token</item>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Scopes</label>
+                <dataScope>scopes</dataScope>
+                <notice translate="true">Pick specific tools this token may call. Leave empty for "every tool the admin's role grants".</notice>
+            </settings>
+            <formElements>
+                <multiselect>
+                    <settings>
+                        <options class="Magebit\Mcp\Ui\Component\Form\Token\ScopeOptions"/>
+                    </settings>
+                </multiselect>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

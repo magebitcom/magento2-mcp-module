@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">magebit_mcp_token_listing.magebit_mcp_token_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>magebit_mcp_token_columns</spinner>
+        <deps>
+            <dep>magebit_mcp_token_listing.magebit_mcp_token_listing_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="add">
+                <url path="magebit_mcp/token/new"/>
+                <class>primary</class>
+                <label translate="true">New Connection</label>
+            </button>
+        </buttons>
+    </settings>
+    <dataSource name="magebit_mcp_token_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Magebit_Mcp::mcp_tokens</aclResource>
+        <dataProvider name="magebit_mcp_token_listing_data_source"
+                      class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction">
+            <action name="revoke">
+                <settings>
+                    <confirm>
+                        <title translate="true">Revoke selected connections</title>
+                        <message translate="true">The bearer tokens stop working immediately on next request. Continue?</message>
+                    </confirm>
+                    <url path="magebit_mcp/token/massRevoke"/>
+                    <type>revoke</type>
+                    <label translate="true">Revoke</label>
+                </settings>
+            </action>
+            <action name="delete">
+                <settings>
+                    <confirm>
+                        <title translate="true">Delete selected connections</title>
+                        <message translate="true">Deletes rows entirely. Audit linkage is lost. Continue?</message>
+                    </confirm>
+                    <url path="magebit_mcp/token/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="magebit_mcp_token_columns">
+        <settings>
+            <editorConfig>
+                <param name="enabled" xsi:type="boolean">false</param>
+                <param name="indexField" xsi:type="string">id</param>
+                <param name="selectProvider" xsi:type="string">magebit_mcp_token_listing.magebit_mcp_token_listing.magebit_mcp_token_columns.ids</param>
+            </editorConfig>
+        </settings>
+        <selectionsColumn name="ids" sortOrder="1">
+            <settings>
+                <indexField>id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+                <resizeDefaultWidth>55</resizeDefaultWidth>
+            </settings>
+        </selectionsColumn>
+        <column name="id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>desc</sorting>
+            </settings>
+        </column>
+        <column name="admin_user_id" sortOrder="20" class="Magebit\Mcp\Ui\Component\Listing\Column\AdminUser">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Admin</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="name" sortOrder="30">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Name</label>
+            </settings>
+        </column>
+        <column name="revoked_at" sortOrder="40" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenStatus">
+            <settings>
+                <label translate="true">Status</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="allow_writes" sortOrder="50" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenAllowWrites">
+            <settings>
+                <label translate="true">Writes</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="scopes_json" sortOrder="60" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenScopes">
+            <settings>
+                <label translate="true">Scopes</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="last_used_at" sortOrder="70" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Last used</label>
+            </settings>
+        </column>
+        <column name="expires_at" sortOrder="80" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Expires</label>
+            </settings>
+        </column>
+        <column name="created_at" sortOrder="90" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created</label>
+            </settings>
+        </column>
+        <actionsColumn name="actions" sortOrder="100" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenActions">
+            <settings>
+                <indexField>id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+                <resizeDefaultWidth>140</resizeDefaultWidth>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>
