@@ -7,6 +7,28 @@
     <preference for="Magebit\Mcp\Api\RateLimiterInterface"
                 type="Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter"/>
 
+    <!-- Request-scoped audit context — a single shared instance per HTTP request
+         so the controller and the tools/call handler populate the same object. -->
+    <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>
+
+    <!-- Admin grid data source for the audit log listing. -->
+    <virtualType name="Magebit\Mcp\Ui\Component\Listing\AuditLogCollection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">magebit_mcp_audit_log</argument>
+            <argument name="resourceModel" xsi:type="string">Magebit\Mcp\Model\ResourceModel\AuditEntry</argument>
+            <argument name="identifierName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="magebit_mcp_audit_log_listing_data_source" xsi:type="string">Magebit\Mcp\Ui\Component\Listing\AuditLogCollection</item>
+            </argument>
+        </arguments>
+    </type>
+
     <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
         <arguments>
             <argument name="tools" xsi:type="array">

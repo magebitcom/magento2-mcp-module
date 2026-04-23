@@ -6,6 +6,9 @@
             <general>
                 <allow_writes>0</allow_writes>
             </general>
+            <audit>
+                <retention_days>90</retention_days>
+            </audit>
         </magebit_mcp>
     </default>
 </config>

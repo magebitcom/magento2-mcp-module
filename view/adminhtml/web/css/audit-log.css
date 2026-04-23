@@ -1,0 +1,36 @@
+.mcp-audit-muted {
+    color: #858585;
+    font-style: italic;
+}
+
+.mcp-audit-method {
+    background: #f4f4f4;
+    border-radius: 3px;
+    color: #303030;
+    display: inline-block;
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    padding: 2px 6px;
+}
+
+.mcp-audit-tool {
+    color: #575757;
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+.mcp-audit-code {
+    color: #858585;
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    margin-right: 4px;
+}
+
+.admin__data-grid-outer-wrap .grid-severity-notice,
+.admin__data-grid-outer-wrap .grid-severity-critical,
+.admin__data-grid-outer-wrap .grid-severity-major,
+.admin__data-grid-outer-wrap .grid-severity-minor {
+    display: inline-block;
+    padding: 1px 8px;
+}

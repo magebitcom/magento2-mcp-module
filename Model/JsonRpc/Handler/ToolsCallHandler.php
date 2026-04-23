@@ -10,9 +10,11 @@ namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
 use Magebit\Mcp\Api\RateLimiterInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
+use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
@@ -47,7 +49,8 @@ class ToolsCallHandler implements HandlerInterface
         private readonly JsonSchemaValidator $schemaValidator,
         private readonly RateLimiterInterface $rateLimiter,
         private readonly EventManager $eventManager,
-        private readonly ScopeConfigInterface $scopeConfig
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly AuditContext $auditContext
     ) {
     }
 
@@ -60,71 +63,44 @@ class ToolsCallHandler implements HandlerInterface
     {
         $name = $request->params['name'] ?? null;
         if (!is_string($name) || $name === '') {
-            return Response::failure(
-                $request->id,
-                ErrorCode::INVALID_PARAMS,
-                'Missing or invalid "name" parameter.'
-            );
+            return $this->fail($request, ErrorCode::INVALID_PARAMS, 'Missing or invalid "name" parameter.');
         }
+        $this->auditContext->toolName = $name;
 
         try {
             $tool = $this->toolRegistry->get($name);
         } catch (NoSuchEntityException) {
-            return Response::failure(
-                $request->id,
-                ErrorCode::TOOL_NOT_FOUND,
-                sprintf('Tool "%s" is not registered.', $name)
-            );
+            return $this->fail($request, ErrorCode::TOOL_NOT_FOUND, sprintf('Tool "%s" is not registered.', $name));
         }
+
+        $argsRaw = $request->params['arguments'] ?? [];
+        if (!is_array($argsRaw)) {
+            return $this->fail($request, ErrorCode::INVALID_PARAMS, 'Parameter "arguments" must be an object.');
+        }
+        /** @var array<string, mixed> $args */
+        $args = $argsRaw;
+        $this->auditContext->arguments = $args;
 
         $scopes = $context->token->getScopes();
         if ($scopes !== null && !in_array($name, $scopes, true)) {
-            return Response::failure(
-                $request->id,
-                ErrorCode::FORBIDDEN,
-                'Token scope does not include this tool.'
-            );
+            return $this->fail($request, ErrorCode::FORBIDDEN, 'Token scope does not include this tool.');
         }
 
         if (!$this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource())) {
-            return Response::failure(
-                $request->id,
-                ErrorCode::FORBIDDEN,
-                'Your admin role does not permit this tool.'
-            );
+            return $this->fail($request, ErrorCode::FORBIDDEN, 'Your admin role does not permit this tool.');
         }
 
         if ($tool->getWriteMode() === WriteMode::WRITE) {
             $globalAllow = $this->scopeConfig->isSetFlag(self::CONFIG_ALLOW_WRITES);
             if (!$globalAllow || !$context->token->getAllowWrites()) {
-                return Response::failure(
-                    $request->id,
-                    ErrorCode::WRITE_NOT_ALLOWED,
-                    'Write tools are disabled for this server or token.'
-                );
+                return $this->fail($request, ErrorCode::WRITE_NOT_ALLOWED, 'Write tools are disabled for this server or token.');
             }
         }
-
-        $argsRaw = $request->params['arguments'] ?? [];
-        if (!is_array($argsRaw)) {
-            return Response::failure(
-                $request->id,
-                ErrorCode::INVALID_PARAMS,
-                'Parameter "arguments" must be an object.'
-            );
-        }
-        /** @var array<string, mixed> $args */
-        $args = $argsRaw;
 
         try {
             $this->schemaValidator->validate($tool->getInputSchema(), $args);
         } catch (SchemaValidationException $e) {
-            return Response::failure(
-                $request->id,
-                ErrorCode::SCHEMA_VALIDATION_FAILED,
-                $e->getMessage(),
-                ['errors' => $e->getErrors()]
-            );
+            return $this->fail($request, ErrorCode::SCHEMA_VALIDATION_FAILED, $e->getMessage(), ['errors' => $e->getErrors()]);
         }
 
         $this->rateLimiter->check($context->getAdminUserId(), $name);
@@ -145,6 +121,7 @@ class ToolsCallHandler implements HandlerInterface
             $exception = $e;
         }
         $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+        $this->auditContext->durationMs = $durationMs;
 
         $this->eventManager->dispatch('magebit_mcp_tool_call_after', [
             'tool' => $tool,
@@ -157,16 +134,29 @@ class ToolsCallHandler implements HandlerInterface
         ]);
 
         if ($exception !== null) {
-            return Response::failure(
-                $request->id,
-                ErrorCode::TOOL_EXECUTION_FAILED,
-                $exception->getMessage()
-            );
+            return $this->fail($request, ErrorCode::TOOL_EXECUTION_FAILED, $exception->getMessage());
+        }
+
+        $this->auditContext->resultSummary = $result->getAuditSummary();
+        if ($result->isError()) {
+            $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
         }
 
         return Response::success($request->id, [
             'content' => $result->getContent(),
             'isError' => $result->isError(),
         ]);
+    }
+
+    /**
+     * Build a failure response and stamp audit status in one place.
+     *
+     * @param array<string, mixed>|null $data
+     */
+    private function fail(Request $request, int $code, string $message, ?array $data = null): Response
+    {
+        $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
+        $this->auditContext->errorCode = (string) $code;
+        return Response::failure($request->id, $code, $message, $data);
     }
 }

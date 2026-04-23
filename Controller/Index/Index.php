@@ -10,11 +10,15 @@ namespace Magebit\Mcp\Controller\Index;
 
 use InvalidArgumentException;
 use JsonException;
+use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magebit\Mcp\Exception\UnauthorizedException;
+use Magebit\Mcp\Model\AuditLog\AuditContext;
+use Magebit\Mcp\Model\AuditLog\AuditLogger;
 use Magebit\Mcp\Model\Auth\TokenAuthenticator;
 use Magebit\Mcp\Model\JsonRpc\Dispatcher;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Request as RpcRequest;
+use Magebit\Mcp\Model\JsonRpc\Response as RpcResponse;
 use Magebit\Mcp\Model\Validator\OriginValidator;
 use Magebit\Mcp\Model\Validator\ProtocolVersionValidator;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -35,7 +39,9 @@ use Magento\Framework\App\ResponseInterface;
  *   3. Body / JSON-RPC envelope parse.
  *   4. MCP-Protocol-Version header check.
  *   5. Dispatch to the JSON-RPC handler (carrying the auth context).
- *   6. Write response directly on the HTTP response (bypassing layout).
+ *   6. Audit row flushed unconditionally via the `finally` block — even
+ *      unauthenticated attempts leave a trail.
+ *   7. Response written directly on the HTTP response (bypassing layout).
  */
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
@@ -45,65 +51,101 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         private readonly Dispatcher $dispatcher,
         private readonly OriginValidator $originValidator,
         private readonly ProtocolVersionValidator $protocolVersionValidator,
-        private readonly TokenAuthenticator $authenticator
+        private readonly TokenAuthenticator $authenticator,
+        private readonly AuditContext $auditContext,
+        private readonly AuditLogger $auditLogger
     ) {
     }
 
     public function execute(): ResponseInterface
     {
-        $origin = $this->header('Origin');
-        if (!$this->originValidator->isAllowed($origin)) {
-            return $this->jsonRpcError(403, null, ErrorCode::INVALID_ORIGIN, 'Origin not allowed.');
-        }
+        $this->seedAuditEnvironment();
 
         try {
-            $context = $this->authenticator->authenticate($this->header('Authorization'));
-        } catch (UnauthorizedException $e) {
-            $this->response->setHeader('WWW-Authenticate', 'Bearer realm="Magento MCP"', true);
-            return $this->jsonRpcError(401, null, ErrorCode::UNAUTHORIZED, $e->getMessage());
-        }
-
-        $body = (string) $this->request->getContent();
-
-        try {
-            $parsed = json_decode($body, true, 32, JSON_THROW_ON_ERROR);
-        } catch (JsonException $e) {
-            return $this->jsonRpcError(400, null, ErrorCode::PARSE_ERROR, 'Parse error: ' . $e->getMessage());
-        }
-
-        if (!is_array($parsed)) {
-            return $this->jsonRpcError(400, null, ErrorCode::INVALID_REQUEST, 'Request body must be a JSON object.');
-        }
-        /** @var array<string, mixed> $parsed */
-
-        try {
-            $rpcRequest = RpcRequest::fromArray($parsed);
-        } catch (InvalidArgumentException $e) {
-            return $this->jsonRpcError(400, $this->extractId($parsed), ErrorCode::INVALID_REQUEST, $e->getMessage());
-        }
-
-        if ($rpcRequest->method !== 'initialize') {
-            $version = $this->header('Mcp-Protocol-Version');
-            if ($version !== null && !$this->protocolVersionValidator->isSupported($version)) {
-                return $this->jsonRpcError(
-                    400,
-                    $rpcRequest->id,
-                    ErrorCode::UNSUPPORTED_PROTOCOL_VERSION,
-                    sprintf('Unsupported MCP-Protocol-Version: %s', $version)
-                );
+            $origin = $this->header('Origin');
+            if (!$this->originValidator->isAllowed($origin)) {
+                return $this->failRpc(403, null, ErrorCode::INVALID_ORIGIN, 'Origin not allowed.');
             }
+
+            try {
+                $context = $this->authenticator->authenticate($this->header('Authorization'));
+            } catch (UnauthorizedException $e) {
+                $this->response->setHeader('WWW-Authenticate', 'Bearer realm="Magento MCP"', true);
+                return $this->failRpc(401, null, ErrorCode::UNAUTHORIZED, $e->getMessage());
+            }
+
+            $this->auditContext->tokenId = $context->token->getId();
+            $this->auditContext->adminUserId = $context->getAdminUserId();
+
+            $body = (string) $this->request->getContent();
+
+            try {
+                $parsed = json_decode($body, true, 32, JSON_THROW_ON_ERROR);
+            } catch (JsonException $e) {
+                return $this->failRpc(400, null, ErrorCode::PARSE_ERROR, 'Parse error: ' . $e->getMessage());
+            }
+
+            if (!is_array($parsed)) {
+                return $this->failRpc(400, null, ErrorCode::INVALID_REQUEST, 'Request body must be a JSON object.');
+            }
+            /** @var array<string, mixed> $parsed */
+
+            $this->auditContext->requestId = $this->extractId($parsed);
+
+            try {
+                $rpcRequest = RpcRequest::fromArray($parsed);
+            } catch (InvalidArgumentException $e) {
+                return $this->failRpc(400, $this->auditContext->requestId, ErrorCode::INVALID_REQUEST, $e->getMessage());
+            }
+
+            $this->auditContext->method = $rpcRequest->method;
+
+            if ($rpcRequest->method !== 'initialize') {
+                $version = $this->header('Mcp-Protocol-Version');
+                if ($version !== null && !$this->protocolVersionValidator->isSupported($version)) {
+                    return $this->failRpc(
+                        400,
+                        $rpcRequest->id,
+                        ErrorCode::UNSUPPORTED_PROTOCOL_VERSION,
+                        sprintf('Unsupported MCP-Protocol-Version: %s', $version)
+                    );
+                }
+            }
+
+            $rpcResponse = $this->dispatcher->dispatch($rpcRequest, $context);
+
+            if ($rpcResponse === null) {
+                $this->response->setHttpResponseCode(202);
+                $this->response->setHeader('Content-Type', 'application/json', true);
+                $this->response->setBody('');
+                return $this->response;
+            }
+
+            if ($rpcResponse->error !== null) {
+                $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
+                $this->auditContext->errorCode = (string) $rpcResponse->error->code;
+            }
+
+            return $this->writeJson(200, $rpcResponse->toArray());
+        } finally {
+            $this->auditLogger->write($this->auditContext);
         }
+    }
 
-        $rpcResponse = $this->dispatcher->dispatch($rpcRequest, $context);
-
-        if ($rpcResponse === null) {
-            $this->response->setHttpResponseCode(202);
-            $this->response->setHeader('Content-Type', 'application/json', true);
-            $this->response->setBody('');
-            return $this->response;
-        }
-
-        return $this->writeJson(200, $rpcResponse->toArray());
+    /**
+     * Populate the environment fields visible to every request, regardless of
+     * whether auth or parsing succeeds.
+     */
+    private function seedAuditEnvironment(): void
+    {
+        // `(request)` is a placeholder so the row still lands if we bail before
+        // parsing the JSON-RPC envelope — auth failures would otherwise be
+        // invisible in the audit trail. Once the envelope is parsed the real
+        // method name overwrites this.
+        $this->auditContext->method = '(request)';
+        $this->auditContext->protocolVersion = $this->header('Mcp-Protocol-Version');
+        $this->auditContext->ipAddress = $this->request->getClientIp();
+        $this->auditContext->userAgent = $this->header('User-Agent');
     }
 
     private function header(string $name): ?string
@@ -151,8 +193,10 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         return $this->response;
     }
 
-    private function jsonRpcError(int $httpStatus, int|string|null $id, int $code, string $message): ResponseInterface
+    private function failRpc(int $httpStatus, int|string|null $id, int $code, string $message): ResponseInterface
     {
+        $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
+        $this->auditContext->errorCode = (string) $code;
         return $this->writeJson($httpStatus, [
             'jsonrpc' => '2.0',
             'id' => $id,
