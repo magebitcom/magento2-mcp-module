@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <preference for="Magebit\Mcp\Api\ToolRegistryInterface"
+                type="Magebit\Mcp\Model\Tool\ToolRegistry"/>
+    <preference for="Magebit\Mcp\Api\RateLimiterInterface"
+                type="Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter"/>
+
+    <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
+        <arguments>
+            <argument name="tools" xsi:type="array">
+                <item name="sales.order.get" xsi:type="object">Magebit\Mcp\Tool\Sales\OrderGet</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="magebit_mcp_tools_list" xsi:type="object">Magebit\Mcp\Console\Command\ListToolsCommand</item>
+                <item name="magebit_mcp_tools_validate_acl" xsi:type="object">Magebit\Mcp\Console\Command\ValidateAclCommand</item>
+            </argument>
+        </arguments>
+    </type>
+
+</config>
