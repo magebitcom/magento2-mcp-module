@@ -16,7 +16,9 @@
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
             <argument name="mainTable" xsi:type="string">magebit_mcp_audit_log</argument>
-            <argument name="resourceModel" xsi:type="string">Magebit\Mcp\Model\ResourceModel\AuditEntry</argument>
+            <argument name="resourceModel" xsi:type="string">
+                Magebit\Mcp\Model\ResourceModel\AuditEntry
+            </argument>
             <argument name="identifierName" xsi:type="string">id</argument>
         </arguments>
     </virtualType>
@@ -26,7 +28,9 @@
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
             <argument name="mainTable" xsi:type="string">magebit_mcp_token</argument>
-            <argument name="resourceModel" xsi:type="string">Magebit\Mcp\Model\ResourceModel\Token</argument>
+            <argument name="resourceModel" xsi:type="string">
+                Magebit\Mcp\Model\ResourceModel\Token
+            </argument>
             <argument name="identifierName" xsi:type="string">id</argument>
         </arguments>
     </virtualType>
@@ -34,8 +38,12 @@
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
-                <item name="magebit_mcp_audit_log_listing_data_source" xsi:type="string">Magebit\Mcp\Ui\Component\Listing\AuditLogCollection</item>
-                <item name="magebit_mcp_token_listing_data_source" xsi:type="string">Magebit\Mcp\Ui\Component\Listing\TokenCollection</item>
+                <item name="magebit_mcp_audit_log_listing_data_source" xsi:type="string">
+                    Magebit\Mcp\Ui\Component\Listing\AuditLogCollection
+                </item>
+                <item name="magebit_mcp_token_listing_data_source" xsi:type="string">
+                    Magebit\Mcp\Ui\Component\Listing\TokenCollection
+                </item>
             </argument>
         </arguments>
     </type>
@@ -43,7 +51,9 @@
     <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
         <arguments>
             <argument name="tools" xsi:type="array">
-                <item name="sales.order.get" xsi:type="object">Magebit\Mcp\Tool\Sales\OrderGet</item>
+                <item name="sales.order.get" xsi:type="object">
+                    Magebit\Mcp\Tool\Sales\OrderGet
+                </item>
             </argument>
         </arguments>
     </type>
@@ -51,12 +61,24 @@
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
-                <item name="magebit_mcp_tools_list" xsi:type="object">Magebit\Mcp\Console\Command\ListToolsCommand</item>
-                <item name="magebit_mcp_tools_validate_acl" xsi:type="object">Magebit\Mcp\Console\Command\ValidateAclCommand</item>
-                <item name="magebit_mcp_token_create" xsi:type="object">Magebit\Mcp\Console\Command\TokenCreateCommand</item>
-                <item name="magebit_mcp_token_list" xsi:type="object">Magebit\Mcp\Console\Command\TokenListCommand</item>
-                <item name="magebit_mcp_token_revoke" xsi:type="object">Magebit\Mcp\Console\Command\TokenRevokeCommand</item>
-                <item name="magebit_mcp_token_delete" xsi:type="object">Magebit\Mcp\Console\Command\TokenDeleteCommand</item>
+                <item name="magebit_mcp_tools_list" xsi:type="object">
+                    Magebit\Mcp\Console\Command\ListToolsCommand
+                </item>
+                <item name="magebit_mcp_tools_validate_acl" xsi:type="object">
+                    Magebit\Mcp\Console\Command\ValidateAclCommand
+                </item>
+                <item name="magebit_mcp_token_create" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenCreateCommand
+                </item>
+                <item name="magebit_mcp_token_list" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenListCommand
+                </item>
+                <item name="magebit_mcp_token_revoke" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenRevokeCommand
+                </item>
+                <item name="magebit_mcp_token_delete" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenDeleteCommand
+                </item>
             </argument>
         </arguments>
     </type>
@@ -64,11 +86,21 @@
     <type name="Magebit\Mcp\Model\JsonRpc\Dispatcher">
         <arguments>
             <argument name="handlers" xsi:type="array">
-                <item name="initialize" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler</item>
-                <item name="ping" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\PingHandler</item>
-                <item name="notifications_initialized" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\InitializedNotificationHandler</item>
-                <item name="tools_list" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler</item>
-                <item name="tools_call" xsi:type="object">Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler</item>
+                <item name="initialize" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler
+                </item>
+                <item name="ping" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\PingHandler
+                </item>
+                <item name="notifications_initialized" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\InitializedNotificationHandler
+                </item>
+                <item name="tools_list" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler
+                </item>
+                <item name="tools_call" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler
+                </item>
             </argument>
         </arguments>
     </type>
