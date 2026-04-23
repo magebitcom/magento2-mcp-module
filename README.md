@@ -2,7 +2,7 @@
 
 Magento 2 implementation of the [Model Context Protocol](https://modelcontextprotocol.io/specification/2025-06-18) — a single `POST /mcp` endpoint that lets AI clients (Claude Desktop / Code, ChatGPT, Cursor, the MCP Inspector, …) discover and call tools that read or mutate Magento data, gated by bearer tokens bound to an admin user's ACL.
 
-This module provides the **transport, authentication, authorization, audit, and tool-registry primitives**. Domain-specific tools live in satellite modules (see `Magebit_McpOrderTools` for the canonical example) or ship inside this module when they belong to the core system surface — stores, websites, system configuration.
+This module provides the **transport, authentication, authorization, audit, and tool-registry primitives**. Domain-specific tools live in sub-modules (see below) or ship inside this module when they belong to the core system surface — stores, websites, system configuration.
 
 - JSON-RPC 2.0 + HTTP POST
 - MCP protocol version **2025-06-18**
@@ -13,6 +13,11 @@ This module provides the **transport, authentication, authorization, audit, and 
 - Full audit trail of every call (method, arguments, result, duration, admin, token) with PII redacted to HMAC fingerprints at write time
 - Admin UI for browsing tokens + the audit log, plus store-config for name/description/kill-switch/origins/retention
 - Console commands for token lifecycle, tool listing, and ACL validation
+
+## Sub-modules
+
+### Included
+- [Order module](https://github.com/magebitcom/magento2-mcp-order-tools)
 
 ## Install
 
@@ -75,6 +80,102 @@ curl -sS -X POST https://<host>/mcp \
         }
       }'
 ```
+
+## Connect an AI client
+
+The server speaks MCP's **Streamable HTTP** transport — one URL (`https://<host>/mcp`), bearer auth via the `Authorization` header. Any MCP client that supports HTTP transport connects natively; clients that still only speak the stdio transport connect through the official [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) proxy.
+
+Every snippet below assumes a token minted via `magebit:mcp:token:create`. Production stores MUST be reached over HTTPS — bearer tokens travel in the request header.
+
+### Claude Desktop
+
+Claude Desktop supports remote MCP servers as **Custom Connectors** on paid plans. Settings → Connectors → **Add custom connector**:
+
+- **Name** — whatever you want shown in the UI (the server-side label from `Server Name` is advertised back at handshake)
+- **URL** — `https://<host>/mcp`
+- **Advanced → Authentication** — `Bearer`, paste the token
+
+On Free plans (or for any client that can't hold a custom-header value) use the stdio bridge below via `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "magebit": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://<host>/mcp",
+        "--header", "Authorization:Bearer <token>"
+      ]
+    }
+  }
+}
+```
+
+Config lives at `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows).
+
+### Claude Code
+
+Claude Code supports HTTP transport natively via `claude mcp add`:
+
+```bash
+claude mcp add --transport http magebit https://<host>/mcp \
+  --header "Authorization: Bearer <token>"
+```
+
+Scope it to the current project with `--scope project` or keep it user-global (the default). `claude mcp list` shows every registered server; `/mcp` inside a session confirms handshake + tool discovery. Config is written to `~/.claude.json` (global) or `.mcp.json` at the project root (project scope).
+
+### ChatGPT (Developer Mode connectors)
+
+On plans that expose custom MCP connectors (Business / Enterprise / Edu, and Plus/Pro via Developer Mode), Settings → Connectors → **Create**:
+
+- **MCP server URL** — `https://<host>/mcp`
+- **Authentication** — `Custom header`, name `Authorization`, value `Bearer <token>`
+
+Public-internet reachability is required — ChatGPT calls the MCP from OpenAI infrastructure, not your browser, so a localhost URL will not work. Expose staging via a tunnel (Cloudflare Tunnel, ngrok, Tailscale Funnel) if you need to test before production DNS is cut over.
+
+### Cursor / Cline / Windsurf
+
+All three read an `mcp.json` file. Cursor's lives at `~/.cursor/mcp.json` (global) or `<project>/.cursor/mcp.json` (per-workspace):
+
+```json
+{
+  "mcpServers": {
+    "magebit": {
+      "url": "https://<host>/mcp",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      }
+    }
+  }
+}
+```
+
+If your Cursor/Cline/Windsurf build only supports stdio, swap the block for the same `npx mcp-remote …` recipe shown under Claude Desktop.
+
+### MCP Inspector (smoke test before wiring a real client)
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Open the UI it prints, pick **Streamable HTTP**, enter `https://<host>/mcp`, and set a **Bearer token** in the auth panel. `tools/list` and `tools/call` are one-click from there.
+
+### Anything else (raw HTTP, scripts, other clients)
+
+The server implements MCP 2025-06-18 verbatim. Any client or script that can speak JSON-RPC 2.0 over `POST` works as long as it sends:
+
+```
+Authorization: Bearer <token>
+Mcp-Protocol-Version: 2025-06-18
+Content-Type: application/json
+```
+
+`Mcp-Protocol-Version` is required on every request *after* the initial `initialize` handshake.
+
+### Local development
+
+Use a loopback origin (`http://localhost*`, `http://127.0.0.1*`) — they're in the default allowlist. If Claude Desktop / ChatGPT needs to reach your dev box from outside, expose it with Cloudflare Tunnel / ngrok / Tailscale Funnel and add the tunnel hostname to **Stores → Configuration → Magebit → MCP Server → Allowed Origins**.
 
 ## Console commands
 
