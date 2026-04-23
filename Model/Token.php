@@ -162,8 +162,10 @@ class Token extends AbstractModel implements TokenInterface
         if ($exp === null) {
             return false;
         }
-        $ts = strtotime($exp);
-        return $ts !== false && $ts < time();
+        // expires_at is always stored as UTC (see TokenCreateCommand); parse it
+        // explicitly in UTC so servers on non-UTC timezones don't drift hours.
+        $dt = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $exp, new \DateTimeZone('UTC'));
+        return $dt !== false && $dt->getTimestamp() < time();
     }
 
     public function isActive(): bool

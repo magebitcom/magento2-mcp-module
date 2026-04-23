@@ -19,8 +19,12 @@ use Throwable;
  * the role via the *current* request's user context — fine for admin HTML
  * controllers, useless for MCP where the acting admin is identified by bearer
  * token rather than session cookie. This class bypasses the RoleLocator and
- * asks the raw ACL graph directly using the admin user's ACL identifier
- * ("U<userId>"), which inherits from their parent role.
+ * asks the raw ACL graph directly via {@see \Magento\User\Model\User::getAclRole()},
+ * which returns the admin's user-type `authorization_role.role_id`. Its parent
+ * in the ACL tree is the admin's group role — inheritance on the Laminas ACL
+ * takes care of resolving group-level grants, so a non-root admin whose group
+ * has `Magento_Backend::system` allowed will correctly inherit every resource
+ * under that subtree.
  */
 class AclChecker
 {

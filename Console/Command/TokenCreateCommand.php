@@ -73,11 +73,16 @@ class TokenCreateCommand extends Command
 
         $expiresAt = null;
         if (is_string($expiresRaw) && $expiresRaw !== '') {
-            $ts = strtotime($expiresRaw);
-            if ($ts === false) {
-                throw new RuntimeException(sprintf('Unable to parse --expires value "%s".', $expiresRaw));
+            try {
+                $dt = new \DateTimeImmutable($expiresRaw, new \DateTimeZone('UTC'));
+            } catch (\Exception $e) {
+                throw new RuntimeException(sprintf(
+                    'Unable to parse --expires value "%s": %s',
+                    $expiresRaw,
+                    $e->getMessage()
+                ));
             }
-            $expiresAt = gmdate('Y-m-d H:i:s', $ts);
+            $expiresAt = $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         }
 
         $admin = $this->userFactory->create();

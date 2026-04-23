@@ -57,7 +57,9 @@ class TokenRepository
         $token = $this->tokenFactory->create();
         $this->resource->load($token, $hash, 'token_hash');
         if ($token->getId() === null) {
-            throw NoSuchEntityException::singleField('token_hash', '<redacted>');
+            // Column name intentionally omitted — don't leak schema detail into
+            // logs of the wrapping UnauthorizedException chain.
+            throw NoSuchEntityException::singleField('bearer', '<redacted>');
         }
         return $token;
     }

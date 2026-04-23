@@ -12,6 +12,8 @@ use Magebit\Mcp\Exception\UnauthorizedException;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\User\Model\UserFactory;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Verifies the `Authorization: Bearer` header on every MCP HTTP request.
@@ -33,7 +35,8 @@ class TokenAuthenticator
     public function __construct(
         private readonly TokenHasher $tokenHasher,
         private readonly TokenRepository $tokenRepository,
-        private readonly UserFactory $userFactory
+        private readonly UserFactory $userFactory,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -68,7 +71,15 @@ class TokenAuthenticator
 
         $tokenId = $token->getId();
         if ($tokenId !== null) {
-            $this->tokenRepository->touchLastUsed($tokenId);
+            // Best-effort telemetry — never fail an otherwise valid auth on this.
+            try {
+                $this->tokenRepository->touchLastUsed($tokenId);
+            } catch (Throwable $e) {
+                $this->logger->warning('Failed to update MCP token last_used_at.', [
+                    'token_id' => $tokenId,
+                    'exception' => $e,
+                ]);
+            }
         }
 
         return new AuthenticatedContext($token, $admin);

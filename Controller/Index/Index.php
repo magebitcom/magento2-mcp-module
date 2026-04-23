@@ -110,6 +110,13 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
         $value = $this->request->getServer($key);
+        // Some Apache + PHP-FPM / CGI deployments strip the Authorization header
+        // unless `SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1` (Apache) or
+        // the equivalent fastcgi_param rule is set; the raw header then lands in
+        // REDIRECT_HTTP_* instead. Fall back so the module works on default configs.
+        if (($value === null || $value === '') && $key === 'HTTP_AUTHORIZATION') {
+            $value = $this->request->getServer('REDIRECT_HTTP_AUTHORIZATION');
+        }
         if (!is_string($value) || $value === '') {
             return null;
         }
