@@ -2,6 +2,11 @@
 
 Third-party modules expose new MCP tools by implementing `Magebit\Mcp\Api\ToolInterface` and registering the class with the `ToolRegistry` via `etc/di.xml`. The registry is a DI-array — Magento merges contributions at compile time, so conflicts fail at `bin/magento setup:di:compile` rather than at runtime.
 
+For a canonical satellite that ships a full catalog of read + write tools with caller-driven field selection, see `Magebit_McpOrderTools`. It demonstrates:
+
+- The **field-resolver pattern** (`FieldResolverInterface` + `ResolverPipeline` in this module; per-entity sub-interfaces like `OrderFieldResolverInterface` in the satellite) for building tool responses out of DI-injected, 3rd-party-extendable fragments.
+- The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI.
+
 ## Step 1 — Implement `ToolInterface`
 
 ```php
@@ -158,7 +163,7 @@ To ship a write tool, return `WriteMode::WRITE` from `getWriteMode()`. The dispa
 
 Both must pass; either fails → `-32012 Write not allowed`.
 
-Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. The built-in `sales.order.get` is read-only so the flag is `false`.
+Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. Read tools return `false`. See `Magebit_McpOrderTools` for a canonical example of both.
 
 ## Testing a tool locally
 

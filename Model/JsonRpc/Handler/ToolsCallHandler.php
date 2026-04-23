@@ -107,6 +107,21 @@ class ToolsCallHandler implements HandlerInterface
             return $this->fail($request, ErrorCode::FORBIDDEN, 'Your admin role does not permit this tool.');
         }
 
+        if ($tool instanceof \Magebit\Mcp\Api\UnderlyingAclAwareInterface) {
+            $underlying = $tool->getUnderlyingAclResource();
+            if ($underlying !== null
+                && !$this->aclChecker->isAllowed($context->adminUser, $underlying)
+            ) {
+                // Preserves the "MCP cannot do what the admin UI cannot"
+                // invariant. See Magebit\Mcp\Api\UnderlyingAclAwareInterface.
+                return $this->fail(
+                    $request,
+                    ErrorCode::FORBIDDEN,
+                    'Your admin role does not permit the underlying Magento action.'
+                );
+            }
+        }
+
         if ($tool->getWriteMode() === WriteMode::WRITE) {
             if (!$this->config->isAllowWrites() || !$context->token->getAllowWrites()) {
                 return $this->fail(

@@ -20,12 +20,14 @@ class AclCheckerTest extends TestCase
 {
     /**
      * @var AclBuilder
+     * @phpstan-var AclBuilder&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private AclBuilder&MockObject $aclBuilder;
 
     /**
      * @var Acl
+     * @phpstan-var Acl&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private Acl&MockObject $acl;

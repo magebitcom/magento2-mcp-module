@@ -48,16 +48,6 @@
         </arguments>
     </type>
 
-    <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
-        <arguments>
-            <argument name="tools" xsi:type="array">
-                <item name="sales.order.get" xsi:type="object">
-                    Magebit\Mcp\Tool\Sales\OrderGet
-                </item>
-            </argument>
-        </arguments>
-    </type>
-
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">

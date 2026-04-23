@@ -63,8 +63,8 @@ CLIENT_PORT=6280 SERVER_PORT=6281 npx @modelcontextprotocol/inspector ...
 
 ## What to try once connected
 
-- **`tools/list`** — the UI fetches it automatically on connect. Scan which tools the current admin's ACL grants (empty list is the signal that the ACL isn't wired for your role — not a bug).
-- **`tools/call sales.order.get`** with `{"increment_id": "000000001"}` — round-trips the built-in tool.
+- **`tools/list`** — the UI fetches it automatically on connect. Scan which tools the current admin's ACL grants (empty list is the signal that the ACL isn't wired for your role — not a bug). The base module ships no tools on its own; tool modules (e.g. `Magebit_McpOrderTools`) register theirs here.
+- **`tools/call <tool>`** — pick any registered tool name from the `tools/list` output.
 - **Malformed inputs** — toggle "Show raw request" in the UI to watch `-32014` schema-validation errors come back with the `errors` payload.
 
 Every Inspector-driven call is captured in the admin audit grid at `System → MCP → Audit Log`; use it to confirm the `token_id`, `duration_ms`, and redacted `arguments_json` match what you expect.
@@ -88,8 +88,8 @@ NODE_TLS_REJECT_UNAUTHORIZED=0 \
   --transport http \
   --header "Authorization: Bearer <token>" \
   --method tools/call \
-  --tool-name sales.order.get \
-  --tool-arg increment_id=000000001
+  --tool-name <tool-from-tools-list> \
+  --tool-arg key=value
 ```
 
 The Inspector injects its own `Mcp-Protocol-Version` header, so you don't need to add one yourself. If you do, the server tolerates the duplicate folded value (`"2025-06-18, 2025-06-18"`) — see `ProtocolVersionValidator`.

@@ -9,7 +9,6 @@
         "magento/module-backend": "^102.0",
         "magento/module-user": "^101.2",
         "magento/module-authorization": "^100.4",
-        "magento/module-sales": "^103.0",
         "opis/json-schema": "^2.3",
         "magebitcom/magento2-core": "*"
     },
