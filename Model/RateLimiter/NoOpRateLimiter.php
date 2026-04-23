@@ -19,7 +19,12 @@ use Magebit\Mcp\Api\RateLimiterInterface;
  */
 class NoOpRateLimiter implements RateLimiterInterface
 {
+    /**
+     * @inheritDoc
+     */
     public function check(int $adminUserId, string $toolName): void
     {
+        // No-op by design — see class doc. Suppress unused-param lint.
+        unset($adminUserId, $toolName);
     }
 }

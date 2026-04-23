@@ -19,14 +19,22 @@ use Opis\JsonSchema\Validator;
  */
 class JsonSchemaValidator
 {
+    /**
+     * @param Validator $validator
+     */
     public function __construct(
         private readonly Validator $validator
     ) {
     }
 
     /**
-     * @param array<string, mixed> $schema
-     * @param array<string, mixed> $data
+     * Validate `$data` against `$schema` or throw on any failure.
+     *
+     * @param array $schema
+     * @param array $data
+     * @phpstan-param array<string, mixed> $schema
+     * @phpstan-param array<string, mixed> $data
+     * @return void
      * @throws SchemaValidationException
      */
     public function validate(array $schema, array $data): void

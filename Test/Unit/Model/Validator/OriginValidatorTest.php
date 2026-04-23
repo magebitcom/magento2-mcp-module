@@ -23,7 +23,8 @@ class OriginValidatorTest extends TestCase
         'https://localhost*',
         'http://127.0.0.1*',
         'https://127.0.0.1*',
-    ]): OriginValidator {
+    ]): OriginValidator
+    {
         $config = $this->createMock(ModuleConfig::class);
         $config->method('getAllowedOrigins')->willReturn($allowlist);
         return new OriginValidator($config);

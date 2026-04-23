@@ -11,9 +11,14 @@ namespace Magebit\Mcp\Ui\Component\Listing\Column;
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magento\Framework\Data\OptionSourceInterface;
 
+/**
+ * Filter source for the `response_status` column in the audit-log grid.
+ */
 class ResponseStatusOptions implements OptionSourceInterface
 {
     /**
+     * Build the {ok, error} filter option list.
+     *
      * @return array<int, array<string, string>>
      */
     public function toOptionArray(): array

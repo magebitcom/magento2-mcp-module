@@ -25,19 +25,30 @@ class TokenRevokeCommand extends Command
 {
     private const ARG_ID = 'id';
 
+    /**
+     * @param TokenRepository $tokenRepository
+     */
     public function __construct(
         private readonly TokenRepository $tokenRepository
     ) {
         parent::__construct();
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:revoke')
-            ->setDescription('Revoke an MCP token by id (audit-preserving — use token:delete to also remove the row).')
+            ->setDescription(
+                'Revoke an MCP token by id (audit-preserving — use token:delete to also remove the row).'
+            )
             ->addArgument(self::ARG_ID, InputArgument::REQUIRED, 'Token id (numeric).');
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $raw = $input->getArgument(self::ARG_ID);

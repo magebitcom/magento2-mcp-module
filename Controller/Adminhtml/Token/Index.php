@@ -26,6 +26,10 @@ class Index extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
+    /**
+     * @param Context $context
+     * @param PageFactory $resultPageFactory
+     */
     public function __construct(
         Context $context,
         private readonly PageFactory $resultPageFactory
@@ -33,6 +37,9 @@ class Index extends Action implements HttpGetActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(): Page
     {
         $this->surfaceNewBearerIfAny();
@@ -44,6 +51,11 @@ class Index extends Action implements HttpGetActionInterface
         return $resultPage;
     }
 
+    /**
+     * Pull the one-shot plaintext from the session and surface it as a warning.
+     *
+     * @return void
+     */
     private function surfaceNewBearerIfAny(): void
     {
         $bag = $this->_session->getData(Save::SESSION_KEY_PLAINTEXT, true);

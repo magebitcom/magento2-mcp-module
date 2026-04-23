@@ -19,12 +19,17 @@ use Magento\Framework\Data\OptionSourceInterface;
  */
 class ScopeOptions implements OptionSourceInterface
 {
+    /**
+     * @param ToolRegistryInterface $toolRegistry
+     */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry
     ) {
     }
 
     /**
+     * Build the multiselect options from the currently-registered tool registry.
+     *
      * @return array<int, array{value: string, label: string}>
      */
     public function toOptionArray(): array

@@ -18,7 +18,9 @@ use RuntimeException;
 class SchemaValidationException extends RuntimeException
 {
     /**
-     * @param array<int|string, mixed> $errors Formatted opis/json-schema error tree.
+     * @param string $message
+     * @param array $errors Formatted opis/json-schema error tree.
+     * @phpstan-param array<int|string, mixed> $errors
      */
     public function __construct(
         string $message,
@@ -28,6 +30,8 @@ class SchemaValidationException extends RuntimeException
     }
 
     /**
+     * Retrieve the structured opis error tree for inclusion in a JSON-RPC error.
+     *
      * @return array<int|string, mixed>
      */
     public function getErrors(): array

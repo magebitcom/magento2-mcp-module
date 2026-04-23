@@ -27,19 +27,30 @@ class TokenDeleteCommand extends Command
 {
     private const ARG_ID = 'id';
 
+    /**
+     * @param TokenRepository $tokenRepository
+     */
     public function __construct(
         private readonly TokenRepository $tokenRepository
     ) {
         parent::__construct();
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:delete')
-            ->setDescription('Delete an MCP token by id. Prefer magebit:mcp:token:revoke for audit-preserving invalidation.')
+            ->setDescription(
+                'Delete an MCP token by id. Prefer magebit:mcp:token:revoke for audit-preserving invalidation.'
+            )
             ->addArgument(self::ARG_ID, InputArgument::REQUIRED, 'Token id (numeric).');
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $raw = $input->getArgument(self::ARG_ID);

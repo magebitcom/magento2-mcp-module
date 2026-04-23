@@ -27,6 +27,12 @@ class MassDelete extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
+    /**
+     * @param Context $context
+     * @param Filter $filter
+     * @param CollectionFactory $collectionFactory
+     * @param TokenRepository $tokenRepository
+     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
@@ -36,6 +42,9 @@ class MassDelete extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */
@@ -60,8 +69,9 @@ class MassDelete extends Action implements HttpPostActionInterface
             try {
                 $this->tokenRepository->deleteById($id);
                 $deleted++;
-            } catch (Throwable) {
+            } catch (Throwable $ignoredDeleteError) {
                 // Continue; aggregate reported below.
+                unset($ignoredDeleteError);
             }
         }
 

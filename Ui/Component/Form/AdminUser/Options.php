@@ -19,12 +19,17 @@ use Magento\User\Model\ResourceModel\User\CollectionFactory;
  */
 class Options implements OptionSourceInterface
 {
+    /**
+     * @param CollectionFactory $userCollectionFactory
+     */
     public function __construct(
         private readonly CollectionFactory $userCollectionFactory
     ) {
     }
 
     /**
+     * Build the admin-user dropdown option list.
+     *
      * @return array<int, array{value: int|string, label: string}>
      */
     public function toOptionArray(): array
@@ -60,6 +65,12 @@ class Options implements OptionSourceInterface
         return $options;
     }
 
+    /**
+     * Coerce a mixed Magento AbstractModel attribute to a plain string.
+     *
+     * @param mixed $value
+     * @return string
+     */
     private function stringData(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';

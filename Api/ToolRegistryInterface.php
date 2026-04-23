@@ -26,9 +26,19 @@ interface ToolRegistryInterface
      */
     public function all(): array;
 
+    /**
+     * True if a tool with the given name is registered.
+     *
+     * @param string $name
+     * @return bool
+     */
     public function has(string $name): bool;
 
     /**
+     * Fetch a registered tool by name.
+     *
+     * @param string $name
+     * @return ToolInterface
      * @throws NoSuchEntityException when the tool is not registered.
      */
     public function get(string $name): ToolInterface;

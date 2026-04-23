@@ -28,8 +28,12 @@ class TokenActions extends Column
     private const URL_DELETE = 'magebit_mcp/token/delete';
 
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param UrlInterface $urlBuilder
+     * @param Escaper $escaper
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -43,7 +47,10 @@ class TokenActions extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Populate each row's actions column with Revoke / Delete links.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array

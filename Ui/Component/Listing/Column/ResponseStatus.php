@@ -22,8 +22,11 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class ResponseStatus extends Column
 {
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param Escaper $escaper
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -36,7 +39,10 @@ class ResponseStatus extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Render each row's response_status as a grid-severity badge.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -60,6 +66,12 @@ class ResponseStatus extends Column
         return $dataSource;
     }
 
+    /**
+     * Render a single status value as a grid-severity badge.
+     *
+     * @param string $status
+     * @return string
+     */
     private function renderCell(string $status): string
     {
         [$severity, $label] = match ($status) {

@@ -36,33 +36,78 @@ interface AuditEntryInterface
     public const STATUS_OK = 'ok';
     public const STATUS_ERROR = 'error';
 
+    /**
+     * Primary key. Null for unpersisted rows.
+     */
     public function getId(): ?int;
 
+    /**
+     * Token that authenticated the request, or null if auth failed before resolution.
+     */
     public function getTokenId(): ?int;
 
+    /**
+     * Admin user behind the token, or null if no token was resolved.
+     */
     public function getAdminUserId(): ?int;
 
+    /**
+     * JSON-RPC request id echoed back — may be a number, string, or null.
+     */
     public function getRequestId(): ?string;
 
+    /**
+     * Value of the Mcp-Protocol-Version header on the request.
+     */
     public function getProtocolVersion(): ?string;
 
+    /**
+     * JSON-RPC method name (e.g. `initialize`, `tools/call`).
+     */
     public function getMethod(): string;
 
+    /**
+     * Tool name for `tools/call` rows; null for lifecycle methods.
+     */
     public function getToolName(): ?string;
 
+    /**
+     * Redacted arguments payload (JSON-encoded, PII-fingerprinted, size-capped).
+     */
     public function getArgumentsJson(): ?string;
 
+    /**
+     * Tool-computed result summary (JSON-encoded); never the full response body.
+     */
     public function getResultSummaryJson(): ?string;
 
+    /**
+     * Coarse response status — `ok` or `error`.
+     */
     public function getResponseStatus(): string;
 
+    /**
+     * Numeric error code as string, or null when the response was successful.
+     */
     public function getErrorCode(): ?string;
 
+    /**
+     * Wall-clock duration of the request in milliseconds.
+     */
     public function getDurationMs(): ?int;
 
+    /**
+     * Remote IP address.
+     */
     public function getIpAddress(): ?string;
 
+    /**
+     * User-Agent header value.
+     */
     public function getUserAgent(): ?string;
 
+    /**
+     * Creation timestamp set at insert time.
+     */
     public function getCreatedAt(): ?string;
 }

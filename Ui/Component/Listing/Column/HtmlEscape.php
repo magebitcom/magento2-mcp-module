@@ -17,15 +17,24 @@ namespace Magebit\Mcp\Ui\Component\Listing\Column;
  * single string, so the return is always a string in practice; this helper
  * narrows without tripping PHPStan level 9.
  */
-final class HtmlEscape
+class HtmlEscape
 {
-    private function __construct()
+    /**
+     * Utility-only; never instantiated.
+     */
+    private function __construct() // phpcs:ignore Generic.CodeAnalysis.EmptyStatement
     {
+        // No-op constructor — kept private to prevent instantiation.
     }
 
     /**
-     * @param string|array<int|string, mixed> $escaped
+     * Narrow `string|array` down to a string, dropping arrays as empty text.
+     *
+     * @param string|array $escaped
+     * @phpstan-param string|array<int|string, mixed> $escaped
+     * @return string
      */
+    // phpcs:ignore Magento2.Functions.StaticFunction
     public static function toString(string|array $escaped): string
     {
         return is_string($escaped) ? $escaped : '';

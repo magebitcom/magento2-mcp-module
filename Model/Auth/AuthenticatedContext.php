@@ -18,14 +18,23 @@ use Magento\User\Model\User;
  * enforcement (write gate, rate limit) can reference the real admin user that
  * owns the bearer — never the Magento session user.
  */
-final class AuthenticatedContext
+class AuthenticatedContext
 {
+    /**
+     * @param TokenInterface $token
+     * @param User $adminUser
+     */
     public function __construct(
         public readonly TokenInterface $token,
         public readonly User $adminUser
     ) {
     }
 
+    /**
+     * Return the admin-user primary key, defaulting to 0 for unloaded users.
+     *
+     * @return int
+     */
     public function getAdminUserId(): int
     {
         $id = $this->adminUser->getId();

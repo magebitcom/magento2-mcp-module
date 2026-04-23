@@ -31,22 +31,35 @@ class OrderGet implements ToolInterface
     public const TOOL_NAME = 'sales.order.get';
     public const ACL_RESOURCE = 'Magebit_Mcp::tool_sales_order_get';
 
+    /**
+     * @param OrderRepositoryInterface $orderRepository
+     * @param SearchCriteriaBuilder $searchCriteriaBuilder
+     */
     public function __construct(
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly SearchCriteriaBuilder $searchCriteriaBuilder
     ) {
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getName(): string
     {
         return self::TOOL_NAME;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getTitle(): string
     {
         return 'Get Order';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getDescription(): string
     {
         return 'Return summary data for a single sales order by its increment ID'
@@ -54,6 +67,9 @@ class OrderGet implements ToolInterface
             . ' and name, created-at timestamp, and visible line items.';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getInputSchema(): array
     {
         return [
@@ -72,21 +88,33 @@ class OrderGet implements ToolInterface
         ];
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getAclResource(): string
     {
         return self::ACL_RESOURCE;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getWriteMode(): WriteMode
     {
         return WriteMode::READ;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getConfirmationRequired(): bool
     {
         return false;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(array $arguments): ToolResultInterface
     {
         $incrementId = $arguments['increment_id'] ?? null;
@@ -139,6 +167,10 @@ class OrderGet implements ToolInterface
     }
 
     /**
+     * Locate a single order by its increment ID.
+     *
+     * @param string $incrementId
+     * @return OrderInterface
      * @throws NoSuchEntityException
      */
     private function findByIncrementId(string $incrementId): OrderInterface
@@ -157,6 +189,9 @@ class OrderGet implements ToolInterface
     }
 
     /**
+     * Keep only the parent order lines, dropping bundle / configurable children.
+     *
+     * @param OrderInterface $order
      * @return OrderItemInterface[]
      */
     private function visibleItems(OrderInterface $order): array

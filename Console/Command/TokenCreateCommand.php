@@ -35,6 +35,13 @@ class TokenCreateCommand extends Command
     private const OPT_EXPIRES = 'expires';
     private const OPT_SCOPE = 'scope';
 
+    /**
+     * @param AdminUserLookup $adminUserLookup
+     * @param TokenFactory $tokenFactory
+     * @param TokenGenerator $tokenGenerator
+     * @param TokenHasher $tokenHasher
+     * @param TokenRepository $tokenRepository
+     */
     public function __construct(
         private readonly AdminUserLookup $adminUserLookup,
         private readonly TokenFactory $tokenFactory,
@@ -45,17 +52,48 @@ class TokenCreateCommand extends Command
         parent::__construct();
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:create')
             ->setDescription('Mint an MCP bearer token for an admin user. The plaintext is shown once.')
-            ->addOption(self::OPT_USER, 'u', InputOption::VALUE_REQUIRED, 'Admin username owning this token.')
-            ->addOption(self::OPT_NAME, null, InputOption::VALUE_REQUIRED, 'Human-readable label (e.g. "Claude Desktop, laptop").')
-            ->addOption(self::OPT_ALLOW_WRITES, null, InputOption::VALUE_NONE, 'Permit WRITE tools (global kill-switch must also be enabled).')
-            ->addOption(self::OPT_EXPIRES, null, InputOption::VALUE_REQUIRED, 'Expiration timestamp in strtotime-parseable format (e.g. "+30 days").')
-            ->addOption(self::OPT_SCOPE, 's', InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Tool name the token is scoped to (repeatable). Empty means all tools the admin role grants.');
+            ->addOption(
+                self::OPT_USER,
+                'u',
+                InputOption::VALUE_REQUIRED,
+                'Admin username owning this token.'
+            )
+            ->addOption(
+                self::OPT_NAME,
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Human-readable label (e.g. "Claude Desktop, laptop").'
+            )
+            ->addOption(
+                self::OPT_ALLOW_WRITES,
+                null,
+                InputOption::VALUE_NONE,
+                'Permit WRITE tools (global kill-switch must also be enabled).'
+            )
+            ->addOption(
+                self::OPT_EXPIRES,
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Expiration timestamp in strtotime-parseable format (e.g. "+30 days").'
+            )
+            ->addOption(
+                self::OPT_SCOPE,
+                's',
+                InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
+                'Tool name the token is scoped to (repeatable). Empty means all tools the admin role grants.'
+            );
     }
 
+    /**
+     * @inheritDoc
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $username = $this->requiredString($input->getOption(self::OPT_USER), '--admin-user');
@@ -131,6 +169,13 @@ class TokenCreateCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * Narrow a mixed Console option value to a non-empty string or fail.
+     *
+     * @param mixed $value
+     * @param string $flag
+     * @return string
+     */
     private function requiredString(mixed $value, string $flag): string
     {
         if (!is_string($value) || $value === '') {

@@ -22,6 +22,12 @@ use RuntimeException;
  */
 class TokenRepository
 {
+    /**
+     * @param TokenFactory $tokenFactory
+     * @param TokenResource $resource
+     * @param CollectionFactory $collectionFactory
+     * @param DateTime $dateTime
+     */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
         private readonly TokenResource $resource,
@@ -30,6 +36,12 @@ class TokenRepository
     ) {
     }
 
+    /**
+     * Persist a token and return the saved instance.
+     *
+     * @param Token $token
+     * @return Token
+     */
     public function save(Token $token): Token
     {
         $this->resource->save($token);
@@ -37,6 +49,10 @@ class TokenRepository
     }
 
     /**
+     * Load a token by primary key.
+     *
+     * @param int $id
+     * @return Token
      * @throws NoSuchEntityException
      */
     public function getById(int $id): Token
@@ -50,6 +66,10 @@ class TokenRepository
     }
 
     /**
+     * Load a token by its stored HMAC hash.
+     *
+     * @param string $hash
+     * @return Token
      * @throws NoSuchEntityException
      */
     public function getByHash(string $hash): Token
@@ -65,6 +85,10 @@ class TokenRepository
     }
 
     /**
+     * Delete a token by primary key.
+     *
+     * @param int $id
+     * @return void
      * @throws NoSuchEntityException
      */
     public function deleteById(int $id): void
@@ -74,8 +98,10 @@ class TokenRepository
     }
 
     /**
-     * Idempotent — returns the token regardless of its prior revocation state.
+     * Mark a token as revoked. Idempotent — returns the token regardless of its prior state.
      *
+     * @param int $id
+     * @return Token
      * @throws NoSuchEntityException
      */
     public function revoke(int $id): Token
@@ -90,7 +116,11 @@ class TokenRepository
 
     /**
      * Lightweight last-used update — direct UPDATE, no model round-trip.
+     *
      * Safe to call on every successful authentication.
+     *
+     * @param int $id
+     * @return void
      */
     public function touchLastUsed(int $id): void
     {
@@ -110,6 +140,9 @@ class TokenRepository
     }
 
     /**
+     * List every token belonging to the given admin user.
+     *
+     * @param int $adminUserId
      * @return array<int, Token>
      */
     public function getByAdminUserId(int $adminUserId): array
@@ -120,6 +153,8 @@ class TokenRepository
     }
 
     /**
+     * List every token in the system.
+     *
      * @return array<int, Token>
      */
     public function getList(): array
@@ -129,7 +164,10 @@ class TokenRepository
     }
 
     /**
-     * @param array<int|string, mixed> $items
+     * Narrow a mixed-type collection array down to Token instances only.
+     *
+     * @param array $items
+     * @phpstan-param array<int|string, mixed> $items
      * @return array<int, Token>
      */
     private function narrowItems(array $items): array

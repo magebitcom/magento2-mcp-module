@@ -22,6 +22,9 @@ class Collection extends AbstractCollection
      */
     protected $_idFieldName = 'id';
 
+    /**
+     * @inheritDoc
+     */
     protected function _construct(): void
     {
         $this->_init(AuditEntry::class, AuditEntryResource::class);

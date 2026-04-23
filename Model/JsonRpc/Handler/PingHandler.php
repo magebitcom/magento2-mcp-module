@@ -18,11 +18,17 @@ use Magebit\Mcp\Model\JsonRpc\Response;
  */
 class PingHandler implements HandlerInterface
 {
+    /**
+     * @inheritDoc
+     */
     public function method(): string
     {
         return 'ping';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
         unset($context);

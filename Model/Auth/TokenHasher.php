@@ -28,21 +28,42 @@ class TokenHasher
 {
     private const ALGO = 'sha256';
 
+    /**
+     * @param DeploymentConfig $deploymentConfig
+     */
     public function __construct(
         private readonly DeploymentConfig $deploymentConfig
     ) {
     }
 
+    /**
+     * Derive the HMAC-SHA256 hash for a plaintext bearer.
+     *
+     * @param string $plaintext
+     * @return string
+     */
     public function hash(string $plaintext): string
     {
         return hash_hmac(self::ALGO, $plaintext, $this->key());
     }
 
+    /**
+     * Timing-safe comparison against a stored hash.
+     *
+     * @param string $plaintext
+     * @param string $storedHash
+     * @return bool
+     */
     public function verify(string $plaintext, string $storedHash): bool
     {
         return hash_equals($storedHash, $this->hash($plaintext));
     }
 
+    /**
+     * Fetch the per-install crypt key used to seed the HMAC.
+     *
+     * @return string
+     */
     private function key(): string
     {
         $key = $this->deploymentConfig->get('crypt/key');

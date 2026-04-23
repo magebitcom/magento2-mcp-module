@@ -20,13 +20,21 @@ use Magento\Backend\Block\Widget\Context;
  */
 class GenericButton
 {
+    /**
+     * @param Context $context
+     */
     public function __construct(
         protected readonly Context $context
     ) {
     }
 
     /**
-     * @param array<string, mixed> $params
+     * Build a URL through the backend URL builder for subclasses.
+     *
+     * @param string $route
+     * @param array $params
+     * @phpstan-param array<string, mixed> $params
+     * @return string
      */
     public function getUrl(string $route = '', array $params = []): string
     {

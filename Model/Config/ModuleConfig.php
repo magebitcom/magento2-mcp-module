@@ -27,16 +27,29 @@ class ModuleConfig
     public const XML_PATH_ALLOWED_ORIGINS = 'magebit_mcp/security/allowed_origins';
     public const XML_PATH_AUDIT_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
 
+    /**
+     * @param ScopeConfigInterface $scopeConfig
+     */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig
     ) {
     }
 
+    /**
+     * True when the master kill-switch allows traffic through `POST /mcp`.
+     *
+     * @return bool
+     */
     public function isEnabled(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_ENABLED);
     }
 
+    /**
+     * True when global-config permits WRITE-mode tools (tokens must also opt in).
+     *
+     * @return bool
+     */
     public function isAllowWrites(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_ALLOW_WRITES);
@@ -44,7 +57,8 @@ class ModuleConfig
 
     /**
      * Parsed allowlist — one origin per line, `#` comments and blank lines
-     * stripped. Trailing `*` wildcards are handled by {@see \Magebit\Mcp\Model\Validator\OriginValidator}.
+     * stripped. Trailing `*` wildcards are handled by
+     * {@see \Magebit\Mcp\Model\Validator\OriginValidator}.
      *
      * @return array<int, string>
      */
@@ -66,6 +80,11 @@ class ModuleConfig
         return $origins;
     }
 
+    /**
+     * Retention window (in days) applied by the audit-log purge cron.
+     *
+     * @return int
+     */
     public function getAuditRetentionDays(): int
     {
         $value = $this->scopeConfig->getValue(self::XML_PATH_AUDIT_RETENTION_DAYS);

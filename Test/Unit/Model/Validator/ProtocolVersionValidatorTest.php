@@ -13,6 +13,9 @@ use PHPUnit\Framework\TestCase;
 
 class ProtocolVersionValidatorTest extends TestCase
 {
+    /**
+     * @var ProtocolVersionValidator
+     */
     private ProtocolVersionValidator $validator;
 
     protected function setUp(): void

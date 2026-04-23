@@ -27,6 +27,7 @@ class Dispatcher
 
     /**
      * @param HandlerInterface[] $handlers
+     * @param LoggerInterface $logger
      */
     public function __construct(
         array $handlers,
@@ -52,6 +53,13 @@ class Dispatcher
         }
     }
 
+    /**
+     * Route a JSON-RPC request to its handler and wrap handler failures.
+     *
+     * @param Request $request
+     * @param AuthenticatedContext $context
+     * @return Response|null  Null for notifications (the server stays silent).
+     */
     public function dispatch(Request $request, AuthenticatedContext $context): ?Response
     {
         $handler = $this->handlers[$request->method] ?? null;

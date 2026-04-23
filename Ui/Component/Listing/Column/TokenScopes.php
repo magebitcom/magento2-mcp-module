@@ -21,8 +21,11 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class TokenScopes extends Column
 {
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param Escaper $escaper
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -35,7 +38,10 @@ class TokenScopes extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Render each row's scopes cell as a list of tool chips.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -55,6 +61,12 @@ class TokenScopes extends Column
         return $dataSource;
     }
 
+    /**
+     * Render one token's scopes_json value as HTML.
+     *
+     * @param mixed $raw
+     * @return string
+     */
     private function renderCell(mixed $raw): string
     {
         if (!is_string($raw) || $raw === '') {
@@ -75,6 +87,7 @@ class TokenScopes extends Column
             return '<span class="mcp-audit-muted">(all granted)</span>';
         }
 
-        return '<code class="mcp-audit-method">' . implode('</code> <code class="mcp-audit-method">', $names) . '</code>';
+        $separator = '</code> <code class="mcp-audit-method">';
+        return '<code class="mcp-audit-method">' . implode($separator, $names) . '</code>';
     }
 }

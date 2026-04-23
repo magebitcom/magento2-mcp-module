@@ -19,6 +19,11 @@ class TokenGenerator
 {
     private const BYTE_LENGTH = 32;
 
+    /**
+     * Produce a 64-character hex token backed by `random_bytes()`.
+     *
+     * @return string
+     */
     public function generate(): string
     {
         return bin2hex(random_bytes(self::BYTE_LENGTH));

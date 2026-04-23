@@ -20,7 +20,10 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class TokenAllowWrites extends Column
 {
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Render each row's allow_writes flag as a Yes/No badge.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array

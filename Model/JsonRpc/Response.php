@@ -17,10 +17,13 @@ use stdClass;
  * Construct via the {@see self::success()} / {@see self::failure()} named
  * constructors so this invariant is always maintained.
  */
-final class Response
+class Response
 {
     /**
-     * @param array<string, mixed>|null $result
+     * @param int|string|null $id
+     * @param array|null $result
+     * @phpstan-param array<string, mixed>|null $result
+     * @param Error|null $error
      */
     public function __construct(
         public readonly int|string|null $id,
@@ -30,22 +33,50 @@ final class Response
     }
 
     /**
-     * @param array<string, mixed> $result
+     * Build a successful response carrying a result payload.
+     *
+     * Static named constructor on this value object — it has no behaviour
+     * plugins would ever want to decorate, so the Magento2 "static discouraged"
+     * sniff is silenced intentionally.
+     *
+     * @SuppressWarnings(PHPMD.StaticAccess)
+     *
+     * @param int|string|null $id
+     * @param array $result
+     * @phpstan-param array<string, mixed> $result
+     * @return self
      */
+    // phpcs:ignore Magento2.Functions.StaticFunction
     public static function success(int|string|null $id, array $result): self
     {
         return new self($id, $result, null);
     }
 
     /**
-     * @param array<string, mixed>|null $data
+     * Build an error response with optional structured data.
+     *
+     * @SuppressWarnings(PHPMD.StaticAccess)
+     *
+     * @param int|string|null $id
+     * @param ErrorCode $code
+     * @param string $message
+     * @param array|null $data
+     * @phpstan-param array<string, mixed>|null $data
+     * @return self
      */
-    public static function failure(int|string|null $id, int $code, string $message, ?array $data = null): self
-    {
+    // phpcs:ignore Magento2.Functions.StaticFunction
+    public static function failure(
+        int|string|null $id,
+        ErrorCode $code,
+        string $message,
+        ?array $data = null
+    ): self {
         return new self($id, null, new Error($code, $message, $data));
     }
 
     /**
+     * Render the envelope as the JSON-RPC wire payload.
+     *
      * @return array<string, mixed>
      */
     public function toArray(): array

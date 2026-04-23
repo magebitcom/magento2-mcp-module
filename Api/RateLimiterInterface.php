@@ -19,6 +19,11 @@ use Magento\Framework\Exception\LocalizedException;
 interface RateLimiterInterface
 {
     /**
+     * Check whether the caller may invoke the named tool right now.
+     *
+     * @param int $adminUserId
+     * @param string $toolName
+     * @return void
      * @throws LocalizedException When the caller has exceeded their allowance for this tool.
      */
     public function check(int $adminUserId, string $toolName): void;

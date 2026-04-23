@@ -25,6 +25,8 @@ interface HandlerInterface
 {
     /**
      * JSON-RPC method name this handler responds to (e.g. "tools/list").
+     *
+     * @return string
      */
     public function method(): string;
 
@@ -33,6 +35,10 @@ interface HandlerInterface
      *
      * Return null ONLY for notification methods (the client sent no `id` and
      * expects no response). Requests with an id MUST return a Response.
+     *
+     * @param Request $request
+     * @param AuthenticatedContext $context
+     * @return Response|null
      */
     public function handle(Request $request, AuthenticatedContext $context): ?Response;
 }

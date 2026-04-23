@@ -27,8 +27,15 @@ use Magento\Ui\DataProvider\AbstractDataProvider;
 class TokenDataProvider extends AbstractDataProvider
 {
     /**
-     * @param array<string, mixed> $meta
-     * @param array<string, mixed> $data
+     * @param string $name
+     * @param string $primaryFieldName
+     * @param string $requestFieldName
+     * @param CollectionFactory $collectionFactory
+     * @param RequestInterface $request
+     * @param array $meta
+     * @param array $data
+     * @phpstan-param array<string, mixed> $meta
+     * @phpstan-param array<string, mixed> $data
      */
     public function __construct(
         string $name,
@@ -44,6 +51,8 @@ class TokenDataProvider extends AbstractDataProvider
     }
 
     /**
+     * Hand the UI component a one-row dataset — MCP tokens are mint-once.
+     *
      * @return array<int|string, array<string, mixed>>
      */
     public function getData(): array

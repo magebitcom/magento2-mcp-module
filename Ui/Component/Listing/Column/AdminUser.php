@@ -30,8 +30,13 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class AdminUser extends Column
 {
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param AdminUserLookup $adminUserLookup
+     * @param UrlInterface $urlBuilder
+     * @param Escaper $escaper
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -46,7 +51,10 @@ class AdminUser extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Decorate every row's admin-user cell with a linked username + full name.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -110,6 +118,12 @@ class AdminUser extends Column
         return $dataSource;
     }
 
+    /**
+     * Coerce a mixed Magento AbstractModel attribute to a string.
+     *
+     * @param mixed $value
+     * @return string
+     */
     private function stringData(mixed $value): string
     {
         return is_scalar($value) ? (string) $value : '';

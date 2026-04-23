@@ -1,8 +1,26 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
-        <add id="Magebit_Mcp::mcp" title="MCP" module="Magebit_Mcp" sortOrder="45" parent="Magento_Backend::system" resource="Magebit_Mcp::mcp"/>
-        <add id="Magebit_Mcp::mcp_tokens" title="Connections" module="Magebit_Mcp" sortOrder="10" parent="Magebit_Mcp::mcp" action="magebit_mcp/token/index" resource="Magebit_Mcp::mcp_tokens"/>
-        <add id="Magebit_Mcp::mcp_audit" title="Audit Log" module="Magebit_Mcp" sortOrder="20" parent="Magebit_Mcp::mcp" action="magebit_mcp/auditlog/index" resource="Magebit_Mcp::mcp_audit"/>
+        <add id="Magebit_Mcp::mcp"
+             title="MCP"
+             module="Magebit_Mcp"
+             sortOrder="45"
+             parent="Magento_Backend::system"
+             resource="Magebit_Mcp::mcp"/>
+        <add id="Magebit_Mcp::mcp_tokens"
+             title="Connections"
+             module="Magebit_Mcp"
+             sortOrder="10"
+             parent="Magebit_Mcp::mcp"
+             action="magebit_mcp/token/index"
+             resource="Magebit_Mcp::mcp_tokens"/>
+        <add id="Magebit_Mcp::mcp_audit"
+             title="Audit Log"
+             module="Magebit_Mcp"
+             sortOrder="20"
+             parent="Magebit_Mcp::mcp"
+             action="magebit_mcp/auditlog/index"
+             resource="Magebit_Mcp::mcp_audit"/>
     </menu>
 </config>

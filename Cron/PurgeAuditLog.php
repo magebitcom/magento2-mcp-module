@@ -24,6 +24,11 @@ class PurgeAuditLog
 {
     private const TABLE = 'magebit_mcp_audit_log';
 
+    /**
+     * @param ResourceConnection $resourceConnection
+     * @param ModuleConfig $config
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly ModuleConfig $config,
@@ -31,6 +36,11 @@ class PurgeAuditLog
     ) {
     }
 
+    /**
+     * Delete audit rows older than the configured retention window.
+     *
+     * @return void
+     */
     public function execute(): void
     {
         try {

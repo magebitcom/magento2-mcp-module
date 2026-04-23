@@ -32,11 +32,20 @@ use RuntimeException;
  */
 class OriginValidator
 {
+    /**
+     * @param ModuleConfig $config
+     */
     public function __construct(
         private readonly ModuleConfig $config
     ) {
     }
 
+    /**
+     * Decide whether the given Origin header value is on the allowlist.
+     *
+     * @param string|null $origin
+     * @return bool
+     */
     public function isAllowed(?string $origin): bool
     {
         if ($origin === null || $origin === '') {
@@ -65,6 +74,13 @@ class OriginValidator
         return false;
     }
 
+    /**
+     * True when `$origin` matches the allowlist pattern (exact or wildcard).
+     *
+     * @param string $origin
+     * @param string $pattern
+     * @return bool
+     */
     private function matches(string $origin, string $pattern): bool
     {
         if (!str_ends_with($pattern, '*')) {

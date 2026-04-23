@@ -28,7 +28,8 @@ class ToolRegistry implements ToolRegistryInterface
     private array $tools;
 
     /**
-     * @param array<string, ToolInterface> $tools Injected via etc/di.xml.
+     * @param array $tools Injected via etc/di.xml.
+     * @phpstan-param array<string, ToolInterface> $tools
      */
     public function __construct(array $tools = [])
     {
@@ -36,16 +37,25 @@ class ToolRegistry implements ToolRegistryInterface
         $this->tools = $tools;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function all(): array
     {
         return $this->tools;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function has(string $name): bool
     {
         return isset($this->tools[$name]);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function get(string $name): ToolInterface
     {
         if (!isset($this->tools[$name])) {
@@ -55,7 +65,11 @@ class ToolRegistry implements ToolRegistryInterface
     }
 
     /**
-     * @param array<string, ToolInterface> $tools
+     * Enforce registration invariants at construction time.
+     *
+     * @param array $tools
+     * @phpstan-param array<string, ToolInterface> $tools
+     * @return void
      */
     private function validate(array $tools): void
     {

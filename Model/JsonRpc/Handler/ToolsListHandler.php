@@ -24,17 +24,27 @@ use Magebit\Mcp\Model\JsonRpc\Response;
  */
 class ToolsListHandler implements HandlerInterface
 {
+    /**
+     * @param ToolRegistryInterface $toolRegistry
+     * @param AclChecker $aclChecker
+     */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly AclChecker $aclChecker
     ) {
     }
 
+    /**
+     * @inheritDoc
+     */
     public function method(): string
     {
         return 'tools/list';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
         $scopes = $context->token->getScopes();

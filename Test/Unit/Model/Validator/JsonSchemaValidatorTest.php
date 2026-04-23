@@ -15,6 +15,9 @@ use PHPUnit\Framework\TestCase;
 
 class JsonSchemaValidatorTest extends TestCase
 {
+    /**
+     * @var JsonSchemaValidator
+     */
     private JsonSchemaValidator $validator;
 
     protected function setUp(): void

@@ -18,6 +18,8 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 class SaveButton extends GenericButton implements ButtonProviderInterface
 {
     /**
+     * Provide the button definition consumed by the UI-component save action.
+     *
      * @return array<string, mixed>
      */
     public function getButtonData(): array

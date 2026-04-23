@@ -28,6 +28,10 @@ class Delete extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
+    /**
+     * @param Context $context
+     * @param TokenRepository $tokenRepository
+     */
     public function __construct(
         Context $context,
         private readonly TokenRepository $tokenRepository
@@ -35,6 +39,9 @@ class Delete extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */

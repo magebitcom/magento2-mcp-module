@@ -48,7 +48,9 @@ class PiiRedactor
     private array $sensitiveKeys;
 
     /**
-     * @param array<int, string> $additionalSensitiveKeys Extra case-insensitive fragments.
+     * @param DeploymentConfig $deploymentConfig
+     * @param array $additionalSensitiveKeys Extra case-insensitive fragments.
+     * @phpstan-param array<int, string> $additionalSensitiveKeys
      */
     public function __construct(
         private readonly DeploymentConfig $deploymentConfig,
@@ -61,6 +63,8 @@ class PiiRedactor
     }
 
     /**
+     * Walk a mixed value and replace PII-keyed entries with their HMAC fingerprint.
+     *
      * @param mixed $value
      * @return mixed
      */
@@ -80,6 +84,12 @@ class PiiRedactor
         return $value;
     }
 
+    /**
+     * True if the field name contains any of the configured sensitive fragments.
+     *
+     * @param string $key
+     * @return bool
+     */
     private function isSensitive(string $key): bool
     {
         $needle = strtolower($key);
@@ -92,7 +102,10 @@ class PiiRedactor
     }
 
     /**
+     * Produce a short HMAC-SHA256 fingerprint for a redacted value.
+     *
      * @param mixed $value
+     * @return string
      */
     private function fingerprint(mixed $value): string
     {
@@ -104,6 +117,11 @@ class PiiRedactor
         return '***[' . substr($digest, 0, self::FINGERPRINT_LENGTH) . ']';
     }
 
+    /**
+     * Fetch the per-install crypt key used to salt fingerprints.
+     *
+     * @return string
+     */
     private function key(): string
     {
         $key = $this->deploymentConfig->get('crypt/key');

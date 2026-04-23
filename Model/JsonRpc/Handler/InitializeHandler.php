@@ -28,6 +28,11 @@ use stdClass;
  */
 class InitializeHandler implements HandlerInterface
 {
+    /**
+     * @param ProtocolVersionValidator $protocolVersionValidator
+     * @param string $serverName
+     * @param string $serverVersion
+     */
     public function __construct(
         private readonly ProtocolVersionValidator $protocolVersionValidator,
         private readonly string $serverName,
@@ -35,11 +40,17 @@ class InitializeHandler implements HandlerInterface
     ) {
     }
 
+    /**
+     * @inheritDoc
+     */
     public function method(): string
     {
         return 'initialize';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
         unset($context);

@@ -28,11 +28,21 @@ use Throwable;
  */
 class AclChecker
 {
+    /**
+     * @param AclBuilder $aclBuilder
+     */
     public function __construct(
         private readonly AclBuilder $aclBuilder
     ) {
     }
 
+    /**
+     * True if the user's ACL role (or its ancestors) grants the given resource.
+     *
+     * @param User $user
+     * @param string $resource
+     * @return bool
+     */
     public function isAllowed(User $user, string $resource): bool
     {
         $aclRole = $user->getAclRole();

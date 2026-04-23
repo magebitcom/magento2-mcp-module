@@ -40,6 +40,14 @@ class Save extends Action implements HttpPostActionInterface
     /** @see \Magebit\Mcp\Controller\Adminhtml\Token\Index for the consumer. */
     public const SESSION_KEY_PLAINTEXT = 'magebit_mcp_new_token';
 
+    /**
+     * @param Context $context
+     * @param AdminUserLookup $adminUserLookup
+     * @param TokenFactory $tokenFactory
+     * @param TokenGenerator $tokenGenerator
+     * @param TokenHasher $tokenHasher
+     * @param TokenRepository $tokenRepository
+     */
     public function __construct(
         Context $context,
         private readonly AdminUserLookup $adminUserLookup,
@@ -51,6 +59,9 @@ class Save extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
+    /**
+     * @inheritDoc
+     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */
@@ -117,7 +128,11 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
+     * Coerce `data[admin_user_id]` into a positive int or fail.
+     *
+     * @param array $raw
+     * @phpstan-param array<string, mixed> $raw
+     * @return int
      */
     private function extractAdminUserId(array $raw): int
     {
@@ -129,7 +144,11 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
+     * Validate + trim the form's Name field, capping at 128 chars.
+     *
+     * @param array $raw
+     * @phpstan-param array<string, mixed> $raw
+     * @return string
      */
     private function extractName(array $raw): string
     {
@@ -145,7 +164,11 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
+     * Parse the optional expires_at input into a UTC "Y-m-d H:i:s" string.
+     *
+     * @param array $raw
+     * @phpstan-param array<string, mixed> $raw
+     * @return string|null
      */
     private function extractExpiresAt(array $raw): ?string
     {
@@ -164,7 +187,10 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * @param array<string, mixed> $raw
+     * Normalize the scopes multiselect value to a deduped array of tool names.
+     *
+     * @param array $raw
+     * @phpstan-param array<string, mixed> $raw
      * @return array<int, string>
      */
     private function extractScopes(array $raw): array

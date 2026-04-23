@@ -54,6 +54,17 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
      */
     private const MAX_BODY_BYTES = 262144;
 
+    /**
+     * @param HttpRequest $request
+     * @param HttpResponse $response
+     * @param Dispatcher $dispatcher
+     * @param OriginValidator $originValidator
+     * @param ProtocolVersionValidator $protocolVersionValidator
+     * @param TokenAuthenticator $authenticator
+     * @param AuditContext $auditContext
+     * @param AuditLogger $auditLogger
+     * @param ModuleConfig $config
+     */
     public function __construct(
         private readonly HttpRequest $request,
         private readonly HttpResponse $response,
@@ -67,6 +78,11 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     ) {
     }
 
+    /**
+     * Handle the `POST /mcp` request.
+     *
+     * @return ResponseInterface
+     */
     public function execute(): ResponseInterface
     {
         $this->seedAuditEnvironment();
@@ -123,7 +139,12 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             try {
                 $rpcRequest = RpcRequest::fromArray($parsed);
             } catch (InvalidArgumentException $e) {
-                return $this->failRpc(400, $this->auditContext->requestId, ErrorCode::INVALID_REQUEST, $e->getMessage());
+                return $this->failRpc(
+                    400,
+                    $this->auditContext->requestId,
+                    ErrorCode::INVALID_REQUEST,
+                    $e->getMessage()
+                );
             }
 
             $this->auditContext->method = $rpcRequest->method;
@@ -151,7 +172,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 
             if ($rpcResponse->error !== null) {
                 $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
-                $this->auditContext->errorCode = (string) $rpcResponse->error->code;
+                $this->auditContext->errorCode = (string) $rpcResponse->error->code->value;
             }
 
             return $this->writeJson(200, $rpcResponse->toArray());
@@ -173,6 +194,12 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         $this->auditContext->userAgent = $this->header('User-Agent');
     }
 
+    /**
+     * Read an HTTP header with the Apache/FPM `REDIRECT_HTTP_AUTHORIZATION` fallback.
+     *
+     * @param string $name
+     * @return string|null
+     */
     private function header(string $name): ?string
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
@@ -191,7 +218,11 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     }
 
     /**
-     * @param array<string, mixed> $parsed
+     * Pull the JSON-RPC `id` out of a raw parsed envelope for early audit tagging.
+     *
+     * @param array $parsed
+     * @phpstan-param array<string, mixed> $parsed
+     * @return int|string|null
      */
     private function extractId(array $parsed): int|string|null
     {
@@ -203,7 +234,12 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     }
 
     /**
-     * @param array<string, mixed> $payload
+     * Serialize a JSON-RPC payload onto the HTTP response.
+     *
+     * @param int $status
+     * @param array $payload
+     * @phpstan-param array<string, mixed> $payload
+     * @return ResponseInterface
      */
     private function writeJson(int $status, array $payload): ResponseInterface
     {
@@ -218,27 +254,33 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         return $this->response;
     }
 
-    private function failRpc(int $httpStatus, int|string|null $id, int $code, string $message): ResponseInterface
+    /**
+     * Build an error response and stamp audit status in one place.
+     *
+     * @param int $httpStatus
+     * @param int|string|null $id
+     * @param ErrorCode $code
+     * @param string $message
+     * @return ResponseInterface
+     */
+    private function failRpc(int $httpStatus, int|string|null $id, ErrorCode $code, string $message): ResponseInterface
     {
         $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
-        $this->auditContext->errorCode = (string) $code;
-        return $this->writeJson($httpStatus, [
-            'jsonrpc' => '2.0',
-            'id' => $id,
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-            ],
-        ]);
+        $this->auditContext->errorCode = (string) $code->value;
+        return $this->writeJson($httpStatus, RpcResponse::failure($id, $code, $message)->toArray());
     }
 
     /**
-     * Magento's form-key CSRF defense is not applicable here. This endpoint is
-     * not reachable via a browser form submission — the only clients are MCP
-     * hosts talking JSON-RPC over HTTP with a `Authorization: Bearer` header.
-     * A bearer token cannot be forged across origins (browsers refuse to echo
-     * bearer auth to arbitrary targets without CORS preflight), so the bearer
-     * itself is the CSRF defense.
+     * Opt out of form-key CSRF enforcement.
+     *
+     * This endpoint is not reachable via a browser form submission — the only
+     * clients are MCP hosts talking JSON-RPC over HTTP with a
+     * `Authorization: Bearer` header. A bearer token cannot be forged across
+     * origins (browsers refuse to echo bearer auth to arbitrary targets
+     * without CORS preflight), so the bearer itself is the CSRF defense.
+     *
+     * @param RequestInterface $request
+     * @return InvalidRequestException|null
      */
     public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
@@ -247,9 +289,13 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     }
 
     /**
-     * See {@see createCsrfValidationException}. Returning true short-circuits
-     * the form-key check; the bearer authentication in {@see execute} is the
-     * real access control.
+     * Short-circuit form-key validation.
+     *
+     * See {@see createCsrfValidationException}. The bearer authentication in
+     * {@see execute} is the real access control.
+     *
+     * @param RequestInterface $request
+     * @return bool|null
      */
     public function validateForCsrf(RequestInterface $request): ?bool
     {

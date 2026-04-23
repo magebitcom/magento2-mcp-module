@@ -35,6 +35,12 @@ class AuditLogger
     private const TABLE = 'magebit_mcp_audit_log';
     private const MAX_JSON_BYTES = 4096;
 
+    /**
+     * @param ResourceConnection $resourceConnection
+     * @param DateTime $dateTime
+     * @param PiiRedactor $redactor
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly DateTime $dateTime,
@@ -43,6 +49,12 @@ class AuditLogger
     ) {
     }
 
+    /**
+     * Flush the audit context to the log, swallowing any storage error.
+     *
+     * @param AuditContext $context
+     * @return void
+     */
     public function write(AuditContext $context): void
     {
         try {
@@ -56,6 +68,12 @@ class AuditLogger
         }
     }
 
+    /**
+     * Perform the underlying INSERT.
+     *
+     * @param AuditContext $context
+     * @return void
+     */
     private function doWrite(AuditContext $context): void
     {
         $connection = $this->resourceConnection->getConnection();
@@ -82,6 +100,12 @@ class AuditLogger
         $connection->insert($this->resourceConnection->getTableName(self::TABLE), $row);
     }
 
+    /**
+     * Normalise the JSON-RPC id for storage.
+     *
+     * @param int|string|null $id
+     * @return string|null
+     */
     private function serializeRequestId(int|string|null $id): ?string
     {
         if ($id === null) {
@@ -91,7 +115,11 @@ class AuditLogger
     }
 
     /**
-     * @param array<int|string, mixed>|null $arguments
+     * Redact PII-tagged fields and encode the remainder as bounded JSON.
+     *
+     * @param array|null $arguments
+     * @phpstan-param array<int|string, mixed>|null $arguments
+     * @return string|null
      */
     private function encodeArguments(?array $arguments): ?string
     {
@@ -106,7 +134,11 @@ class AuditLogger
     }
 
     /**
-     * @param array<int|string, mixed>|null $summary
+     * Encode a tool-computed result summary, dropping empty payloads.
+     *
+     * @param array|null $summary
+     * @phpstan-param array<int|string, mixed>|null $summary
+     * @return string|null
      */
     private function encodeSummary(?array $summary): ?string
     {
@@ -117,7 +149,11 @@ class AuditLogger
     }
 
     /**
-     * @param array<int|string, mixed> $data
+     * Encode an array as JSON with a hard byte cap and `__truncated__` sentinel.
+     *
+     * @param array $data
+     * @phpstan-param array<int|string, mixed> $data
+     * @return string|null
      */
     private function encode(array $data): ?string
     {
@@ -131,6 +167,13 @@ class AuditLogger
         return $encoded;
     }
 
+    /**
+     * Byte-cap a string for storage in a bounded VARCHAR column.
+     *
+     * @param string|null $value
+     * @param int $maxBytes
+     * @return string|null
+     */
     private function truncate(?string $value, int $maxBytes): ?string
     {
         if ($value === null) {

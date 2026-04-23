@@ -23,11 +23,17 @@ use Magebit\Mcp\Model\JsonRpc\Response;
  */
 class InitializedNotificationHandler implements HandlerInterface
 {
+    /**
+     * @inheritDoc
+     */
     public function method(): string
     {
         return 'notifications/initialized';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(Request $request, AuthenticatedContext $context): ?Response
     {
         unset($request, $context);

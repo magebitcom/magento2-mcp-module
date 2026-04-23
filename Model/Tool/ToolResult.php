@@ -15,11 +15,14 @@ use Magebit\Mcp\Api\ToolResultInterface;
  *
  * Has no dependencies — tools instantiate it directly (no factory / ObjectManager).
  */
-final class ToolResult implements ToolResultInterface
+class ToolResult implements ToolResultInterface
 {
     /**
-     * @param array<int, array<string, mixed>> $content       MCP content blocks.
-     * @param array<string, mixed>             $auditSummary  PII-free summary for audit log.
+     * @param array $content MCP content blocks.
+     * @param bool $isError
+     * @param array $auditSummary PII-free summary for audit log.
+     * @phpstan-param array<int, array<string, mixed>> $content
+     * @phpstan-param array<string, mixed> $auditSummary
      */
     public function __construct(
         private readonly array $content,
@@ -31,8 +34,12 @@ final class ToolResult implements ToolResultInterface
     /**
      * Shortcut for the common "single text block" case.
      *
-     * @param array<string, mixed> $auditSummary
+     * @param string $text
+     * @param array $auditSummary
+     * @phpstan-param array<string, mixed> $auditSummary
+     * @return self
      */
+    // phpcs:ignore Magento2.Functions.StaticFunction
     public static function text(string $text, array $auditSummary = []): self
     {
         return new self(
@@ -41,16 +48,25 @@ final class ToolResult implements ToolResultInterface
         );
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getContent(): array
     {
         return $this->content;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function isError(): bool
     {
         return $this->isError;
     }
 
+    /**
+     * @inheritDoc
+     */
     public function getAuditSummary(): array
     {
         return $this->auditSummary;

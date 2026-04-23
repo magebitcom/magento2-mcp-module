@@ -2,17 +2,28 @@
 <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
 
-    <table name="magebit_mcp_token" resource="default" engine="innodb" comment="MCP admin access tokens">
-        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true" comment="Token ID"/>
-        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false" comment="Admin user ID owning this token"/>
-        <column xsi:type="varchar" name="name" nullable="false" length="128" comment="Human-readable connection label"/>
-        <column xsi:type="varchar" name="token_hash" nullable="false" length="255" comment="Hashed bearer token"/>
-        <column xsi:type="json" name="scopes_json" nullable="true" comment="JSON array of tool names this token may invoke"/>
-        <column xsi:type="smallint" name="allow_writes" unsigned="true" nullable="false" default="0" comment="Whether this token may invoke WRITE tools"/>
-        <column xsi:type="timestamp" name="last_used_at" on_update="false" nullable="true" comment="Last successful authentication timestamp"/>
-        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="true" comment="Optional expiration timestamp"/>
-        <column xsi:type="timestamp" name="revoked_at" on_update="false" nullable="true" comment="Revocation timestamp (null = active)"/>
-        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
+    <table name="magebit_mcp_token" resource="default" engine="innodb"
+           comment="MCP admin access tokens">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
+                comment="Token ID"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false"
+                comment="Admin user ID owning this token"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="128"
+                comment="Human-readable connection label"/>
+        <column xsi:type="varchar" name="token_hash" nullable="false" length="255"
+                comment="Hashed bearer token"/>
+        <column xsi:type="json" name="scopes_json" nullable="true"
+                comment="JSON array of tool names this token may invoke"/>
+        <column xsi:type="smallint" name="allow_writes" unsigned="true" nullable="false" default="0"
+                comment="Whether this token may invoke WRITE tools"/>
+        <column xsi:type="timestamp" name="last_used_at" on_update="false" nullable="true"
+                comment="Last successful authentication timestamp"/>
+        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="true"
+                comment="Optional expiration timestamp"/>
+        <column xsi:type="timestamp" name="revoked_at" on_update="false" nullable="true"
+                comment="Revocation timestamp (null = active)"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="id"/>
@@ -34,22 +45,38 @@
         </index>
     </table>
 
-    <table name="magebit_mcp_audit_log" resource="default" engine="innodb" comment="MCP action audit log">
-        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true" comment="Entry ID"/>
-        <column xsi:type="int" name="token_id" unsigned="true" nullable="true" comment="Token used for this call (null if auth failed or token deleted)"/>
-        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="true" comment="Admin user who made the call (null if unknown or deleted)"/>
-        <column xsi:type="varchar" name="request_id" nullable="true" length="128" comment="JSON-RPC request id echoed from the client"/>
-        <column xsi:type="varchar" name="protocol_version" nullable="true" length="32" comment="MCP-Protocol-Version header value"/>
-        <column xsi:type="varchar" name="method" nullable="false" length="64" comment="JSON-RPC method name"/>
-        <column xsi:type="varchar" name="tool_name" nullable="true" length="64" comment="Tool name for tools/call rows"/>
-        <column xsi:type="json" name="arguments_json" nullable="true" comment="Redacted, size-capped request arguments"/>
-        <column xsi:type="json" name="result_summary_json" nullable="true" comment="Tool-computed summary of the response (never the full body)"/>
-        <column xsi:type="varchar" name="response_status" nullable="false" length="16" comment="ok | error"/>
-        <column xsi:type="varchar" name="error_code" nullable="true" length="32" comment="JSON-RPC / MCP error code when response_status = error"/>
-        <column xsi:type="int" name="duration_ms" unsigned="true" nullable="true" comment="Handler duration in milliseconds"/>
-        <column xsi:type="varchar" name="ip_address" nullable="true" length="45" comment="Remote IP (IPv4 or IPv6)"/>
-        <column xsi:type="varchar" name="user_agent" nullable="true" length="255" comment="Client user-agent"/>
-        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
+    <table name="magebit_mcp_audit_log" resource="default" engine="innodb"
+           comment="MCP action audit log">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
+                comment="Entry ID"/>
+        <column xsi:type="int" name="token_id" unsigned="true" nullable="true"
+                comment="Token used for this call (null if auth failed or token deleted)"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="true"
+                comment="Admin user who made the call (null if unknown or deleted)"/>
+        <column xsi:type="varchar" name="request_id" nullable="true" length="128"
+                comment="JSON-RPC request id echoed from the client"/>
+        <column xsi:type="varchar" name="protocol_version" nullable="true" length="32"
+                comment="MCP-Protocol-Version header value"/>
+        <column xsi:type="varchar" name="method" nullable="false" length="64"
+                comment="JSON-RPC method name"/>
+        <column xsi:type="varchar" name="tool_name" nullable="true" length="64"
+                comment="Tool name for tools/call rows"/>
+        <column xsi:type="json" name="arguments_json" nullable="true"
+                comment="Redacted, size-capped request arguments"/>
+        <column xsi:type="json" name="result_summary_json" nullable="true"
+                comment="Tool-computed summary of the response (never the full body)"/>
+        <column xsi:type="varchar" name="response_status" nullable="false" length="16"
+                comment="ok | error"/>
+        <column xsi:type="varchar" name="error_code" nullable="true" length="32"
+                comment="JSON-RPC / MCP error code when response_status = error"/>
+        <column xsi:type="int" name="duration_ms" unsigned="true" nullable="true"
+                comment="Handler duration in milliseconds"/>
+        <column xsi:type="varchar" name="ip_address" nullable="true" length="45"
+                comment="Remote IP (IPv4 or IPv6)"/>
+        <column xsi:type="varchar" name="user_agent" nullable="true" length="255"
+                comment="Client user-agent"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="id"/>

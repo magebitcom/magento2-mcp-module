@@ -31,6 +31,12 @@ use Throwable;
  */
 class TokenAuthenticator
 {
+    /**
+     * @param TokenHasher $tokenHasher
+     * @param TokenRepository $tokenRepository
+     * @param AdminUserLookup $adminUserLookup
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly TokenHasher $tokenHasher,
         private readonly TokenRepository $tokenRepository,
@@ -39,6 +45,13 @@ class TokenAuthenticator
     ) {
     }
 
+    /**
+     * Run the full auth pipeline and return a context or throw.
+     *
+     * @param string|null $authorizationHeader
+     * @return AuthenticatedContext
+     * @throws UnauthorizedException
+     */
     public function authenticate(?string $authorizationHeader): AuthenticatedContext
     {
         $plaintext = $this->extractBearer($authorizationHeader);
@@ -86,6 +99,12 @@ class TokenAuthenticator
         return new AuthenticatedContext($token, $admin);
     }
 
+    /**
+     * Strip the `Bearer ` prefix from the Authorization header.
+     *
+     * @param string|null $header
+     * @return string|null
+     */
     private function extractBearer(?string $header): ?string
     {
         if ($header === null || $header === '') {

@@ -25,6 +25,10 @@ use Magento\User\Model\UserFactory;
  */
 class AdminUserLookup
 {
+    /**
+     * @param UserFactory $userFactory
+     * @param UserCollectionFactory $userCollectionFactory
+     */
     public function __construct(
         private readonly UserFactory $userFactory,
         private readonly UserCollectionFactory $userCollectionFactory
@@ -32,6 +36,10 @@ class AdminUserLookup
     }
 
     /**
+     * Load an admin user by primary key.
+     *
+     * @param int $id
+     * @return User
      * @throws NoSuchEntityException
      */
     public function getById(int $id): User
@@ -46,6 +54,10 @@ class AdminUserLookup
     }
 
     /**
+     * Load an admin user by username.
+     *
+     * @param string $username
+     * @return User
      * @throws NoSuchEntityException
      */
     public function getByUsername(string $username): User
@@ -60,10 +72,10 @@ class AdminUserLookup
     }
 
     /**
-     * Batch-load a set of admin users — single collection query rather than
-     * one `load()` per id.
+     * Batch-load a set of admin users via a single collection query.
      *
-     * @param array<int, int> $ids
+     * @param array $ids
+     * @phpstan-param array<int, int> $ids
      * @return array<int, User>
      */
     public function listByIds(array $ids): array

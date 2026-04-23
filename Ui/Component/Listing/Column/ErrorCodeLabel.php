@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Ui\Component\Listing\Column;
 
-use Magebit\Mcp\Model\JsonRpc\ErrorCodeLabels;
+use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magento\Framework\Escaper;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
@@ -22,8 +22,11 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class ErrorCodeLabel extends Column
 {
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param Escaper $escaper
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -36,7 +39,10 @@ class ErrorCodeLabel extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Decorate each row's error_code cell with its human-readable label.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -55,7 +61,7 @@ class ErrorCodeLabel extends Column
             }
 
             $code = (int) $raw;
-            $label = ErrorCodeLabels::labelFor($code);
+            $label = ErrorCode::labelFor($code);
             $item[$name] = sprintf(
                 '<span class="mcp-audit-code">%d</span> %s',
                 $code,

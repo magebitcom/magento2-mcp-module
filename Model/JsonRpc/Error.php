@@ -11,25 +11,30 @@ namespace Magebit\Mcp\Model\JsonRpc;
 /**
  * JSON-RPC 2.0 error object.
  */
-final class Error
+class Error
 {
     /**
-     * @param array<string, mixed>|null $data Optional context (e.g. schema validation errors).
+     * @param ErrorCode $code
+     * @param string $message
+     * @param array|null $data Optional context (e.g. schema validation errors).
+     * @phpstan-param array<string, mixed>|null $data
      */
     public function __construct(
-        public readonly int $code,
+        public readonly ErrorCode $code,
         public readonly string $message,
         public readonly ?array $data = null
     ) {
     }
 
     /**
+     * Render as the wire payload under the JSON-RPC `error` field.
+     *
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
         $arr = [
-            'code' => $this->code,
+            'code' => $this->code->value,
             'message' => $this->message,
         ];
         if ($this->data !== null) {

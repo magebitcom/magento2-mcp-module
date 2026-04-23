@@ -32,14 +32,18 @@ interface ToolInterface
     public function getTitle(): string;
 
     /**
-     * Natural-language description consumed by the AI client when deciding whether
-     * to invoke this tool. Keep it specific, action-oriented, and argument-aware.
+     * Natural-language description consumed by the AI client.
+     *
+     * Keep it specific, action-oriented, and argument-aware so the model picks
+     * the right tool without extra prompting.
      */
     public function getDescription(): string;
 
     /**
-     * JSON Schema describing the tool's accepted arguments. Validated against the
-     * client-supplied `params.arguments` before {@see execute()} is called.
+     * JSON Schema describing the tool's accepted arguments.
+     *
+     * Validated against the client-supplied `params.arguments` before
+     * {@see execute()} is called.
      *
      * @return array<string, mixed>
      */
@@ -63,15 +67,18 @@ interface ToolInterface
     public function getWriteMode(): WriteMode;
 
     /**
-     * Hint to the AI client that it should prompt the user for explicit confirmation
-     * before invoking this tool (e.g. destructive or expensive reads).
+     * Hint that the AI client should prompt the user for explicit confirmation.
+     *
+     * Useful for destructive or expensive reads.
      */
     public function getConfirmationRequired(): bool;
 
     /**
      * Invoke the tool with validated arguments.
      *
-     * @param array<string, mixed> $arguments Already validated against getInputSchema().
+     * @param array $arguments Already validated against getInputSchema().
+     * @phpstan-param array<string, mixed> $arguments
+     * @return ToolResultInterface
      * @throws \Magento\Framework\Exception\LocalizedException on expected errors.
      */
     public function execute(array $arguments): ToolResultInterface;

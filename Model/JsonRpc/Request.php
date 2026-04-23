@@ -18,10 +18,14 @@ use InvalidArgumentException;
  * {@see $isNotification} because the server must suppress responses for
  * notifications even on error.
  */
-final class Request
+class Request
 {
     /**
-     * @param array<string, mixed> $params
+     * @param int|string|null $id
+     * @param bool $isNotification
+     * @param string $method
+     * @param array $params
+     * @phpstan-param array<string, mixed> $params
      */
     public function __construct(
         public readonly int|string|null $id,
@@ -32,8 +36,13 @@ final class Request
     }
 
     /**
-     * @param array<string, mixed> $data
+     * Parse a decoded JSON body into a request envelope.
+     *
+     * @param array $data
+     * @phpstan-param array<string, mixed> $data
+     * @return self
      */
+    // phpcs:ignore Magento2.Functions.StaticFunction
     public static function fromArray(array $data): self
     {
         $jsonrpc = $data['jsonrpc'] ?? null;

@@ -43,6 +43,16 @@ use Throwable;
  */
 class ToolsCallHandler implements HandlerInterface
 {
+    /**
+     * @param ToolRegistryInterface $toolRegistry
+     * @param AclChecker $aclChecker
+     * @param JsonSchemaValidator $schemaValidator
+     * @param RateLimiterInterface $rateLimiter
+     * @param EventManager $eventManager
+     * @param ModuleConfig $config
+     * @param AuditContext $auditContext
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly AclChecker $aclChecker,
@@ -55,11 +65,17 @@ class ToolsCallHandler implements HandlerInterface
     ) {
     }
 
+    /**
+     * @inheritDoc
+     */
     public function method(): string
     {
         return 'tools/call';
     }
 
+    /**
+     * @inheritDoc
+     */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
         $name = $request->params['name'] ?? null;
@@ -93,14 +109,23 @@ class ToolsCallHandler implements HandlerInterface
 
         if ($tool->getWriteMode() === WriteMode::WRITE) {
             if (!$this->config->isAllowWrites() || !$context->token->getAllowWrites()) {
-                return $this->fail($request, ErrorCode::WRITE_NOT_ALLOWED, 'Write tools are disabled for this server or token.');
+                return $this->fail(
+                    $request,
+                    ErrorCode::WRITE_NOT_ALLOWED,
+                    'Write tools are disabled for this server or token.'
+                );
             }
         }
 
         try {
             $this->schemaValidator->validate($tool->getInputSchema(), $args);
         } catch (SchemaValidationException $e) {
-            return $this->fail($request, ErrorCode::SCHEMA_VALIDATION_FAILED, $e->getMessage(), ['errors' => $e->getErrors()]);
+            return $this->fail(
+                $request,
+                ErrorCode::SCHEMA_VALIDATION_FAILED,
+                $e->getMessage(),
+                ['errors' => $e->getErrors()]
+            );
         }
 
         $this->rateLimiter->check($context->getAdminUserId(), $name);
@@ -162,12 +187,17 @@ class ToolsCallHandler implements HandlerInterface
     /**
      * Build a failure response and stamp audit status in one place.
      *
-     * @param array<string, mixed>|null $data
+     * @param Request $request
+     * @param ErrorCode $code
+     * @param string $message
+     * @param array|null $data
+     * @phpstan-param array<string, mixed>|null $data
+     * @return Response
      */
-    private function fail(Request $request, int $code, string $message, ?array $data = null): Response
+    private function fail(Request $request, ErrorCode $code, string $message, ?array $data = null): Response
     {
         $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
-        $this->auditContext->errorCode = (string) $code;
+        $this->auditContext->errorCode = (string) $code->value;
         return Response::failure($request->id, $code, $message, $data);
     }
 }

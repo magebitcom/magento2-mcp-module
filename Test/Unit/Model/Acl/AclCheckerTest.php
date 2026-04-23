@@ -18,8 +18,21 @@ use RuntimeException;
 
 class AclCheckerTest extends TestCase
 {
+    /**
+     * @var AclBuilder
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private AclBuilder&MockObject $aclBuilder;
+
+    /**
+     * @var Acl
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private Acl&MockObject $acl;
+
+    /**
+     * @var AclChecker
+     */
     private AclChecker $checker;
 
     protected function setUp(): void

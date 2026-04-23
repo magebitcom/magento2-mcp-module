@@ -23,10 +23,33 @@ use RuntimeException;
 
 class TokenAuthenticatorTest extends TestCase
 {
+    /**
+     * @var TokenHasher
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private TokenHasher&MockObject $tokenHasher;
+
+    /**
+     * @var TokenRepository
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private TokenRepository&MockObject $tokenRepository;
+
+    /**
+     * @var AdminUserLookup
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private AdminUserLookup&MockObject $adminUserLookup;
+
+    /**
+     * @var LoggerInterface
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private LoggerInterface&MockObject $logger;
+
+    /**
+     * @var TokenAuthenticator
+     */
     private TokenAuthenticator $authenticator;
 
     protected function setUp(): void

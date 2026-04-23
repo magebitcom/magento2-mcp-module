@@ -31,6 +31,12 @@ class ProtocolVersionValidator
         '2025-03-26',
     ];
 
+    /**
+     * True when the supplied MCP-Protocol-Version header value includes a supported version.
+     *
+     * @param string $version
+     * @return bool
+     */
     public function isSupported(string $version): bool
     {
         foreach (explode(',', $version) as $candidate) {
@@ -41,6 +47,11 @@ class ProtocolVersionValidator
         return false;
     }
 
+    /**
+     * Return the newest protocol version this server advertises on `initialize`.
+     *
+     * @return string
+     */
     public function getLatest(): string
     {
         return self::LATEST;

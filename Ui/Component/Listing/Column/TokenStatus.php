@@ -22,8 +22,12 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class TokenStatus extends Column
 {
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param Escaper $escaper
+     * @param DateTime $dateTime
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -37,7 +41,10 @@ class TokenStatus extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Render each row's status as a grid-severity badge.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -63,7 +70,11 @@ class TokenStatus extends Column
     }
 
     /**
-     * @param array<string, mixed> $item
+     * Pick the severity + label for one row.
+     *
+     * @param array $item
+     * @phpstan-param array<string, mixed> $item
+     * @param int $now
      * @return array{0: string, 1: string}
      */
     private function classify(array $item, int $now): array

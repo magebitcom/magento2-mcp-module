@@ -26,8 +26,11 @@ use Magento\Ui\Component\Listing\Columns\Column;
 class Method extends Column
 {
     /**
-     * @param array<string, mixed> $components
-     * @param array<string, mixed> $data
+     * @param ContextInterface $context
+     * @param UiComponentFactory $uiComponentFactory
+     * @param Escaper $escaper
+     * @param array $components
+     * @param array $data
      */
     public function __construct(
         ContextInterface $context,
@@ -40,7 +43,10 @@ class Method extends Column
     }
 
     /**
-     * @param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
+     * Render the JSON-RPC method chip plus an optional tool-name sub-label.
+     *
+     * @param array $dataSource
+     * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -66,7 +72,12 @@ class Method extends Column
     }
 
     /**
-     * @param array<string, mixed> $item
+     * Render a single row's method cell as HTML.
+     *
+     * @param string $method
+     * @param array $item
+     * @phpstan-param array<string, mixed> $item
+     * @return string
      */
     private function renderCell(string $method, array $item): string
     {
