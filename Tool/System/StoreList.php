@@ -69,7 +69,8 @@ class StoreList implements ToolInterface
         return 'Enumerate every website, store group, and store view on this '
             . 'Magento instance. Use the returned ids to scope other tools '
             . '(e.g. filter `sales.order.list` by `store_id`). Admin-scope id '
-            . '`0` is excluded.';
+            . '`0` is excluded. Optionally narrow the tree to one or more '
+            . 'websites with `website_id`.';
     }
 
     /**
@@ -84,6 +85,19 @@ class StoreList implements ToolInterface
                 'include_inactive' => [
                     'type' => 'boolean',
                     'description' => 'Include stores with `is_active=0`. Defaults to `false`.',
+                ],
+                'website_id' => [
+                    'oneOf' => [
+                        ['type' => 'integer', 'minimum' => 1],
+                        [
+                            'type' => 'array',
+                            'items' => ['type' => 'integer', 'minimum' => 1],
+                            'minItems' => 1,
+                        ],
+                    ],
+                    'description' => 'Narrow the output to these website ids. '
+                        . 'Groups and stores belonging to other websites are '
+                        . 'dropped.',
                 ],
             ],
             'additionalProperties' => false,
@@ -120,10 +134,15 @@ class StoreList implements ToolInterface
     public function execute(array $arguments): ToolResultInterface
     {
         $includeInactive = (bool) ($arguments['include_inactive'] ?? false);
+        $websiteFilter = $this->resolveWebsiteFilter($arguments['website_id'] ?? null);
 
         $websites = [];
         foreach ($this->websiteRepository->getList() as $website) {
-            if ((int) $website->getId() === 0) {
+            $websiteId = (int) $website->getId();
+            if ($websiteId === 0) {
+                continue;
+            }
+            if ($websiteFilter !== null && !isset($websiteFilter[$websiteId])) {
                 continue;
             }
             $websites[] = $this->formatWebsite($website);
@@ -132,6 +151,9 @@ class StoreList implements ToolInterface
         $groups = [];
         foreach ($this->groupRepository->getList() as $group) {
             if ((int) $group->getId() === 0) {
+                continue;
+            }
+            if ($websiteFilter !== null && !isset($websiteFilter[(int) $group->getWebsiteId()])) {
                 continue;
             }
             $groups[] = $this->formatGroup($group);
@@ -143,6 +165,9 @@ class StoreList implements ToolInterface
                 continue;
             }
             if (!$includeInactive && !$store->getIsActive()) {
+                continue;
+            }
+            if ($websiteFilter !== null && !isset($websiteFilter[(int) $store->getWebsiteId()])) {
                 continue;
             }
             $stores[] = $this->formatStore($store);
@@ -167,6 +192,39 @@ class StoreList implements ToolInterface
                 'store_count' => count($stores),
             ]
         );
+    }
+
+    /**
+     * Normalise the optional `website_id` argument into a lookup map.
+     *
+     * Returns an `int => true` map (or null when the caller did not pass
+     * anything) so the three loops above can test membership in O(1).
+     *
+     * @param mixed $raw
+     * @return array<int, true>|null
+     * @throws LocalizedException
+     */
+    private function resolveWebsiteFilter(mixed $raw): ?array
+    {
+        if ($raw === null) {
+            return null;
+        }
+        $ids = [];
+        if (is_int($raw) && $raw > 0) {
+            $ids[] = $raw;
+        } elseif (is_array($raw)) {
+            foreach ($raw as $entry) {
+                if (is_int($entry) && $entry > 0) {
+                    $ids[] = $entry;
+                }
+            }
+        }
+        if ($ids === []) {
+            throw new LocalizedException(
+                __('Filter "website_id" requires a positive integer or array of integers.')
+            );
+        }
+        return array_fill_keys($ids, true);
     }
 
     /**

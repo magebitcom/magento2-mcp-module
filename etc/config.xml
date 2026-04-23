@@ -6,7 +6,7 @@
             <general>
                 <enabled>1</enabled>
                 <server_name>Magento MCP</server_name>
-                <allow_writes>0</allow_writes>
+                <allow_writes>1</allow_writes>
             </general>
             <security>
                 <allowed_origins># Local development — MCP Inspector, Claude Desktop, Claude Code, ChatGPT Desktop
