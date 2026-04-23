@@ -14,11 +14,6 @@ This module provides the **transport, authentication, authorization, audit, and 
 - Admin UI for browsing tokens + the audit log, plus store-config for name/description/kill-switch/origins/retention
 - Console commands for token lifecycle, tool listing, and ACL validation
 
-## Sub-modules
-
-### Included
-- [Order module](https://github.com/magebitcom/magento2-mcp-order-tools)
-
 ## Install
 
 ```bash
@@ -28,6 +23,11 @@ bin/magento setup:upgrade
 bin/magento setup:di:compile
 bin/magento cache:flush
 ```
+
+## Sub-modules
+
+### Included as dependency
+- [Order module](https://github.com/magebitcom/magento2-mcp-order-tools)
 
 ## Configure
 
