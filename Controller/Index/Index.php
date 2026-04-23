@@ -10,6 +10,8 @@ namespace Magebit\Mcp\Controller\Index;
 
 use InvalidArgumentException;
 use JsonException;
+use Magebit\Mcp\Exception\UnauthorizedException;
+use Magebit\Mcp\Model\Auth\TokenAuthenticator;
 use Magebit\Mcp\Model\JsonRpc\Dispatcher;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Request as RpcRequest;
@@ -27,13 +29,13 @@ use Magento\Framework\App\ResponseInterface;
  * Single HTTP endpoint for the Magebit MCP server.
  *
  * Reached as `POST /mcp` (frontName=mcp, default controller/action=index/index).
- * Accepts a JSON-RPC 2.0 envelope, runs the standard MCP compliance checks
- * (Origin allowlist, MCP-Protocol-Version), hands off to the {@see Dispatcher},
- * and writes the response directly on the HTTP response — bypassing Magento's
- * layout/result rendering entirely.
- *
- * Auth is intentionally not enforced in Phase 3. Phase 4 wires
- * \Magebit\Mcp\Model\Auth\TokenAuthenticator into the front of execute().
+ * Per-request pipeline:
+ *   1. Origin header (DNS rebinding defense per MCP spec).
+ *   2. Bearer authentication — 401 with WWW-Authenticate on failure.
+ *   3. Body / JSON-RPC envelope parse.
+ *   4. MCP-Protocol-Version header check.
+ *   5. Dispatch to the JSON-RPC handler (carrying the auth context).
+ *   6. Write response directly on the HTTP response (bypassing layout).
  */
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
@@ -42,7 +44,8 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         private readonly HttpResponse $response,
         private readonly Dispatcher $dispatcher,
         private readonly OriginValidator $originValidator,
-        private readonly ProtocolVersionValidator $protocolVersionValidator
+        private readonly ProtocolVersionValidator $protocolVersionValidator,
+        private readonly TokenAuthenticator $authenticator
     ) {
     }
 
@@ -51,6 +54,13 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         $origin = $this->header('Origin');
         if (!$this->originValidator->isAllowed($origin)) {
             return $this->jsonRpcError(403, null, ErrorCode::INVALID_ORIGIN, 'Origin not allowed.');
+        }
+
+        try {
+            $context = $this->authenticator->authenticate($this->header('Authorization'));
+        } catch (UnauthorizedException $e) {
+            $this->response->setHeader('WWW-Authenticate', 'Bearer realm="Magento MCP"', true);
+            return $this->jsonRpcError(401, null, ErrorCode::UNAUTHORIZED, $e->getMessage());
         }
 
         $body = (string) $this->request->getContent();
@@ -84,7 +94,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             }
         }
 
-        $rpcResponse = $this->dispatcher->dispatch($rpcRequest);
+        $rpcResponse = $this->dispatcher->dispatch($rpcRequest, $context);
 
         if ($rpcResponse === null) {
             $this->response->setHttpResponseCode(202);
@@ -96,9 +106,6 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         return $this->writeJson(200, $rpcResponse->toArray());
     }
 
-    /**
-     * Read an HTTP request header by name. Returns null when absent or empty.
-     */
     private function header(string $name): ?string
     {
         $key = 'HTTP_' . strtoupper(str_replace('-', '_', $name));
@@ -149,10 +156,6 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         ]);
     }
 
-    /**
-     * Bearer-token authenticated POST endpoint — form-key CSRF does not apply.
-     * Phase 4 will enforce bearer auth as the real CSRF defense.
-     */
     public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
         unset($request);

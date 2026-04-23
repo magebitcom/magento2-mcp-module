@@ -23,6 +23,7 @@ final class ErrorCode
     public const UNAUTHORIZED = -32001;
     public const INVALID_ORIGIN = -32002;
     public const UNSUPPORTED_PROTOCOL_VERSION = -32003;
+    public const FORBIDDEN = -32004;
     public const TOOL_NOT_FOUND = -32010;
     public const TOOL_EXECUTION_FAILED = -32011;
     public const WRITE_NOT_ALLOWED = -32012;

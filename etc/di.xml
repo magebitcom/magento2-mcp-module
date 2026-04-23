@@ -20,6 +20,10 @@
             <argument name="commands" xsi:type="array">
                 <item name="magebit_mcp_tools_list" xsi:type="object">Magebit\Mcp\Console\Command\ListToolsCommand</item>
                 <item name="magebit_mcp_tools_validate_acl" xsi:type="object">Magebit\Mcp\Console\Command\ValidateAclCommand</item>
+                <item name="magebit_mcp_token_create" xsi:type="object">Magebit\Mcp\Console\Command\TokenCreateCommand</item>
+                <item name="magebit_mcp_token_list" xsi:type="object">Magebit\Mcp\Console\Command\TokenListCommand</item>
+                <item name="magebit_mcp_token_revoke" xsi:type="object">Magebit\Mcp\Console\Command\TokenRevokeCommand</item>
+                <item name="magebit_mcp_token_delete" xsi:type="object">Magebit\Mcp\Console\Command\TokenDeleteCommand</item>
             </argument>
         </arguments>
     </type>

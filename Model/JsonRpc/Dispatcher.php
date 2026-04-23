@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\JsonRpc;
 
 use InvalidArgumentException;
+use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -51,7 +52,7 @@ class Dispatcher
         }
     }
 
-    public function dispatch(Request $request): ?Response
+    public function dispatch(Request $request, AuthenticatedContext $context): ?Response
     {
         $handler = $this->handlers[$request->method] ?? null;
         if ($handler === null) {
@@ -66,7 +67,7 @@ class Dispatcher
         }
 
         try {
-            return $handler->handle($request);
+            return $handler->handle($request, $context);
         } catch (Throwable $e) {
             $this->logger->error('MCP JSON-RPC handler raised an exception.', [
                 'method' => $request->method,

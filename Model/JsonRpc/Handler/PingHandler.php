@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
+use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
@@ -22,8 +23,9 @@ class PingHandler implements HandlerInterface
         return 'ping';
     }
 
-    public function handle(Request $request): Response
+    public function handle(Request $request, AuthenticatedContext $context): Response
     {
+        unset($context);
         return Response::success($request->id, []);
     }
 }
