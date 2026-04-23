@@ -15,6 +15,11 @@ namespace Magebit\Mcp\Model\Validator;
  * subsequent requests SHOULD echo it back via the MCP-Protocol-Version header.
  * We accept any listed {@see self::SUPPORTED} version; unsupported versions
  * yield a 400 at the controller layer.
+ *
+ * HTTP allows duplicate headers with identical values to be folded into a
+ * single comma-separated entry (the MCP Inspector's proxy does this). We
+ * split on comma and accept the request if ANY value is supported, so dev
+ * tooling behind a folding proxy isn't rejected spuriously.
  */
 class ProtocolVersionValidator
 {
@@ -28,7 +33,12 @@ class ProtocolVersionValidator
 
     public function isSupported(string $version): bool
     {
-        return in_array($version, self::SUPPORTED, true);
+        foreach (explode(',', $version) as $candidate) {
+            if (in_array(trim($candidate), self::SUPPORTED, true)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public function getLatest(): string
