@@ -8,9 +8,10 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Console\Command;
 
+use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Token;
 use Magebit\Mcp\Model\TokenRepository;
-use Magento\User\Model\UserFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
@@ -27,7 +28,7 @@ class TokenListCommand extends Command
 
     public function __construct(
         private readonly TokenRepository $tokenRepository,
-        private readonly UserFactory $userFactory
+        private readonly AdminUserLookup $adminUserLookup
     ) {
         parent::__construct();
     }
@@ -44,13 +45,14 @@ class TokenListCommand extends Command
         $username = $input->getOption(self::OPT_USER);
 
         if (is_string($username) && $username !== '') {
-            $admin = $this->userFactory->create();
-            $admin->loadByUsername($username);
-            $adminId = $admin->getId();
-            if (!is_scalar($adminId) || (int) $adminId === 0) {
+            try {
+                $admin = $this->adminUserLookup->getByUsername($username);
+            } catch (NoSuchEntityException) {
                 throw new RuntimeException(sprintf('Admin user "%s" not found.', $username));
             }
-            $tokens = $this->tokenRepository->getByAdminUserId((int) $adminId);
+            $rawAdminId = $admin->getId();
+            $adminId = is_scalar($rawAdminId) ? (int) $rawAdminId : 0;
+            $tokens = $this->tokenRepository->getByAdminUserId($adminId);
         } else {
             $tokens = $this->tokenRepository->getList();
         }
@@ -110,17 +112,11 @@ class TokenListCommand extends Command
     {
         $ids = [];
         foreach ($tokens as $token) {
-            $ids[$token->getAdminUserId()] = true;
+            $ids[] = $token->getAdminUserId();
         }
 
         $map = [];
-        foreach (array_keys($ids) as $id) {
-            $user = $this->userFactory->create();
-            // @phpstan-ignore-next-line magento.serviceContract — User module ships no repository for admin users.
-            $user->load($id);
-            if ($user->getId() === null) {
-                continue;
-            }
+        foreach ($this->adminUserLookup->listByIds($ids) as $id => $user) {
             $username = (string) $user->getUsername();
             $map[$id] = $username !== '' ? $username : ('#' . $id);
         }

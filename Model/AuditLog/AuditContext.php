@@ -22,11 +22,18 @@ namespace Magebit\Mcp\Model\AuditLog;
  */
 class AuditContext
 {
+    /**
+     * Placeholder used before the JSON-RPC envelope is parsed (or when parsing
+     * fails). Guarantees the audit row lands even on pre-auth failures —
+     * relied on by the NOT NULL constraint on `magebit_mcp_audit_log.method`.
+     */
+    public const METHOD_UNPARSED = '(request)';
+
     public ?int $tokenId = null;
     public ?int $adminUserId = null;
     public int|string|null $requestId = null;
     public ?string $protocolVersion = null;
-    public ?string $method = null;
+    public string $method = self::METHOD_UNPARSED;
     public ?string $toolName = null;
 
     /** @var array<int|string, mixed>|null */

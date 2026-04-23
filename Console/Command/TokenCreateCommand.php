@@ -8,11 +8,12 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Console\Command;
 
+use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenGenerator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
 use Magebit\Mcp\Model\TokenFactory;
 use Magebit\Mcp\Model\TokenRepository;
-use Magento\User\Model\UserFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -35,7 +36,7 @@ class TokenCreateCommand extends Command
     private const OPT_SCOPE = 'scope';
 
     public function __construct(
-        private readonly UserFactory $userFactory,
+        private readonly AdminUserLookup $adminUserLookup,
         private readonly TokenFactory $tokenFactory,
         private readonly TokenGenerator $tokenGenerator,
         private readonly TokenHasher $tokenHasher,
@@ -85,18 +86,19 @@ class TokenCreateCommand extends Command
             $expiresAt = $dt->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         }
 
-        $admin = $this->userFactory->create();
-        $admin->loadByUsername($username);
-        $adminId = $admin->getId();
-        if (!is_scalar($adminId) || (int) $adminId === 0) {
+        try {
+            $admin = $this->adminUserLookup->getByUsername($username);
+        } catch (NoSuchEntityException) {
             throw new RuntimeException(sprintf('Admin user "%s" not found.', $username));
         }
+        $rawAdminId = $admin->getId();
+        $adminId = is_scalar($rawAdminId) ? (int) $rawAdminId : 0;
 
         $plaintext = $this->tokenGenerator->generate();
         $hash = $this->tokenHasher->hash($plaintext);
 
         $token = $this->tokenFactory->create();
-        $token->setAdminUserId((int) $adminId);
+        $token->setAdminUserId($adminId);
         $token->setName($name);
         $token->setTokenHash($hash);
         $token->setAllowWrites($allowWrites);

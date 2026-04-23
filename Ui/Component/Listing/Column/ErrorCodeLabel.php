@@ -56,11 +56,10 @@ class ErrorCodeLabel extends Column
 
             $code = (int) $raw;
             $label = ErrorCodeLabels::labelFor($code);
-            $escaped = $this->escaper->escapeHtml($label);
             $item[$name] = sprintf(
                 '<span class="mcp-audit-code">%d</span> %s',
                 $code,
-                is_string($escaped) ? $escaped : ''
+                HtmlEscape::toString($this->escaper->escapeHtml($label))
             );
         }
         unset($item);

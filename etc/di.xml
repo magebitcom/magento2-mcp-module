@@ -73,4 +73,11 @@
         </arguments>
     </type>
 
+    <type name="Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler">
+        <arguments>
+            <argument name="serverName" xsi:type="string">Magebit MCP</argument>
+            <argument name="serverVersion" xsi:type="string">0.1.0</argument>
+        </arguments>
+    </type>
+
 </config>

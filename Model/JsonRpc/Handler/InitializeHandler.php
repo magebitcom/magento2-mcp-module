@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Validator\ProtocolVersionValidator;
 use stdClass;
 
 /**
@@ -19,13 +20,18 @@ use stdClass;
  *
  * Advertises only the `tools` capability for the PoC; `resources`, `prompts`,
  * `sampling`, `logging` etc. are deliberately omitted.
+ *
+ * `protocolVersion` is sourced from {@see ProtocolVersionValidator::LATEST}
+ * so the two places that need to agree on the version never drift.
+ * `serverName` / `serverVersion` come from etc/di.xml arguments — when we
+ * bump the module version, they change in one place.
  */
 class InitializeHandler implements HandlerInterface
 {
     public function __construct(
-        private readonly string $protocolVersion = '2025-06-18',
-        private readonly string $serverName = 'Magebit MCP',
-        private readonly string $serverVersion = '0.1.0'
+        private readonly ProtocolVersionValidator $protocolVersionValidator,
+        private readonly string $serverName,
+        private readonly string $serverVersion
     ) {
     }
 
@@ -38,7 +44,7 @@ class InitializeHandler implements HandlerInterface
     {
         unset($context);
         return Response::success($request->id, [
-            'protocolVersion' => $this->protocolVersion,
+            'protocolVersion' => $this->protocolVersionValidator->getLatest(),
             'capabilities' => [
                 'tools' => new stdClass(),
             ],

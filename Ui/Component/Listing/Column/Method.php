@@ -76,7 +76,7 @@ class Method extends Column
 
         $chip = sprintf(
             '<code class="mcp-audit-method">%s</code>',
-            $this->escape($this->escaper->escapeHtml($method))
+            HtmlEscape::toString($this->escaper->escapeHtml($method))
         );
 
         if ($method === 'tools/call') {
@@ -84,19 +84,11 @@ class Method extends Column
             if (is_string($tool) && $tool !== '') {
                 return $chip . sprintf(
                     '<div class="mcp-audit-tool">%s</div>',
-                    $this->escape($this->escaper->escapeHtml($tool))
+                    HtmlEscape::toString($this->escaper->escapeHtml($tool))
                 );
             }
         }
 
         return $chip;
-    }
-
-    /**
-     * @param string|array<int|string, mixed> $escaped
-     */
-    private function escape(string|array $escaped): string
-    {
-        return is_string($escaped) ? $escaped : '';
     }
 }

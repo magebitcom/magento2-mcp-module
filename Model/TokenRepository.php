@@ -96,6 +96,10 @@ class TokenRepository
     {
         $connection = $this->resource->getConnection();
         if ($connection === false) {
+            // ResourceModel\Db\AbstractDb::getConnection() is documented to
+            // return `AdapterInterface|false`. In practice we only reach this
+            // branch on a very broken install; surface it clearly so the
+            // authenticator's outer catch can log+swallow the telemetry miss.
             throw new RuntimeException('Default DB connection unavailable.');
         }
         $connection->update(

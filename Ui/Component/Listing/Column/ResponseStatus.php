@@ -68,12 +68,10 @@ class ResponseStatus extends Column
             default => ['minor', $status],
         };
 
-        $escapedLabel = $this->escaper->escapeHtml($label);
-
         return sprintf(
             '<span class="grid-severity-%s"><span>%s</span></span>',
             $this->escaper->escapeHtmlAttr($severity),
-            is_string($escapedLabel) ? $escapedLabel : ''
+            HtmlEscape::toString($this->escaper->escapeHtml($label))
         );
     }
 }

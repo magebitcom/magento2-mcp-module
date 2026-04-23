@@ -58,12 +58,6 @@ class AuditLogger
 
     private function doWrite(AuditContext $context): void
     {
-        if ($context->method === null || $context->method === '') {
-            // Can't log a row with no method — either the controller bailed before
-            // parsing the envelope, or something's deeply wrong. Skip cleanly.
-            return;
-        }
-
         $connection = $this->resourceConnection->getConnection();
 
         $row = [

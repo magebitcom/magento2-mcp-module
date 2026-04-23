@@ -11,7 +11,6 @@ namespace Magebit\Mcp\Model\Auth;
 use Magebit\Mcp\Exception\UnauthorizedException;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\User\Model\UserFactory;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -35,7 +34,7 @@ class TokenAuthenticator
     public function __construct(
         private readonly TokenHasher $tokenHasher,
         private readonly TokenRepository $tokenRepository,
-        private readonly UserFactory $userFactory,
+        private readonly AdminUserLookup $adminUserLookup,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -62,10 +61,12 @@ class TokenAuthenticator
             throw new UnauthorizedException('Token has expired.');
         }
 
-        $admin = $this->userFactory->create();
-        // @phpstan-ignore-next-line magento.serviceContract — User module ships no repository for admin users.
-        $admin->load($token->getAdminUserId());
-        if ($admin->getId() === null || (int) $admin->getIsActive() !== 1) {
+        try {
+            $admin = $this->adminUserLookup->getById($token->getAdminUserId());
+        } catch (NoSuchEntityException) {
+            throw new UnauthorizedException('Admin user is inactive or deleted.');
+        }
+        if ((int) $admin->getIsActive() !== 1) {
             throw new UnauthorizedException('Admin user is inactive or deleted.');
         }
 

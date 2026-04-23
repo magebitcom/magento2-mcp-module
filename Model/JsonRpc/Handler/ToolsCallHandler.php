@@ -23,7 +23,9 @@ use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Event\ManagerInterface as EventManager;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
@@ -50,7 +52,8 @@ class ToolsCallHandler implements HandlerInterface
         private readonly RateLimiterInterface $rateLimiter,
         private readonly EventManager $eventManager,
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly AuditContext $auditContext
+        private readonly AuditContext $auditContext,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -134,7 +137,18 @@ class ToolsCallHandler implements HandlerInterface
         ]);
 
         if ($exception !== null) {
-            return $this->fail($request, ErrorCode::TOOL_EXECUTION_FAILED, $exception->getMessage());
+            // LocalizedException messages are the tool's published contract —
+            // safe to surface to the client. Anything else may embed stack
+            // traces, SQL fragments, or absolute paths; log it server-side and
+            // hand the client a generic label.
+            if ($exception instanceof LocalizedException) {
+                return $this->fail($request, ErrorCode::TOOL_EXECUTION_FAILED, $exception->getMessage());
+            }
+            $this->logger->error('MCP tool raised unexpected exception.', [
+                'tool' => $name,
+                'exception' => $exception,
+            ]);
+            return $this->fail($request, ErrorCode::TOOL_EXECUTION_FAILED, 'Tool execution failed.');
         }
 
         $this->auditContext->resultSummary = $result->getAuditSummary();

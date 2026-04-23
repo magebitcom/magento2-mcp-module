@@ -9,13 +9,13 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Test\Unit\Model\Auth;
 
 use Magebit\Mcp\Exception\UnauthorizedException;
+use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenAuthenticator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
 use Magebit\Mcp\Model\Token;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\User\Model\User;
-use Magento\User\Model\UserFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -25,7 +25,7 @@ class TokenAuthenticatorTest extends TestCase
 {
     private TokenHasher&MockObject $tokenHasher;
     private TokenRepository&MockObject $tokenRepository;
-    private UserFactory&MockObject $userFactory;
+    private AdminUserLookup&MockObject $adminUserLookup;
     private LoggerInterface&MockObject $logger;
     private TokenAuthenticator $authenticator;
 
@@ -33,13 +33,13 @@ class TokenAuthenticatorTest extends TestCase
     {
         $this->tokenHasher = $this->createMock(TokenHasher::class);
         $this->tokenRepository = $this->createMock(TokenRepository::class);
-        $this->userFactory = $this->createMock(UserFactory::class);
+        $this->adminUserLookup = $this->createMock(AdminUserLookup::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->authenticator = new TokenAuthenticator(
             $this->tokenHasher,
             $this->tokenRepository,
-            $this->userFactory,
+            $this->adminUserLookup,
             $this->logger
         );
     }
@@ -117,9 +117,8 @@ class TokenAuthenticatorTest extends TestCase
         $this->tokenRepository->method('getByHash')->willReturn($token);
 
         $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(42);
         $user->method('getIsActive')->willReturn(0);
-        $this->userFactory->method('create')->willReturn($user);
+        $this->adminUserLookup->method('getById')->willReturn($user);
 
         $this->expectException(UnauthorizedException::class);
         $this->expectExceptionMessageMatches('/inactive or deleted/');
@@ -136,10 +135,8 @@ class TokenAuthenticatorTest extends TestCase
         $token->method('getAdminUserId')->willReturn(42);
         $this->tokenRepository->method('getByHash')->willReturn($token);
 
-        $user = $this->createMock(User::class);
-        // Simulate Magento's "load into empty model" when the row is gone.
-        $user->method('getId')->willReturn(null);
-        $this->userFactory->method('create')->willReturn($user);
+        $this->adminUserLookup->method('getById')
+            ->willThrowException(NoSuchEntityException::singleField('user_id', 42));
 
         $this->expectException(UnauthorizedException::class);
 
@@ -157,9 +154,8 @@ class TokenAuthenticatorTest extends TestCase
         $this->tokenRepository->method('getByHash')->willReturn($token);
 
         $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(42);
         $user->method('getIsActive')->willReturn(1);
-        $this->userFactory->method('create')->willReturn($user);
+        $this->adminUserLookup->method('getById')->willReturn($user);
 
         $this->tokenRepository->expects($this->once())
             ->method('touchLastUsed')
@@ -182,9 +178,8 @@ class TokenAuthenticatorTest extends TestCase
         $this->tokenRepository->method('getByHash')->willReturn($token);
 
         $user = $this->createMock(User::class);
-        $user->method('getId')->willReturn(42);
         $user->method('getIsActive')->willReturn(1);
-        $this->userFactory->method('create')->willReturn($user);
+        $this->adminUserLookup->method('getById')->willReturn($user);
 
         $this->tokenRepository->method('touchLastUsed')
             ->willThrowException(new RuntimeException('DB write down'));

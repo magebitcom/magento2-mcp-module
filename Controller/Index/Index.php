@@ -45,6 +45,14 @@ use Magento\Framework\App\ResponseInterface;
  */
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
+    /**
+     * JSON-RPC envelopes are small; this cap is the backstop for an
+     * unauthenticated attacker posting a multi-megabyte body to exhaust the
+     * FPM worker's memory before auth runs. In practice even a
+     * `tools/call` with a large `arguments` object fits comfortably.
+     */
+    private const MAX_BODY_BYTES = 262144;
+
     public function __construct(
         private readonly HttpRequest $request,
         private readonly HttpResponse $response,
@@ -77,7 +85,18 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             $this->auditContext->tokenId = $context->token->getId();
             $this->auditContext->adminUserId = $context->getAdminUserId();
 
+            $rawLength = $this->request->getServer('CONTENT_LENGTH');
+            $declaredLength = is_scalar($rawLength) ? (int) $rawLength : 0;
+            if ($declaredLength > self::MAX_BODY_BYTES) {
+                return $this->failRpc(413, null, ErrorCode::INVALID_REQUEST, 'Request body too large.');
+            }
+
             $body = (string) $this->request->getContent();
+            if (strlen($body) > self::MAX_BODY_BYTES) {
+                // Chunked transfer with no Content-Length, or a lying client —
+                // recheck after the body is materialized.
+                return $this->failRpc(413, null, ErrorCode::INVALID_REQUEST, 'Request body too large.');
+            }
 
             try {
                 $parsed = json_decode($body, true, 32, JSON_THROW_ON_ERROR);
@@ -134,15 +153,12 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 
     /**
      * Populate the environment fields visible to every request, regardless of
-     * whether auth or parsing succeeds.
+     * whether auth or parsing succeeds. The DTO's default `method` is already
+     * the `(request)` placeholder (see {@see AuditContext::METHOD_UNPARSED});
+     * the JSON-RPC handler overwrites it once the envelope is parsed.
      */
     private function seedAuditEnvironment(): void
     {
-        // `(request)` is a placeholder so the row still lands if we bail before
-        // parsing the JSON-RPC envelope — auth failures would otherwise be
-        // invisible in the audit trail. Once the envelope is parsed the real
-        // method name overwrites this.
-        $this->auditContext->method = '(request)';
         $this->auditContext->protocolVersion = $this->header('Mcp-Protocol-Version');
         $this->auditContext->ipAddress = $this->request->getClientIp();
         $this->auditContext->userAgent = $this->header('User-Agent');
@@ -207,12 +223,25 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         ]);
     }
 
+    /**
+     * Magento's form-key CSRF defense is not applicable here. This endpoint is
+     * not reachable via a browser form submission — the only clients are MCP
+     * hosts talking JSON-RPC over HTTP with a `Authorization: Bearer` header.
+     * A bearer token cannot be forged across origins (browsers refuse to echo
+     * bearer auth to arbitrary targets without CORS preflight), so the bearer
+     * itself is the CSRF defense.
+     */
     public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {
         unset($request);
         return null;
     }
 
+    /**
+     * See {@see createCsrfValidationException}. Returning true short-circuits
+     * the form-key check; the bearer authentication in {@see execute} is the
+     * real access control.
+     */
     public function validateForCsrf(RequestInterface $request): ?bool
     {
         unset($request);

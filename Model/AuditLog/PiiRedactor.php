@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\AuditLog;
 
 use Magento\Framework\App\DeploymentConfig;
+use RuntimeException;
 
 /**
  * Replaces PII fields in tool arguments with a deterministic HMAC "fingerprint"
@@ -106,6 +107,16 @@ class PiiRedactor
     private function key(): string
     {
         $key = $this->deploymentConfig->get('crypt/key');
-        return is_string($key) && $key !== '' ? $key : 'magebit_mcp_no_crypt_key_configured';
+        if (!is_string($key) || $key === '') {
+            // A globally-known fallback key is equivalent to no key — would
+            // let any installation with a broken env.php enumerate PII across
+            // every other installation. Fail loudly; AuditLogger's outer
+            // try/catch converts this into a logged warning and a dropped
+            // row, which is the correct failure mode.
+            throw new RuntimeException(
+                'Install crypt key missing from app/etc/env.php — cannot fingerprint PII for audit.'
+            );
+        }
+        return $key;
     }
 }
