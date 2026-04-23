@@ -21,11 +21,14 @@ class HtmlEscape
 {
     /**
      * Utility-only; never instantiated.
+     *
+     * @codingStandardsIgnoreStart
      */
-    private function __construct() // phpcs:ignore Generic.CodeAnalysis.EmptyStatement
+    private function __construct()
     {
         // No-op constructor — kept private to prevent instantiation.
     }
+    // @codingStandardsIgnoreEnd
 
     /**
      * Narrow `string|array` down to a string, dropping arrays as empty text.

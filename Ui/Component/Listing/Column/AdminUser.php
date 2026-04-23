@@ -37,6 +37,8 @@ class AdminUser extends Column
      * @param Escaper $escaper
      * @param array $components
      * @param array $data
+     * @phpstan-param array<string, mixed> $components
+     * @phpstan-param array<string, mixed> $data
      */
     public function __construct(
         ContextInterface $context,

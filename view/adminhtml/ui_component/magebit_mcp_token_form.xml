@@ -28,7 +28,8 @@
         <settings>
             <submitUrl path="magebit_mcp/token/save"/>
         </settings>
-        <dataProvider class="Magebit\Mcp\Ui\DataProvider\Form\TokenDataProvider" name="magebit_mcp_token_form_data_source">
+        <dataProvider class="Magebit\Mcp\Ui\DataProvider\Form\TokenDataProvider"
+                      name="magebit_mcp_token_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>
@@ -49,7 +50,10 @@
                 <dataType>text</dataType>
                 <label translate="true">Admin user</label>
                 <dataScope>admin_user_id</dataScope>
-                <notice translate="true">Token ACL intersects with this admin's role at every request — deactivating the admin revokes the token implicitly.</notice>
+                <notice translate="true">
+                    Token ACL intersects with this admin's role at every request — deactivating
+                    the admin revokes the token implicitly.
+                </notice>
                 <validation>
                     <rule name="required-entry" xsi:type="boolean">true</rule>
                 </validation>
@@ -89,7 +93,9 @@
                 <dataType>date</dataType>
                 <label translate="true">Expires at (UTC)</label>
                 <dataScope>expires_at</dataScope>
-                <notice translate="true">Leave blank for a non-expiring token. Revoke manually when the device is retired.</notice>
+                <notice translate="true">
+                    Leave blank for a non-expiring token. Revoke manually when the device is retired.
+                </notice>
             </settings>
         </field>
         <field name="allow_writes" sortOrder="40" formElement="checkbox">
@@ -103,7 +109,9 @@
                 <dataType>boolean</dataType>
                 <label translate="true">Allow write tools</label>
                 <dataScope>allow_writes</dataScope>
-                <notice translate="true">Also requires the global `magebit_mcp/general/allow_writes` kill-switch to be on.</notice>
+                <notice translate="true">
+                    Also requires the global `magebit_mcp/general/allow_writes` kill-switch to be on.
+                </notice>
             </settings>
             <formElements>
                 <checkbox>
@@ -127,7 +135,10 @@
                 <dataType>text</dataType>
                 <label translate="true">Scopes</label>
                 <dataScope>scopes</dataScope>
-                <notice translate="true">Pick specific tools this token may call. Leave empty for "every tool the admin's role grants".</notice>
+                <notice translate="true">
+                    Pick specific tools this token may call. Leave empty for
+                    "every tool the admin's role grants".
+                </notice>
             </settings>
             <formElements>
                 <multiselect>

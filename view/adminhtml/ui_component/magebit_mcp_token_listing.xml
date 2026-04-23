@@ -47,7 +47,9 @@
                 <settings>
                     <confirm>
                         <title translate="true">Revoke selected connections</title>
-                        <message translate="true">The bearer tokens stop working immediately on next request. Continue?</message>
+                        <message translate="true">
+                            The bearer tokens stop working on next request. Continue?
+                        </message>
                     </confirm>
                     <url path="magebit_mcp/token/massRevoke"/>
                     <type>revoke</type>
@@ -125,21 +127,30 @@
                 <sortable>false</sortable>
             </settings>
         </column>
-        <column name="last_used_at" sortOrder="70" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="last_used_at"
+                sortOrder="70"
+                class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
                 <label translate="true">Last used</label>
             </settings>
         </column>
-        <column name="expires_at" sortOrder="80" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="expires_at"
+                sortOrder="80"
+                class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
                 <label translate="true">Expires</label>
             </settings>
         </column>
-        <column name="created_at" sortOrder="90" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="created_at"
+                sortOrder="90"
+                class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
