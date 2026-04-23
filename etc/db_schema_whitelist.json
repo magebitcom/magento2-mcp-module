@@ -1,0 +1,53 @@
+{
+    "magebit_mcp_token": {
+        "column": {
+            "id": true,
+            "admin_user_id": true,
+            "name": true,
+            "token_hash": true,
+            "scopes_json": true,
+            "allow_writes": true,
+            "last_used_at": true,
+            "expires_at": true,
+            "revoked_at": true,
+            "created_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_REVOKED_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_TOKEN_TOKEN_HASH": true,
+            "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_ADMIN_USER_USER_ID": true
+        }
+    },
+    "magebit_mcp_audit_log": {
+        "column": {
+            "id": true,
+            "token_id": true,
+            "admin_user_id": true,
+            "request_id": true,
+            "protocol_version": true,
+            "method": true,
+            "tool_name": true,
+            "arguments_json": true,
+            "result_summary_json": true,
+            "response_status": true,
+            "error_code": true,
+            "duration_ms": true,
+            "ip_address": true,
+            "user_agent": true,
+            "created_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_AUDIT_LOG_ADMIN_USER_ID_CREATED_AT": true,
+            "MAGEBIT_MCP_AUDIT_LOG_TOOL_NAME_CREATED_AT": true,
+            "MAGEBIT_MCP_AUDIT_LOG_CREATED_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_AUDIT_LOG_TOKEN_ID_MAGEBIT_MCP_TOKEN_ID": true,
+            "MAGEBIT_MCP_AUDIT_LOG_ADMIN_USER_ID_ADMIN_USER_USER_ID": true
+        }
+    }
+}

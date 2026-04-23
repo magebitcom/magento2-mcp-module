@@ -1,0 +1,22 @@
+{
+    "name": "magebitcom/module2-mcp-module",
+    "description": "Magento 2 MCP (Model Context Protocol) server module",
+    "type": "magento2-module",
+    "license": "proprietary",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
+        "magento/framework": "^103.0",
+        "magento/module-backend": "^102.0",
+        "magento/module-user": "^101.2",
+        "magento/module-authorization": "^100.4",
+        "magento/module-sales": "^103.0"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magebit\\Mcp\\": ""
+        }
+    }
+}
