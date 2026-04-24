@@ -15,6 +15,26 @@
                                       title="Tool: Get Store Information" sortOrder="20"/>
                             <resource id="Magebit_Mcp::tool_system_config_get"
                                       title="Tool: Get System Configuration Value" sortOrder="30"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_list"
+                                      title="Tool: List Cache Types" sortOrder="40"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_clean"
+                                      title="Tool: Clean Cache" sortOrder="50"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_flush"
+                                      title="Tool: Flush Cache Storage" sortOrder="60"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_enable"
+                                      title="Tool: Enable Cache Types" sortOrder="70"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_disable"
+                                      title="Tool: Disable Cache Types" sortOrder="80"/>
+                            <resource id="Magebit_Mcp::tool_system_index_list"
+                                      title="Tool: List Indexers" sortOrder="90"/>
+                            <resource id="Magebit_Mcp::tool_system_index_reindex"
+                                      title="Tool: Reindex" sortOrder="100"/>
+                            <resource id="Magebit_Mcp::tool_system_index_reset"
+                                      title="Tool: Reset Indexer" sortOrder="110"/>
+                            <resource id="Magebit_Mcp::tool_system_index_set_mode"
+                                      title="Tool: Set Indexer Mode" sortOrder="120"/>
+                            <resource id="Magebit_Mcp::tool_system_notification_list"
+                                      title="Tool: List Admin Notifications" sortOrder="130"/>
                         </resource>
                         <resource id="Magebit_Mcp::config" title="MCP Configuration" sortOrder="40"/>
                     </resource>

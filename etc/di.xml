@@ -144,6 +144,36 @@
                 <item name="system.config.get" xsi:type="object">
                     Magebit\Mcp\Tool\System\ConfigGet
                 </item>
+                <item name="system.cache.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheList
+                </item>
+                <item name="system.cache.clean" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheClean
+                </item>
+                <item name="system.cache.flush" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheFlush
+                </item>
+                <item name="system.cache.enable" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheEnable
+                </item>
+                <item name="system.cache.disable" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheDisable
+                </item>
+                <item name="system.index.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\IndexerList
+                </item>
+                <item name="system.index.reindex" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\Reindex
+                </item>
+                <item name="system.index.reset" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\Reset
+                </item>
+                <item name="system.index.set_mode" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\SetMode
+                </item>
+                <item name="system.notification.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Notification\NotificationList
+                </item>
             </argument>
         </arguments>
     </type>

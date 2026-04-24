@@ -9,11 +9,14 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Tool;
 
 use Magebit\Mcp\Api\LoggerInterface;
+use stdClass;
 
 /**
- * Strips composition keywords (`oneOf` / `allOf` / `anyOf`) that the MCP spec
- * forbids inside a tool's `inputSchema`. Walks the tree, removes them, and
- * logs each hit with the tool name and path.
+ * Wire-shape normalizer for tool inputSchemas emitted via `tools/list`.
+ * Strips composition keywords (`oneOf` / `allOf` / `anyOf`) that the MCP
+ * spec forbids, and rewrites empty `properties` arrays to a stdClass so
+ * `json_encode` produces `{}` instead of `[]` (JSON Schema rejects an
+ * array there).
  */
 class SchemaSanitizer
 {
@@ -58,6 +61,10 @@ class SchemaSanitizer
         $cleaned = [];
         foreach ($node as $key => $value) {
             $childPath = $path === '' ? (string) $key : $path . '.' . $key;
+            if ($key === 'properties' && is_array($value) && $value === []) {
+                $cleaned[$key] = new stdClass();
+                continue;
+            }
             $cleaned[$key] = $this->walk($toolName, $value, $childPath);
         }
         return $cleaned;

@@ -140,4 +140,38 @@ class SchemaSanitizerTest extends TestCase
         $this->logger->expects(self::never())->method('warning');
         self::assertSame([], $this->sanitizer->sanitize('test.tool', []));
     }
+
+    public function testEmptyPropertiesBecomeStdClassSoJsonEncodesAsObject(): void
+    {
+        $sanitized = $this->sanitizer->sanitize('test.tool', [
+            'type' => 'object',
+            'properties' => [],
+            'additionalProperties' => false,
+        ]);
+
+        self::assertInstanceOf(\stdClass::class, $sanitized['properties']);
+        self::assertSame(
+            '{"type":"object","properties":{},"additionalProperties":false}',
+            (string) json_encode($sanitized, JSON_UNESCAPED_SLASHES)
+        );
+    }
+
+    public function testEmptyPropertiesNormalizedAtNestedDepth(): void
+    {
+        $sanitized = $this->sanitizer->sanitize('test.tool', [
+            'type' => 'object',
+            'properties' => [
+                'address' => [
+                    'type' => 'object',
+                    'properties' => [],
+                ],
+            ],
+        ]);
+
+        $properties = $sanitized['properties'];
+        self::assertIsArray($properties);
+        $address = $properties['address'] ?? null;
+        self::assertIsArray($address);
+        self::assertInstanceOf(\stdClass::class, $address['properties']);
+    }
 }
