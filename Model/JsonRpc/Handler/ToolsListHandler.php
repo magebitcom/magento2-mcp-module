@@ -8,29 +8,42 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Tool\SchemaSanitizer;
+use Magebit\Mcp\Model\Tool\WriteMode;
 
 /**
  * Handles the `tools/list` JSON-RPC method.
  *
  * Returns only tools the authenticated admin's role grants AND the token's
- * scope (if any) permits. Tokens narrow — an admin with broad ACL can still
- * hand out a token that exposes only a single tool to a specific AI client.
+ * scope (if any) permits. Write-mode tools are hidden unless both the
+ * site-wide kill-switch and the token's allow_writes flag are on, matching
+ * what `tools/call` will actually execute. Tokens narrow — an admin with
+ * broad ACL can still hand out a token that exposes only a single tool to
+ * a specific AI client.
  */
 class ToolsListHandler implements HandlerInterface
 {
     /**
      * @param ToolRegistryInterface $toolRegistry
      * @param AclChecker $aclChecker
+     * @param ModuleConfig $config
+     * @param SchemaSanitizer $schemaSanitizer
+     * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
-        private readonly AclChecker $aclChecker
+        private readonly AclChecker $aclChecker,
+        private readonly ModuleConfig $config,
+        private readonly SchemaSanitizer $schemaSanitizer,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -48,10 +61,14 @@ class ToolsListHandler implements HandlerInterface
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
         $scopes = $context->token->getScopes();
+        $writesAllowed = $this->config->isAllowWrites() && $context->token->getAllowWrites();
         $tools = [];
 
         foreach ($this->toolRegistry->all() as $tool) {
             if ($scopes !== null && !in_array($tool->getName(), $scopes, true)) {
+                continue;
+            }
+            if ($tool->getWriteMode() === WriteMode::WRITE && !$writesAllowed) {
                 continue;
             }
             if (!$this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource())) {
@@ -61,9 +78,17 @@ class ToolsListHandler implements HandlerInterface
                 'name' => $tool->getName(),
                 'title' => $tool->getTitle(),
                 'description' => $tool->getDescription(),
-                'inputSchema' => $tool->getInputSchema(),
+                'inputSchema' => $this->schemaSanitizer->sanitize(
+                    $tool->getName(),
+                    $tool->getInputSchema()
+                ),
             ];
         }
+
+        $this->logger->debug(
+            sprintf('Emitted tools/list with %d tool(s).', count($tools)),
+            ['tools' => array_column($tools, 'name')]
+        );
 
         return Response::success($request->id, ['tools' => $tools]);
     }

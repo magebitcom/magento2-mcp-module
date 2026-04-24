@@ -24,10 +24,13 @@ bin/magento setup:di:compile
 bin/magento cache:flush
 ```
 
-## Sub-modules
+## Tool sub-modules
 
 ### Included as dependency
 - [Order module](https://github.com/magebitcom/magento2-mcp-order-tools)
+- [Catalog module](https://github.com/magebitcom/magento2-mcp-catalog-tools)
+- [Customer module](https://github.com/magebitcom/magento2-mcp-customer-tools)
+- [CMS module](https://github.com/magebitcom/magento2-mcp-cms-tools)
 
 ## Configure
 

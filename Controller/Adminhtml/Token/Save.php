@@ -67,10 +67,13 @@ class Save extends Action implements HttpPostActionInterface
         /** @var Redirect $redirect */
         $redirect = $this->resultFactory->create(\Magento\Framework\Controller\ResultFactory::TYPE_REDIRECT);
 
-        $raw = $this->getRequest()->getParam('data');
-        if (!is_array($raw)) {
+        $raw = $this->getRequest()->getPostValue();
+        if (!is_array($raw) || $raw === []) {
             $this->messageManager->addErrorMessage((string) __('Missing form payload.'));
             return $redirect->setPath('*/*/new');
+        }
+        if (isset($raw['data']) && is_array($raw['data'])) {
+            $raw = $raw['data'];
         }
 
         try {

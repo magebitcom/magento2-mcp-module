@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Cron;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\Framework\App\ResourceConnection;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**

@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\AuditLog;
 
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
+use Magebit\Mcp\Api\LoggerInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**

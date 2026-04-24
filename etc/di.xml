@@ -6,6 +6,26 @@
                 type="Magebit\Mcp\Model\Tool\ToolRegistry"/>
     <preference for="Magebit\Mcp\Api\RateLimiterInterface"
                 type="Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter"/>
+    <preference for="Magebit\Mcp\Api\LoggerInterface"
+                type="Magebit\Mcp\Logger\Logger"/>
+
+    <!-- Dedicated MCP log channel → var/log/magebit_mcp.log. Classes inside
+         the module depend on Magebit\Mcp\Api\LoggerInterface and receive
+         this instance via the preference above; PSR-3 injections stay on
+         Magento's default system logger. -->
+    <type name="Magebit\Mcp\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">magebit_mcp</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Magebit\Mcp\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
 
     <!-- Request-scoped audit context — a single shared instance per HTTP request
          so the controller and the tools/call handler populate the same object. -->
@@ -70,6 +90,17 @@
                     Magebit\Mcp\Console\Command\TokenDeleteCommand
                 </item>
             </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Console\Command\ListToolsCommand">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Console\Command\ValidateAclCommand">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
         </arguments>
     </type>
 

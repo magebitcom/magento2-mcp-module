@@ -112,10 +112,6 @@ class StoreInfo implements ToolInterface
                     'description' => 'Store-view code (e.g. `default`).',
                 ],
             ],
-            'oneOf' => [
-                ['required' => ['store_id']],
-                ['required' => ['store_code']],
-            ],
             'additionalProperties' => false,
         ];
     }

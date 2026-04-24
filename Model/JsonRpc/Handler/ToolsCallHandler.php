@@ -25,7 +25,7 @@ use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Psr\Log\LoggerInterface;
+use Magebit\Mcp\Api\LoggerInterface;
 use Throwable;
 
 /**

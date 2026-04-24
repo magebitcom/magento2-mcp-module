@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Model\Auth;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\UnauthorizedException;
 use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenAuthenticator;
@@ -18,7 +19,6 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\User\Model\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 class TokenAuthenticatorTest extends TestCase

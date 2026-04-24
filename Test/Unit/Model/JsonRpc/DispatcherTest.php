@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\JsonRpc;
 
 use InvalidArgumentException;
 use Magebit\Mcp\Api\Data\TokenInterface;
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\JsonRpc\Dispatcher;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
@@ -19,7 +20,6 @@ use Magebit\Mcp\Model\JsonRpc\Response;
 use Magento\User\Model\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
 use RuntimeException;
 use stdClass;
 

@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Auth;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\UnauthorizedException;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**

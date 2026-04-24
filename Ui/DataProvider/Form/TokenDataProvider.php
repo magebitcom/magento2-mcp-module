@@ -63,7 +63,7 @@ class TokenDataProvider extends AbstractDataProvider
         return [
             $key => [
                 'id' => $key,
-                'allow_writes' => 0,
+                'allow_writes' => 1,
             ],
         ];
     }

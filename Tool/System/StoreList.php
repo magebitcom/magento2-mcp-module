@@ -87,17 +87,12 @@ class StoreList implements ToolInterface
                     'description' => 'Include stores with `is_active=0`. Defaults to `false`.',
                 ],
                 'website_id' => [
-                    'oneOf' => [
-                        ['type' => 'integer', 'minimum' => 1],
-                        [
-                            'type' => 'array',
-                            'items' => ['type' => 'integer', 'minimum' => 1],
-                            'minItems' => 1,
-                        ],
-                    ],
-                    'description' => 'Narrow the output to these website ids. '
-                        . 'Groups and stores belonging to other websites are '
-                        . 'dropped.',
+                    'type' => 'array',
+                    'items' => ['type' => 'integer', 'minimum' => 1],
+                    'minItems' => 1,
+                    'description' => 'Narrow the output to these website ids '
+                        . '(e.g. `[1]` for a single website). Groups and stores '
+                        . 'belonging to other websites are dropped.',
                 ],
             ],
             'additionalProperties' => false,

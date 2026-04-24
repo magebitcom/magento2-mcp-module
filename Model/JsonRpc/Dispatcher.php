@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\JsonRpc;
 
 use InvalidArgumentException;
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
-use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
