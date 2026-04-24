@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Magebit MCP — Plug an AI copilot into your Magento store</title>
+<meta name="description" content="One secure endpoint lets Claude, ChatGPT, and Cursor read your orders, update products, and post CMS content — with the same permissions your admins already have.">
+<meta name="theme-color" content="#001941">
+
+<meta property="og:title" content="Magebit MCP for Magento 2">
+<meta property="og:description" content="Plug an AI copilot into your Magento store — safely. Built by Magebit.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://magebitcom.github.io/magento2-mcp-module/">
+
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 429 119">
+        <g fill="currentColor">
+            <path d="M56.3 92.8999L68.2 46.1999H70.7L83.1 92.8999H95.8L79.3 30.3999H60.8L49.2 75.7999H46.6L35 30.3999H16.5L0 92.8999H12.7L25.1 46.1999H27.6L39.5 92.8999H56.3Z"/>
+            <path d="M211.7 37.9002H211.1C208.9 35.3002 206.2 33.1002 202.9 31.6002C199.6 30.0002 195.9 29.2002 192 29.2002C188.1 29.2002 181.7 30.5002 177.4 33.1002C173.1 35.7002 169.6 39.3002 167.1 43.8002C164.6 48.4002 163.4 53.6002 163.4 59.5002C163.4 65.4002 164.6 70.6002 167.1 75.2002C169.6 79.8002 173 83.4002 177.4 85.9002C181.7 88.5002 186.6 89.8002 192 89.8002C197.4 89.8002 199.5 89.1002 202.7 87.7002C205.9 86.3002 208.6 84.5002 210.7 82.0002H211.3V91.9002C211.3 96.7002 209.8 100.5 206.8 103.4C203.8 106.3 199.7 107.7 194.7 107.7C189.7 107.7 188.4 107.2 186.1 106.1C183.7 105 181.9 103.7 180.6 102C179.3 100.3 178.6 98.6002 178.3 96.8002H165.8C166 100.3 167.1 103.7 169.3 107.1C171.5 110.5 174.7 113.3 179.1 115.5C183.4 117.7 188.6 118.9 194.8 118.9C201 118.9 205.9 117.8 210.3 115.5C214.7 113.3 218 110.1 220.4 106.1C222.7 102 223.9 97.3002 223.9 91.9002V30.4002H213.2L212 37.9002H211.7ZM208.9 69.5002C207.4 72.4002 205.3 74.7002 202.6 76.3002C199.9 77.9002 196.9 78.7002 193.6 78.7002C190.3 78.7002 187.3 77.9002 184.6 76.3002C181.9 74.7002 179.8 72.4002 178.3 69.5002C176.8 66.6002 176 63.3002 176 59.6002C176 55.9002 176.8 52.7002 178.3 49.7002C179.8 46.8002 181.9 44.5002 184.6 42.9002C187.3 41.3002 190.3 40.5002 193.6 40.5002C196.9 40.5002 199.9 41.3002 202.6 42.9002C205.3 44.5002 207.4 46.7002 208.9 49.7002C210.4 52.6002 211.2 55.9002 211.2 59.6002C211.2 63.3002 210.4 66.6002 208.9 69.5002Z"/>
+            <path d="M277.899 33.2002C273.299 30.6002 268.299 29.2002 262.799 29.2002C257.299 29.2002 251.699 30.6002 246.999 33.4002C242.299 36.2002 238.599 40.0002 235.799 45.0002C233.099 49.9002 231.699 55.5002 231.699 61.7002C231.699 67.9002 233.099 73.6002 235.799 78.5002C238.499 83.4002 242.299 87.3002 246.999 90.1002C251.699 92.9002 256.999 94.3002 262.799 94.3002C268.599 94.3002 271.899 93.5002 275.699 91.8002C279.499 90.1002 282.599 87.8002 285.099 84.9002C287.599 82.0002 289.499 78.8002 290.799 75.2002H277.899C276.499 77.7002 274.499 79.7002 271.899 81.2002C269.299 82.7002 266.299 83.5002 262.899 83.5002C259.499 83.5002 256.699 82.8002 253.999 81.4002C251.299 80.0002 249.099 78.0002 247.399 75.4002C245.699 72.8002 244.599 69.8002 244.199 66.5002H291.899C292.099 66.0002 292.199 65.2002 292.299 64.0002C292.399 62.8002 292.499 61.5002 292.499 60.0002C292.499 54.2002 291.199 49.0002 288.599 44.3002C285.999 39.7002 282.399 36.0002 277.899 33.4002V33.2002ZM244.199 56.8002C244.699 53.6002 245.799 50.7002 247.399 48.2002C248.999 45.7002 251.199 43.7002 253.899 42.2002C256.599 40.7002 259.599 40.0002 262.899 40.0002C266.199 40.0002 268.899 40.7002 271.399 42.2002C273.899 43.7002 275.999 45.7002 277.599 48.3002C279.199 50.9002 280.099 53.7002 280.299 56.9002H244.299L244.199 56.8002Z"/>
+            <path d="M347.7 33.3C343.3 30.6 338.4 29.2 333 29.2C327.6 29.2 325.2 30 322.1 31.6C319 33.2 316.3 35.3 314.1 38.1H313.5V6H301.1V92.9H311.8L313 85.1H313.6C315.9 87.9 318.7 90.1 321.9 91.7C325.1 93.3 328.8 94.1 333 94.1C337.2 94.1 343.3 92.7 347.7 90C352.1 87.3 355.5 83.4 358.1 78.5C360.6 73.6 361.9 67.9 361.9 61.5C361.9 55.1 360.6 49.6 358.1 44.7C355.6 39.8 352.1 35.9 347.7 33.2V33.3ZM347 72.6C345.4 75.8 343.2 78.3 340.5 80C337.8 81.7 334.7 82.6 331.4 82.6C328.1 82.6 325.2 81.7 322.5 80C319.8 78.3 317.6 75.8 316 72.6C314.4 69.4 313.6 65.7 313.6 61.6C313.6 57.5 314.4 53.8 316 50.7C317.6 47.6 319.8 45.1 322.5 43.4C325.2 41.7 328.2 40.8 331.4 40.8C334.6 40.8 337.7 41.7 340.5 43.4C343.2 45.1 345.4 47.6 347 50.7C348.6 53.8 349.4 57.5 349.4 61.6C349.4 65.7 348.6 69.4 347 72.6Z"/>
+            <path d="M153.5 53.0998C153.5 48.2998 152.5 44.0998 150.4 40.4998C148.3 36.8998 145.4 34.0998 141.5 32.1998C137.6 30.2998 133.1 29.2998 127.9 29.2998C122.7 29.2998 118.3 30.1998 114.5 31.9998C110.7 33.7998 107.7 36.1998 105.7 39.2998C103.6 42.2998 102.4 45.4998 102.1 48.8998H114.5C114.9 46.3998 116.3 44.2998 118.7 42.5998C121.1 40.8998 124.1 39.9998 128 39.9998C131.9 39.9998 135.3 41.1998 137.6 43.4998C140 45.8998 141.1 49.0998 141.1 53.0998V54.6998H125.2C119.6 54.6998 114.9 55.4998 111.1 57.1998C107.3 58.8998 104.5 61.1998 102.7 64.1998C100.9 67.1998 100 70.6998 100 74.7998C100 78.8998 100.9 81.7998 102.7 84.6998C104.5 87.5998 107.1 89.8998 110.5 91.5998C113.9 93.2998 117.8 94.0998 122.2 94.0998C126.6 94.0998 130.4 93.2998 133.8 91.5998C137.1 89.8998 139.5 88.0998 140.9 85.9998H141.5C141.5 89.7998 144.6 92.7998 148.3 92.7998H159.5V81.0998H153.5V52.8998V53.0998ZM141.1 66.7998C141.1 70.1998 140.4 73.1998 139 75.6998C137.6 78.1998 135.6 80.1998 132.9 81.4998C130.2 82.8998 127.1 83.5998 123.6 83.5998C120.1 83.5998 117.3 82.7998 115.4 81.0998C113.5 79.3998 112.5 77.1998 112.5 74.4998C112.5 71.7998 113.6 69.2998 115.8 67.4998C118 65.6998 121.4 64.7998 126.1 64.7998H141.1V66.8998V66.7998Z"/>
+            <path d="M364.5 30.3999V42.0999H372.8V92.8999H385.3V30.3999H364.5Z"/>
+            <path d="M414.101 12.2998H401.701V30.3998H393.301V42.0998H401.701V81.9998C401.701 87.9998 406.601 92.8998 412.601 92.8998H428.401V81.4998H414.101V42.0998H428.401V30.3998H414.101V12.2998Z"/>
+            <path d="M388.9 12.2V10.2C383.6 9.6 379.3 5.4 378.7 0H376.7C376.1 5.3 371.9 9.6 366.5 10.2V12.2C371.8 12.8 376.1 17 376.7 22.4H378.7C379.3 17.1 383.5 12.8 388.9 12.2Z"/>
+        </g>
+    </symbol>
+</svg>
+
+<header class="site-header" id="top">
+    <nav class="nav" aria-label="Primary">
+        <a class="nav-brand" href="#top" aria-label="Magebit MCP — home">
+            <svg width="96" height="27" aria-hidden="true"><use href="#logo"/></svg>
+            <span class="nav-brand-suffix">MCP</span>
+        </a>
+        <ul class="nav-links nav-links-mobile">
+            <li><a href="#features">What it does</a></li>
+            <li><a href="#trust">Security</a></li>
+            <li><a href="#clients">AI clients</a></li>
+            <li><a href="developers.html">Developers</a></li>
+            <li><a class="nav-cta" href="https://github.com/magebitcom/magento2-mcp-module" rel="noopener">GitHub →</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+
+<!-- HERO ============================================================= -->
+<section class="hero bg-dark">
+    <svg class="hero-mark" viewBox="0 0 22.4 22.4" aria-hidden="true"><path fill="currentColor" d="M22.4 12.2V10.2C17.1 9.6 12.8 5.4 12.2 0H10.2C9.6 5.3 5.4 9.6 0 10.2V12.2C5.3 12.8 9.6 17 10.2 22.4H12.2C12.8 17.1 17 12.8 22.4 12.2Z"/></svg>
+    <div class="container">
+        <div class="hero-grid">
+            <div class="hero-copy">
+                <span class="eyebrow">Magebit MCP for Magento 2</span>
+                <h1>Plug an AI copilot into your Magento store.</h1>
+                <p class="hero-sub">One secure endpoint lets Claude, ChatGPT, and Cursor read your orders, update products, and post CMS content — using the same permissions your admins already have.</p>
+                <div class="hero-ctas">
+                    <a class="btn btn-primary" href="#features">See what it can do</a>
+                    <a class="btn btn-secondary" href="#install">Install it</a>
+                </div>
+            </div>
+
+            <div class="chat-mock" aria-hidden="true">
+                <div class="chat-head">
+                    <span class="chat-head-dots"><span></span><span></span><span></span></span>
+                    <span class="chat-head-label">Claude · magebit</span>
+                </div>
+                <div class="chat-msg chat-msg-user">How many orders came in today?</div>
+                <div class="chat-msg chat-msg-ai">
+                    <strong>184 orders</strong> across your three stores today — revenue is tracking 12% above yesterday. Here's the breakdown:
+                    <div class="chat-stats">
+                        <div><span class="chat-stat-label">Orders</span><span class="chat-stat-val">184</span></div>
+                        <div><span class="chat-stat-label">Revenue</span><span class="chat-stat-val">€28.4k</span></div>
+                        <div><span class="chat-stat-label">AOV</span><span class="chat-stat-val">€154</span></div>
+                    </div>
+                </div>
+                <div class="chat-msg chat-msg-user">Create a shipment for order #100482.</div>
+                <div class="chat-msg chat-msg-ai"><strong>Confirm?</strong> I'll ship 2 items to Riga via DPD and email the customer a tracking number.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WHAT YOU CAN DO =================================================== -->
+<section id="features">
+    <div class="container">
+        <span class="eyebrow">What you can do</span>
+        <h2>Run your store from a conversation.</h2>
+        <p class="section-intro">Ask questions in plain language. Get answers backed by live Magento data. Kick off real operations — all gated by the admin permissions you've already set up.</p>
+
+        <div class="tiles">
+            <article class="tile">
+                <span class="tile-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h18l-2 12H5L3 7Z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/></svg>
+                </span>
+                <h3>Orders</h3>
+                <p>Look up, invoice, ship, refund — without tabbing into admin.</p>
+                <ul class="tile-examples">
+                    <li>"How many orders shipped late this week?"</li>
+                    <li>"Invoice order #100482."</li>
+                    <li>"Refund the shipping on this order and email the customer."</li>
+                </ul>
+            </article>
+
+            <article class="tile">
+                <span class="tile-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M7 14h4"/></svg>
+                </span>
+                <h3>Catalog</h3>
+                <p>Inspect products, prices, and stock; make bulk updates safely.</p>
+                <ul class="tile-examples">
+                    <li>"Which products haven't sold in 90 days?"</li>
+                    <li>"Set these 12 SKUs to Out of stock."</li>
+                    <li>"Rewrite the short description for SKU ABC-12."</li>
+                </ul>
+            </article>
+
+            <article class="tile">
+                <span class="tile-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                </span>
+                <h3>Customers</h3>
+                <p>Pull customer records, order history, and addresses on demand.</p>
+                <ul class="tile-examples">
+                    <li>"Show every order from jane@example.com."</li>
+                    <li>"Which customers placed 3+ orders last month?"</li>
+                    <li>"Update the billing address on account #4891."</li>
+                </ul>
+            </article>
+
+            <article class="tile">
+                <span class="tile-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/><path d="M9 4v16"/></svg>
+                </span>
+                <h3>CMS</h3>
+                <p>Draft blocks and pages, fix typos, and swap banners in seconds.</p>
+                <ul class="tile-examples">
+                    <li>"Fix the typo on the homepage hero."</li>
+                    <li>"Draft a CMS block for our Black Friday banner."</li>
+                    <li>"Publish the winter landing page to the EU store."</li>
+                </ul>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS ====================================================== -->
+<section class="bg-alt" id="how">
+    <div class="container">
+        <span class="eyebrow">How it works</span>
+        <h2>Three steps, about a minute.</h2>
+
+        <div class="steps">
+            <div class="step">
+                <h3>Install the module</h3>
+                <p>One <code>composer require</code> and a <code>setup:upgrade</code>. Works on any Magento 2.4+ store.</p>
+            </div>
+            <div class="step">
+                <h3>Mint a token</h3>
+                <p>Create a bearer token for an admin user from the CLI. Tokens inherit that admin's role, so the AI can only do what that role can already do.</p>
+            </div>
+            <div class="step">
+                <h3>Connect your AI</h3>
+                <p>Paste the URL and token into Claude, ChatGPT, Cursor, or any MCP-aware tool. It discovers what's available and goes to work.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BUILT FOR TRUST =================================================== -->
+<section class="bg-dark" id="trust">
+    <div class="container">
+        <span class="eyebrow">Built for trust</span>
+        <h2>The safe way to hand the AI a key to your store.</h2>
+        <p class="section-intro">Bearer tokens, admin-role ACL inheritance, write gating, full audit trail. Every safety control you'd build by hand — built in.</p>
+
+        <div class="trust-grid">
+            <div class="trust-card">
+                <h3><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg>Bearer tokens, hashed at rest</h3>
+                <p>Plaintext is shown once. The database stores a bcrypt hash. A revoked token fails auth immediately.</p>
+            </div>
+            <div class="trust-card">
+                <h3><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/><path d="m9 12 2 2 4-4"/></svg>Inherits admin permissions</h3>
+                <p>Every call re-checks the owning admin's role. What a role can't see in admin, the AI can't see either.</p>
+            </div>
+            <div class="trust-card">
+                <h3><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8"/></svg>Writes off by default</h3>
+                <p>Write operations require two switches: a global store-config flag and a per-token flag. Either one off → blocked.</p>
+            </div>
+            <div class="trust-card">
+                <h3><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>Full audit trail, PII redacted</h3>
+                <p>Every call is logged with method, arguments, duration, admin, and token. Sensitive fields are fingerprinted before they hit disk.</p>
+            </div>
+            <div class="trust-card">
+                <h3><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5"/><path d="M12 16h.01"/></svg>One-click kill-switch</h3>
+                <p>Flip a single store-config toggle and every request returns HTTP 503 before auth even runs.</p>
+            </div>
+            <div class="trust-card">
+                <h3><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18"/><path d="M12 3a15 15 0 0 0 0 18"/><circle cx="12" cy="12" r="9"/></svg>Origin allowlist</h3>
+                <p>Only browsers and tools from an admin-controlled list can even reach the endpoint — a built-in defense against DNS rebinding.</p>
+            </div>
+        </div>
+
+        <div class="trust-footer">
+            <a class="btn btn-secondary btn-arrow" href="security.html">Read the security overview</a>
+        </div>
+    </div>
+</section>
+
+<!-- AI CLIENTS ======================================================== -->
+<section id="clients">
+    <div class="container">
+        <span class="eyebrow">Works with every MCP client</span>
+        <h2>Connect the tool your team already uses.</h2>
+        <p class="section-intro">Magebit MCP speaks the Model Context Protocol's Streamable HTTP transport, so any compliant client connects in seconds. stdio-only clients connect through the official bridge.</p>
+
+        <ul class="clients">
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12c0 4.97-4.03 9-9 9-1.58 0-3.07-.41-4.36-1.13L3 21l1.13-4.64A8.96 8.96 0 0 1 3 12c0-4.97 4.03-9 9-9s9 4.03 9 9Z"/></svg>
+                Claude Desktop
+            </li>
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m8 10 2 2-2 2"/><path d="M13 14h4"/></svg>
+                Claude Code
+            </li>
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3c2.5 3 2.5 15 0 18"/><path d="M12 3c-2.5 3-2.5 15 0 18"/><path d="M3 12h18"/></svg>
+                ChatGPT
+            </li>
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="m9 9 6 6"/><path d="m15 9-6 6"/></svg>
+                Cursor
+            </li>
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/><circle cx="19" cy="17" r="2"/></svg>
+                Cline
+            </li>
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12c3-6 15-6 18 0"/><path d="M3 12c3 6 15 6 18 0"/><circle cx="12" cy="12" r="2.5"/></svg>
+                Windsurf
+            </li>
+            <li class="client">
+                <svg class="client-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-5-5"/></svg>
+                MCP Inspector
+            </li>
+        </ul>
+    </div>
+</section>
+
+<!-- DEVELOPER PITCH =================================================== -->
+<section class="bg-alt" id="developers">
+    <div class="container">
+        <div class="dev-pitch">
+            <div>
+                <span class="eyebrow">For developers</span>
+                <h2>Add your own tools. Keep every safety rail.</h2>
+                <p>Ship a new tool in a satellite module and inherit transport, authentication, ACL, audit, and PII redaction — for free.</p>
+                <ul>
+                    <li>One interface to implement, one DI line to register.</li>
+                    <li>Every tool gets bearer auth, ACL checks, and audit rows automatically.</li>
+                    <li>PHPStan level 9, strict types, full unit test scaffolding.</li>
+                </ul>
+                <a class="btn btn-primary btn-arrow" href="developers.html">Read the developer guide</a>
+            </div>
+            <div class="dev-code" aria-hidden="true">
+<pre style="margin:0; font-family: inherit; color: inherit;"><span class="c-cmt">// Register a new tool — that's it.</span>
+<span class="c-key">&lt;type</span> <span class="c-str">name</span>=<span class="c-str">"Magebit\Mcp\Model\Tool\ToolRegistry"</span><span class="c-key">&gt;</span>
+  <span class="c-key">&lt;arguments&gt;</span>
+    <span class="c-key">&lt;argument</span> <span class="c-str">name</span>=<span class="c-str">"tools"</span> <span class="c-str">xsi:type</span>=<span class="c-str">"array"</span><span class="c-key">&gt;</span>
+      <span class="c-key">&lt;item</span>
+        <span class="c-str">name</span>=<span class="c-str">"catalog.product.get"</span>
+        <span class="c-str">xsi:type</span>=<span class="c-str">"object"</span><span class="c-key">&gt;</span>
+          Vendor\Module\Tool\CatalogProductGet
+      <span class="c-key">&lt;/item&gt;</span>
+    <span class="c-key">&lt;/argument&gt;</span>
+  <span class="c-key">&lt;/arguments&gt;</span>
+<span class="c-key">&lt;/type&gt;</span></pre>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- INSTALL =========================================================== -->
+<section id="install">
+    <div class="container-narrow install">
+        <span class="eyebrow">Install</span>
+        <h2>Up and running in 60 seconds.</h2>
+
+        <div class="install-box">
+            <code class="install-code" id="install-snippet"><span class="c-prompt">$ </span>composer require magebitcom/module2-mcp-module</code>
+            <button class="copy-btn" type="button" data-copy-target="install-snippet" aria-label="Copy install command">Copy</button>
+        </div>
+
+        <p class="install-note">After install, run <code>bin/magento module:enable Magebit_Mcp</code>, then <code>setup:upgrade</code>. The README has per-client setup snippets for Claude, ChatGPT, Cursor, and more.</p>
+
+        <p><a class="btn btn-secondary btn-arrow" href="https://github.com/magebitcom/magento2-mcp-module#readme" rel="noopener">Full install + client setup</a></p>
+    </div>
+</section>
+
+</main>
+
+<!-- FOOTER ============================================================ -->
+<footer class="site-footer">
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <a class="nav-brand" href="#top" aria-label="Magebit — home" style="color: var(--white);">
+                    <svg width="110" height="30" aria-hidden="true"><use href="#logo"/></svg>
+                </a>
+                <p class="footer-tag">Magebit MCP brings the Model Context Protocol to Magento 2 — built and maintained by <a href="https://www.magebit.com" rel="noopener">Magebit</a>.</p>
+            </div>
+
+            <div class="footer-col">
+                <h4>Modules</h4>
+                <ul>
+                    <li><a href="https://github.com/magebitcom/magento2-mcp-module" rel="noopener">Core</a></li>
+                    <li><a href="https://github.com/magebitcom/magento2-mcp-order-tools" rel="noopener">Order tools</a></li>
+                    <li><a href="https://github.com/magebitcom/magento2-mcp-catalog-tools" rel="noopener">Catalog tools</a></li>
+                    <li><a href="https://github.com/magebitcom/magento2-mcp-customer-tools" rel="noopener">Customer tools</a></li>
+                    <li><a href="https://github.com/magebitcom/magento2-mcp-cms-tools" rel="noopener">CMS tools</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Learn</h4>
+                <ul>
+                    <li><a href="developers.html">For developers</a></li>
+                    <li><a href="security.html">Security overview</a></li>
+                    <li><a href="https://modelcontextprotocol.io" rel="noopener">What is MCP?</a></li>
+                    <li><a href="https://github.com/magebitcom/magento2-mcp-module#readme" rel="noopener">README</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-col">
+                <h4>Magebit</h4>
+                <ul>
+                    <li><a href="https://www.magebit.com" rel="noopener">magebit.com</a></li>
+                    <li><a href="https://brand.magebit.com" rel="noopener">Brand</a></li>
+                    <li><a href="https://github.com/magebitcom" rel="noopener">GitHub</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <span>© <span id="footer-year">2026</span> Magebit. Released under OSL-3.0 / AFL-3.0.</span>
+            <span>Built on the <a href="https://modelcontextprotocol.io" rel="noopener">Model Context Protocol</a>.</span>
+        </div>
+    </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>
