@@ -45,6 +45,13 @@ interface ToolInterface
      * Validated against the client-supplied `params.arguments` before
      * {@see execute()} is called.
      *
+     * Prefer building the schema with {@see \Magebit\Mcp\Model\Tool\Schema\Schema}
+     * over returning a hand-written array — the builder locks in the MCP-
+     * required invariants (draft-07, type=object, additionalProperties=false,
+     * no oneOf/anyOf/allOf) and catches typos at author time. Raw arrays
+     * remain supported as an escape hatch for rare keywords the builder
+     * does not cover.
+     *
      * @return array<string, mixed>
      */
     public function getInputSchema(): array;

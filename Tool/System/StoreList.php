@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Tool\System;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magento\Framework\Exception\LocalizedException;
@@ -78,25 +79,18 @@ class StoreList implements ToolInterface
      */
     public function getInputSchema(): array
     {
-        return [
-            '$schema' => 'http://json-schema.org/draft-07/schema#',
-            'type' => 'object',
-            'properties' => [
-                'include_inactive' => [
-                    'type' => 'boolean',
-                    'description' => 'Include stores with `is_active=0`. Defaults to `false`.',
-                ],
-                'website_id' => [
-                    'type' => 'array',
-                    'items' => ['type' => 'integer', 'minimum' => 1],
-                    'minItems' => 1,
-                    'description' => 'Narrow the output to these website ids '
-                        . '(e.g. `[1]` for a single website). Groups and stores '
-                        . 'belonging to other websites are dropped.',
-                ],
-            ],
-            'additionalProperties' => false,
-        ];
+        return Schema::object()
+            ->boolean('include_inactive', fn ($b) => $b
+                ->description('Include stores with `is_active=0`. Defaults to `false`.')
+            )
+            ->array('website_id', fn ($a) => $a
+                ->ofIntegers(fn ($i) => $i->minimum(1))
+                ->minItems(1)
+                ->description('Narrow the output to these website ids '
+                    . '(e.g. `[1]` for a single website). Groups and stores '
+                    . 'belonging to other websites are dropped.')
+            )
+            ->toArray();
     }
 
     /**

@@ -17,6 +17,7 @@ namespace Vendor\Module\Mcp\Tool;
 
 use Magebit\Mcp\Api\Data\ToolResultInterface;
 use Magebit\Mcp\Api\ToolInterface;
+use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magento\Catalog\Api\ProductRepositoryInterface;
@@ -47,15 +48,14 @@ class ProductGet implements ToolInterface
 
     public function getInputSchema(): array
     {
-        return [
-            '$schema' => 'http://json-schema.org/draft-07/schema#',
-            'type' => 'object',
-            'properties' => [
-                'sku' => ['type' => 'string', 'minLength' => 1, 'maxLength' => 64],
-            ],
-            'required' => ['sku'],
-            'additionalProperties' => false,
-        ];
+        return Schema::object()
+            ->string('sku', fn ($s) => $s
+                ->minLength(1)
+                ->maxLength(64)
+                ->description('Product SKU.')
+                ->required()
+            )
+            ->toArray();
     }
 
     public function getAclResource(): string

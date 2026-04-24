@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Tool\System;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magento\Config\Model\Config\Backend\Encrypted;
@@ -104,32 +105,23 @@ class ConfigGet implements ToolInterface
      */
     public function getInputSchema(): array
     {
-        return [
-            '$schema' => 'http://json-schema.org/draft-07/schema#',
-            'type' => 'object',
-            'properties' => [
-                'path' => [
-                    'type' => 'string',
-                    'pattern' => '^[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+){1,}$',
-                    'description' => 'Slash-separated config path '
-                        . '(section/group/field).',
-                ],
-                'scope' => [
-                    'type' => 'string',
-                    'enum' => ['default', 'websites', 'stores'],
-                    'description' => 'Scope level. Defaults to `default`. '
-                        . 'Supply `scope_code` with `websites` / `stores`.',
-                ],
-                'scope_code' => [
-                    'type' => 'string',
-                    'minLength' => 1,
-                    'description' => 'Website / store code when `scope` is '
-                        . '`websites` or `stores`.',
-                ],
-            ],
-            'required' => ['path'],
-            'additionalProperties' => false,
-        ];
+        return Schema::object()
+            ->string('path', fn ($s) => $s
+                ->pattern('^[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+){1,}$')
+                ->description('Slash-separated config path (section/group/field).')
+                ->required()
+            )
+            ->string('scope', fn ($s) => $s
+                ->enum(['default', 'websites', 'stores'])
+                ->description('Scope level. Defaults to `default`. '
+                    . 'Supply `scope_code` with `websites` / `stores`.')
+            )
+            ->string('scope_code', fn ($s) => $s
+                ->minLength(1)
+                ->description('Website / store code when `scope` is '
+                    . '`websites` or `stores`.')
+            )
+            ->toArray();
     }
 
     /**

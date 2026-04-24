@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Tool\System;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magento\Framework\App\Config\ScopeConfigInterface;
@@ -97,23 +98,16 @@ class StoreInfo implements ToolInterface
      */
     public function getInputSchema(): array
     {
-        return [
-            '$schema' => 'http://json-schema.org/draft-07/schema#',
-            'type' => 'object',
-            'properties' => [
-                'store_id' => [
-                    'type' => 'integer',
-                    'minimum' => 1,
-                    'description' => 'Numeric store view id (see `system.store.list`).',
-                ],
-                'store_code' => [
-                    'type' => 'string',
-                    'minLength' => 1,
-                    'description' => 'Store-view code (e.g. `default`).',
-                ],
-            ],
-            'additionalProperties' => false,
-        ];
+        return Schema::object()
+            ->integer('store_id', fn ($i) => $i
+                ->minimum(1)
+                ->description('Numeric store view id (see `system.store.list`).')
+            )
+            ->string('store_code', fn ($s) => $s
+                ->minLength(1)
+                ->description('Store-view code (e.g. `default`).')
+            )
+            ->toArray();
     }
 
     /**
