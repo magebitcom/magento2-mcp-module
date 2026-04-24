@@ -5,7 +5,7 @@
     <preference for="Magebit\Mcp\Api\ToolRegistryInterface"
                 type="Magebit\Mcp\Model\Tool\ToolRegistry"/>
     <preference for="Magebit\Mcp\Api\RateLimiterInterface"
-                type="Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter"/>
+                type="Magebit\Mcp\Model\RateLimiter\ConfigurableRateLimiter"/>
     <preference for="Magebit\Mcp\Api\LoggerInterface"
                 type="Magebit\Mcp\Logger\Logger"/>
 

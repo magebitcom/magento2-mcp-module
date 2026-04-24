@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Model\JsonRpc\Handler;
 use Magebit\Mcp\Api\RateLimiterInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
+use Magebit\Mcp\Exception\RateLimitedException;
 use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
@@ -143,7 +144,19 @@ class ToolsCallHandler implements HandlerInterface
             );
         }
 
-        $this->rateLimiter->check($context->getAdminUserId(), $name);
+        try {
+            $this->rateLimiter->check($context->getAdminUserId(), $name);
+        } catch (RateLimitedException $e) {
+            return $this->fail(
+                $request,
+                ErrorCode::RATE_LIMITED,
+                $e->getMessage(),
+                [
+                    'limit' => $e->getLimit(),
+                    'retry_after_seconds' => $e->getRetryAfterSeconds(),
+                ]
+            );
+        }
 
         $this->eventManager->dispatch('magebit_mcp_tool_call_before', [
             'tool' => $tool,

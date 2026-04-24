@@ -32,6 +32,10 @@ https://www.perplexity.ai</allowed_origins>
             <audit>
                 <retention_days>90</retention_days>
             </audit>
+            <rate_limiting>
+                <enabled>0</enabled>
+                <requests_per_minute>60</requests_per_minute>
+            </rate_limiting>
         </magebit_mcp>
     </default>
 </config>

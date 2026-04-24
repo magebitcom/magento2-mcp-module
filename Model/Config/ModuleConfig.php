@@ -28,8 +28,11 @@ class ModuleConfig
     public const XML_PATH_ALLOW_WRITES = 'magebit_mcp/general/allow_writes';
     public const XML_PATH_ALLOWED_ORIGINS = 'magebit_mcp/security/allowed_origins';
     public const XML_PATH_AUDIT_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
+    public const XML_PATH_RATE_LIMITING_ENABLED = 'magebit_mcp/rate_limiting/enabled';
+    public const XML_PATH_RATE_LIMITING_RPM = 'magebit_mcp/rate_limiting/requests_per_minute';
 
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
+    public const DEFAULT_RATE_LIMITING_RPM = 60;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -120,5 +123,36 @@ class ModuleConfig
     {
         $value = $this->scopeConfig->getValue(self::XML_PATH_AUDIT_RETENTION_DAYS);
         return is_scalar($value) ? max(0, (int) $value) : 0;
+    }
+
+    /**
+     * True when rate limiting is switched on in the admin UI.
+     *
+     * Defaults to off ({@see etc/config.xml}) so existing deployments retain
+     * unlimited throughput across upgrades — operators opt in explicitly.
+     *
+     * @return bool
+     */
+    public function isRateLimitingEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_RATE_LIMITING_ENABLED);
+    }
+
+    /**
+     * Maximum `tools/call` invocations per admin-user + tool pair per minute.
+     *
+     * Non-positive admin input is treated as "unlimited" defensively — the
+     * limiter short-circuits when this returns `<= 0`. Missing config falls
+     * back to {@see self::DEFAULT_RATE_LIMITING_RPM}.
+     *
+     * @return int
+     */
+    public function getRateLimitRequestsPerMinute(): int
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_RATE_LIMITING_RPM);
+        if (!is_scalar($value)) {
+            return self::DEFAULT_RATE_LIMITING_RPM;
+        }
+        return max(0, (int) $value);
     }
 }
