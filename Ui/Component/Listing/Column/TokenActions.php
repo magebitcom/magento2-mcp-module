@@ -15,12 +15,8 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Per-row Revoke / Delete actions for the token listing.
- *
- * Revoke is the safe default — it stamps `revoked_at` so the row stays in
- * the grid for audit linkage. Delete hard-removes the row (cascade
- * `ON DELETE SET NULL` on the audit foreign key); useful for cleaning up
- * test tokens that never got used in production.
+ * Per-row Revoke / Delete actions for the token listing. Revoke is the safe
+ * default (keeps `token_id` linkage on audit rows); Delete hard-removes.
  */
 class TokenActions extends Column
 {
@@ -28,10 +24,6 @@ class TokenActions extends Column
     private const URL_DELETE = 'magebit_mcp/token/delete';
 
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param UrlInterface $urlBuilder
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -49,8 +41,6 @@ class TokenActions extends Column
     }
 
     /**
-     * Populate each row's actions column with Revoke / Delete links.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>

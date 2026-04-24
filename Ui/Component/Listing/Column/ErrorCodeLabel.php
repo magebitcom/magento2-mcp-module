@@ -15,16 +15,11 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Decorates the raw numeric `error_code` with its JSON-RPC / MCP meaning, so
- * auditors reading the grid don't need to memorize the -32001..-32014 codes.
- * Unknown codes still render with a fallback label rather than a blank cell.
+ * Decorates raw numeric `error_code` cells with their JSON-RPC / MCP label.
  */
 class ErrorCodeLabel extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -41,8 +36,6 @@ class ErrorCodeLabel extends Column
     }
 
     /**
-     * Decorate each row's error_code cell with its human-readable label.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>

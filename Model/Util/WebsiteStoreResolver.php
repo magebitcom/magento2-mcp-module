@@ -15,18 +15,9 @@ use Magento\Store\Api\StoreRepositoryInterface;
 /**
  * Translate website ids into the store-view ids that belong to them.
  *
- * Most Magento entities are stored with a `store_id` column rather than
- * `website_id` — `sales_order.store_id`, `cms_page_store.store_id`, etc.
- * When an MCP list tool exposes a `website_id` filter it therefore has to
- * expand each website into its stores before adding the criteria. This
- * helper centralises that translation so individual tool modules don't
- * each re-fetch the full store list.
- *
- * `resolveStoreIds()` accepts either a scalar or an array of website ids
- * and returns the deduplicated list of matching `store_id`s. It throws
- * when the caller supplies a value that doesn't map to any known store —
- * failing loud is preferable to silently returning an empty set that
- * would match nothing.
+ * Most Magento entities key on `store_id`, not `website_id`, so MCP list tools
+ * with a `website_id` filter must expand websites into stores before querying.
+ * Fails loud on unknown ids rather than silently returning an empty set.
  */
 class WebsiteStoreResolver
 {
@@ -39,20 +30,11 @@ class WebsiteStoreResolver
     }
 
     /**
-     * Return the store-view ids belonging to the given website id(s).
-     *
-     * Accepts:
-     *   - an int or numeric string  ⇒ one website
-     *   - an array of ints / numeric strings ⇒ multiple websites
-     *
-     * Any other shape (object, mixed scalar, empty) raises
-     * {@see LocalizedException}. The caller is then free to report
-     * `INVALID_PARAMS`.
+     * Accepts an int/numeric string or an array of them. Any other shape raises
+     * {@see LocalizedException} so the caller can report INVALID_PARAMS.
      *
      * @param mixed $websiteIds
-     * @return int[] Deduplicated store ids, empty only when the resolved
-     *               websites genuinely contain no stores (rare — typically
-     *               a misconfigured website).
+     * @return int[]
      * @throws LocalizedException
      */
     public function resolveStoreIds(mixed $websiteIds): array
@@ -93,8 +75,6 @@ class WebsiteStoreResolver
     }
 
     /**
-     * Flatten scalar-or-array website-id input into a clean int[].
-     *
      * @param mixed $raw
      * @return int[]
      */

@@ -14,20 +14,14 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Renders the JSON-RPC method as a monospace chip. The called tool for
- * `tools/call` rows has its own dedicated `Tool` column, so it is not
- * duplicated here.
- *
- * `(request)` is the placeholder written by the controller when the bearer
- * auth / origin / parse step fails *before* the JSON-RPC envelope is read —
- * shown explicitly as "(unparsed request)" so it doesn't look like a bug.
+ * Renders the JSON-RPC method as a monospace chip. `(request)` is the
+ * placeholder the controller writes when auth / origin / parse fails before
+ * the envelope is read; re-labelled "(unparsed request)" so it doesn't look
+ * like a bug.
  */
 class Method extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -44,8 +38,6 @@ class Method extends Column
     }
 
     /**
-     * Render the JSON-RPC method chip plus an optional tool-name sub-label.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
@@ -73,8 +65,6 @@ class Method extends Column
     }
 
     /**
-     * Render a single row's method cell as HTML.
-     *
      * @param string $method
      * @return string
      */

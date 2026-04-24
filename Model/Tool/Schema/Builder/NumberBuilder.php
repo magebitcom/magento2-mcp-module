@@ -9,8 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Tool\Schema\Builder;
 
 /**
- * Fluent builder for a `type: number` property — floats (or ints) with
- * optional numeric bounds.
+ * Fluent builder for a `type: number` property.
  */
 class NumberBuilder extends PropertyBuilder
 {

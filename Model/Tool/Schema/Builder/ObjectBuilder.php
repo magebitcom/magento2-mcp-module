@@ -204,10 +204,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Fail at build time if the same property is added twice — this
-     * catches the class of typo where a tool author copy-pastes a block
-     * and forgets to rename one of the keys.
-     *
      * @param string $name
      * @return void
      */

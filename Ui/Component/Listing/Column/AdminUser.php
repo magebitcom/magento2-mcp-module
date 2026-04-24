@@ -16,25 +16,13 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Resolves `admin_user_id` on each audit row to a linked username plus full
- * name, e.g. `admin (John Doe)` pointing at `adminhtml/user/edit/user_id/42`.
- *
- * All admin users visible on the current grid page are loaded in a single
- * query through {@see AdminUserLookup::listByIds()} — the audit log can grow
- * unbounded, so even the paginated admin grid would be an N+1 hotspot
- * otherwise.
- *
- * Rows whose admin user was deleted render the numeric id followed by
- * `(deleted)` so auditors can still trace the event back to MCP logs.
+ * Resolves `admin_user_id` on each audit row to a linked username + full name.
+ * Uses {@see AdminUserLookup::listByIds()} to batch the lookup in one query —
+ * per-row fetch would be an N+1 hotspot on busy audit logs.
  */
 class AdminUser extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param AdminUserLookup $adminUserLookup
-     * @param UrlInterface $urlBuilder
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -53,8 +41,6 @@ class AdminUser extends Column
     }
 
     /**
-     * Decorate every row's admin-user cell with a linked username + full name.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
@@ -121,8 +107,6 @@ class AdminUser extends Column
     }
 
     /**
-     * Coerce a mixed Magento AbstractModel attribute to a string.
-     *
      * @param mixed $value
      * @return string
      */

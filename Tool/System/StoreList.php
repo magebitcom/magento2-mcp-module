@@ -25,23 +25,14 @@ use Magento\Store\Api\StoreRepositoryInterface;
 use Magento\Store\Api\WebsiteRepositoryInterface;
 
 /**
- * MCP tool `system.store.list` — enumerate the storefront topology.
- *
- * Every other MCP tool that filters by `store_id` / `website_id` relies on
- * the caller knowing these identifiers; surfacing them as a tool lets the
- * AI client discover the catalog of scopes without an out-of-band lookup.
- * Read-only and exposes no PII.
+ * MCP tool `system.store.list` — enumerate websites, groups, and store views
+ * so clients can discover `store_id` / `website_id` for scoped tools.
  */
 class StoreList implements ToolInterface
 {
     public const TOOL_NAME = 'system.store.list';
     public const ACL_RESOURCE = 'Magebit_Mcp::tool_system_store_list';
 
-    /**
-     * @param WebsiteRepositoryInterface $websiteRepository
-     * @param GroupRepositoryInterface $groupRepository
-     * @param StoreRepositoryInterface $storeRepository
-     */
     public function __construct(
         private readonly WebsiteRepositoryInterface $websiteRepository,
         private readonly GroupRepositoryInterface $groupRepository,
@@ -187,11 +178,6 @@ class StoreList implements ToolInterface
     }
 
     /**
-     * Normalise the optional `website_id` argument into a lookup map.
-     *
-     * Returns an `int => true` map (or null when the caller did not pass
-     * anything) so the three loops above can test membership in O(1).
-     *
      * @param mixed $raw
      * @return array<int, true>|null
      * @throws LocalizedException
@@ -220,8 +206,6 @@ class StoreList implements ToolInterface
     }
 
     /**
-     * Shape a website for the response payload.
-     *
      * @param WebsiteInterface $website
      * @return array<string, mixed>
      */
@@ -236,8 +220,6 @@ class StoreList implements ToolInterface
     }
 
     /**
-     * Shape a store group for the response payload.
-     *
      * @param GroupInterface $group
      * @return array<string, mixed>
      */
@@ -254,8 +236,6 @@ class StoreList implements ToolInterface
     }
 
     /**
-     * Shape a store view for the response payload.
-     *
      * @param StoreInterface $store
      * @return array<string, mixed>
      */

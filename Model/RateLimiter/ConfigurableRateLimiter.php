@@ -35,6 +35,11 @@ class ConfigurableRateLimiter implements RateLimiterInterface
 
     private const WINDOW_SECONDS = 60;
 
+    /**
+     * @param ModuleConfig $config
+     * @param CacheInterface $cache
+     * @param LoggerInterface $logger
+     */
     public function __construct(
         private readonly ModuleConfig $config,
         private readonly CacheInterface $cache,

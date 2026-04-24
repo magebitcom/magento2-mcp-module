@@ -17,8 +17,6 @@ use Magento\Framework\Data\OptionSourceInterface;
 class ResponseStatusOptions implements OptionSourceInterface
 {
     /**
-     * Build the {ok, error} filter option list.
-     *
      * @return array<int, array<string, string>>
      */
     public function toOptionArray(): array

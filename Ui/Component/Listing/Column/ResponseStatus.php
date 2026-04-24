@@ -15,16 +15,11 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Renders `response_status` as a Magento grid-severity badge — green for
- * "ok", red for "error" — reusing the stock `.grid-severity-*` CSS that
- * ships with the admin theme so we don't need a custom stylesheet.
+ * Renders `response_status` as a stock `.grid-severity-*` badge.
  */
 class ResponseStatus extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -41,8 +36,6 @@ class ResponseStatus extends Column
     }
 
     /**
-     * Render each row's response_status as a grid-severity badge.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
@@ -69,8 +62,6 @@ class ResponseStatus extends Column
     }
 
     /**
-     * Render a single status value as a grid-severity badge.
-     *
      * @param string $status
      * @return string
      */

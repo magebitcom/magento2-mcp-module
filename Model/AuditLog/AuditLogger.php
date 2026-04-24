@@ -15,20 +15,15 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Throwable;
 
 /**
- * Writes one row to magebit_mcp_audit_log.
+ * Writes one row to magebit_mcp_audit_log via raw
+ * {@see ResourceConnection::getConnection()} INSERT (never a repository / model), so:
+ *   - save-event observers don't fire (no feedback loop);
+ *   - enclosing transactions don't drag the row down on rollback — audit must
+ *     survive the caller's failure;
+ *   - storage errors never 500 the request ({@see self::write()} swallows Throwable).
  *
- * Goes via a raw {@see ResourceConnection::getConnection()} INSERT — never a
- * repository, never an ObjectManager-created model — so:
- *   - we don't fire save-event observers (would create a feedback loop);
- *   - we bypass any enclosing transaction (if the caller's transaction rolls
- *     back, the audit row still survives — that's the whole point of an
- *     audit log);
- *   - logging failures never 500 the request (`write()` swallows Throwable
- *     and logs a warning).
- *
- * Argument redaction is applied here (via {@see PiiRedactor}) as a last line
- * of defense — callers may forget. Payload is capped at {@see self::MAX_JSON_BYTES}
- * to keep the log column from becoming a DoS vector.
+ * {@see PiiRedactor} redacts arguments here as last-line defense; payload is
+ * capped at {@see self::MAX_JSON_BYTES} to prevent a log-column DoS.
  */
 class AuditLogger
 {
@@ -50,8 +45,6 @@ class AuditLogger
     }
 
     /**
-     * Flush the audit context to the log, swallowing any storage error.
-     *
      * @param AuditContext $context
      * @return void
      */
@@ -69,8 +62,6 @@ class AuditLogger
     }
 
     /**
-     * Perform the underlying INSERT.
-     *
      * @param AuditContext $context
      * @return void
      */
@@ -101,8 +92,6 @@ class AuditLogger
     }
 
     /**
-     * Normalise the JSON-RPC id for storage.
-     *
      * @param int|string|null $id
      * @return string|null
      */
@@ -115,8 +104,6 @@ class AuditLogger
     }
 
     /**
-     * Redact PII-tagged fields and encode the remainder as bounded JSON.
-     *
      * @param array|null $arguments
      * @phpstan-param array<int|string, mixed>|null $arguments
      * @return string|null
@@ -134,8 +121,6 @@ class AuditLogger
     }
 
     /**
-     * Encode a tool-computed result summary, dropping empty payloads.
-     *
      * @param array|null $summary
      * @phpstan-param array<int|string, mixed>|null $summary
      * @return string|null
@@ -149,7 +134,7 @@ class AuditLogger
     }
 
     /**
-     * Encode an array as JSON with a hard byte cap and `__truncated__` sentinel.
+     * Applies a hard byte cap with `__truncated__` sentinel.
      *
      * @param array $data
      * @phpstan-param array<int|string, mixed> $data
@@ -168,8 +153,6 @@ class AuditLogger
     }
 
     /**
-     * Byte-cap a string for storage in a bounded VARCHAR column.
-     *
      * @param string|null $value
      * @param int $maxBytes
      * @return string|null

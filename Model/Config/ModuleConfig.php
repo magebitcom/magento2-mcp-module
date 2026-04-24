@@ -27,6 +27,9 @@ class ModuleConfig
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
     public const DEFAULT_RATE_LIMITING_RPM = 60;
 
+    /**
+     * @param ScopeConfigInterface $scopeConfig
+     */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig
     ) {

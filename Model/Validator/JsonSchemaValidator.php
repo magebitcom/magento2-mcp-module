@@ -13,9 +13,8 @@ use Opis\JsonSchema\Errors\ErrorFormatter;
 use Opis\JsonSchema\Validator;
 
 /**
- * Thin adapter around opis/json-schema. All MCP tools declare their argument
- * schema as a PHP array; we round-trip via JSON to hand opis the object shape
- * it expects and raise a uniform {@see SchemaValidationException} on failure.
+ * Thin adapter around opis/json-schema. MCP tools declare schemas as PHP arrays;
+ * we round-trip via JSON to hand opis its expected object shape.
  */
 class JsonSchemaValidator
 {
@@ -28,8 +27,6 @@ class JsonSchemaValidator
     }
 
     /**
-     * Validate `$data` against `$schema` or throw on any failure.
-     *
      * @param array $schema
      * @param array $data
      * @phpstan-param array<string, mixed> $schema

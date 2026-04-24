@@ -14,20 +14,14 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Per-row "View" action for the audit log grid, pointing at
- * `magebit_mcp/auditlog/view/id/<id>`.
- *
- * Rows are immutable — no edit / revoke / delete — so this is a single-link
- * actions column rather than a dropdown.
+ * Per-row "View" action for the audit log grid; rows are immutable so this
+ * is a single-link column rather than a dropdown.
  */
 class AuditViewAction extends Column
 {
     private const URL_VIEW = 'magebit_mcp/auditlog/view';
 
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param UrlInterface $urlBuilder
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -44,8 +38,6 @@ class AuditViewAction extends Column
     }
 
     /**
-     * Populate each row with a single "View" link.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>

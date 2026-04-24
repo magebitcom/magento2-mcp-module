@@ -12,17 +12,13 @@ use Magento\Framework\App\DeploymentConfig;
 use RuntimeException;
 
 /**
- * Replaces PII fields in tool arguments with a deterministic HMAC "fingerprint"
- * before they're written to the audit log.
+ * Replaces PII fields with a length-16 HMAC-SHA256 fingerprint keyed by
+ * `crypt/key`. Same input → same fingerprint, so auditors can group repeated
+ * lookups without the DB storing raw PII (an attacker with the dump alone
+ * can't enumerate — they need the key file too).
  *
- * **Why not just drop them:** an auditor legitimately needs to know *"was this
- * customer looked up three times by three different tokens today?"*. Storing the
- * raw email would let a DB attacker enumerate customers; storing a length-16
- * HMAC keyed by `crypt/key` still lets the auditor group "same input =
- * same hash" without storing the original value.
- *
- * **Keys matched:** case-insensitive, any field whose name contains one of
- * {@see self::DEFAULT_SENSITIVE}. Additional keys can be supplied via di.xml.
+ * Keys matched: case-insensitive substring of {@see self::DEFAULT_SENSITIVE}
+ * plus any additions supplied via di.xml.
  */
 class PiiRedactor
 {
@@ -49,7 +45,7 @@ class PiiRedactor
 
     /**
      * @param DeploymentConfig $deploymentConfig
-     * @param array $additionalSensitiveKeys Extra case-insensitive fragments.
+     * @param array $additionalSensitiveKeys
      * @phpstan-param array<int, string> $additionalSensitiveKeys
      */
     public function __construct(
@@ -63,8 +59,6 @@ class PiiRedactor
     }
 
     /**
-     * Walk a mixed value and replace PII-keyed entries with their HMAC fingerprint.
-     *
      * @param mixed $value
      * @return mixed
      */
@@ -85,8 +79,6 @@ class PiiRedactor
     }
 
     /**
-     * True if the field name contains any of the configured sensitive fragments.
-     *
      * @param string $key
      * @return bool
      */
@@ -102,8 +94,6 @@ class PiiRedactor
     }
 
     /**
-     * Produce a short HMAC-SHA256 fingerprint for a redacted value.
-     *
      * @param mixed $value
      * @return string
      */
@@ -118,19 +108,15 @@ class PiiRedactor
     }
 
     /**
-     * Fetch the per-install crypt key used to salt fingerprints.
-     *
      * @return string
      */
     private function key(): string
     {
         $key = $this->deploymentConfig->get('crypt/key');
         if (!is_string($key) || $key === '') {
-            // A globally-known fallback key is equivalent to no key — would
-            // let any installation with a broken env.php enumerate PII across
-            // every other installation. Fail loudly; AuditLogger's outer
-            // try/catch converts this into a logged warning and a dropped
-            // row, which is the correct failure mode.
+            // Never fall back to a known constant — that would let any install with
+            // a broken env.php enumerate PII across every other install. Fail loud;
+            // AuditLogger's outer try/catch logs a warning and drops the row.
             throw new RuntimeException(
                 'Install crypt key missing from app/etc/env.php — cannot fingerprint PII for audit.'
             );

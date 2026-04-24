@@ -15,25 +15,13 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Resolves `token_id` on each audit row to the human-readable token name,
- * e.g. `Claude Desktop` instead of a bare numeric id.
- *
- * All tokens referenced on the current grid page are loaded in a single
- * query through {@see TokenRepository::listByIds()} — audit rows for a
- * popular token would otherwise produce N+1 hits on `magebit_mcp_token`.
- *
- * Rows with `token_id = NULL` (unauthenticated attempts, or rows whose
- * token row has since been deleted via the ON DELETE SET NULL cascade)
- * render a muted em-dash. Defensive fallback for an id that somehow has no
- * matching token row renders `#<id> (deleted)`.
+ * Resolves `token_id` on each audit row to the token name. Uses
+ * {@see TokenRepository::listByIds()} to batch the lookup in one query —
+ * per-row fetch would be an N+1 hotspot on popular tokens.
  */
 class TokenName extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param TokenRepository $tokenRepository
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -51,8 +39,6 @@ class TokenName extends Column
     }
 
     /**
-     * Decorate every row's token cell with the token's name.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>

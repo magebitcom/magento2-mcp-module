@@ -25,6 +25,9 @@ class TokenHasher
 {
     private const ALGO = 'sha256';
 
+    /**
+     * @param DeploymentConfig $deploymentConfig
+     */
     public function __construct(
         private readonly DeploymentConfig $deploymentConfig
     ) {

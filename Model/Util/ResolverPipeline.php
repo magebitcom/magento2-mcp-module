@@ -12,35 +12,23 @@ use InvalidArgumentException;
 use Magebit\Mcp\Api\FieldResolverInterface;
 
 /**
- * Sorts + filters an array of field resolvers before a tool dispatches them.
+ * Sorts + filters field resolvers before a tool dispatches them.
  *
- * Tool-module agnostic — operates on the
- * {@see \Magebit\Mcp\Api\FieldResolverInterface} marker so any tool module
- * (orders, CMS, catalog, …) can share this pipeline.
+ * Tool-module agnostic via the {@see \Magebit\Mcp\Api\FieldResolverInterface}
+ * marker. The pipeline deliberately does NOT call `resolve()` itself — per-entity
+ * signatures differ (OrderInterface vs InvoiceInterface …) so tools invoke each
+ * planned resolver with its correctly-typed entity.
  *
- * The pipeline deliberately does NOT call `resolve()` itself — the per-entity
- * `resolve()` signatures differ (OrderInterface vs InvoiceInterface vs …), so
- * typing against a single method would force ugly casts. Instead the tool
- * calls `plan()` to get an ordered list of resolvers that should run, then
- * invokes each one with its correctly-typed entity.
- *
- * Caller-driven opt-in / opt-out via the same two tool args every read tool
- * exposes:
+ * Caller-driven selectors:
  *   - `fields: string[]`  — whitelist; when non-empty, only listed keys run.
- *   - `exclude: string[]` — blacklist; always subtracted from the active set.
+ *   - `exclude: string[]` — blacklist; always subtracted.
  *
- * Duplicate resolver keys are a configuration error (two modules fighting for
- * the same slice). We fail loud at pipeline boot rather than silently picking
- * a winner.
+ * Duplicate keys fail loud — two modules fighting for the same slice is a
+ * configuration error, not a silent "last wins".
  */
 class ResolverPipeline
 {
     /**
-     * Return the resolvers that should run, in execution order.
-     *
-     * Applies the `fields` (whitelist) and `exclude` (blacklist) selectors
-     * from the tool's arguments.
-     *
      * @template T of FieldResolverInterface
      * @param array $resolvers
      * @param array $args
@@ -83,7 +71,7 @@ class ResolverPipeline
     }
 
     /**
-     * Copy + sort so we don't mutate the DI-supplied array on repeat calls.
+     * Copy + sort so the DI-supplied array isn't mutated across calls.
      *
      * @template T of FieldResolverInterface
      * @param array $resolvers
@@ -102,9 +90,7 @@ class ResolverPipeline
     }
 
     /**
-     * Pull an optional `string[]` out of a mixed args array.
-     *
-     * Tolerates scalar misuse (`fields: "totals"` becomes `["totals"]`).
+     * Tolerates scalar misuse: `fields: "totals"` becomes `["totals"]`.
      *
      * @param array $args
      * @phpstan-param array<string, mixed> $args

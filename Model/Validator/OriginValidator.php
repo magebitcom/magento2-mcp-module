@@ -14,21 +14,16 @@ use RuntimeException;
 /**
  * DNS-rebinding defense required by the MCP Streamable HTTP transport spec.
  *
- * The allowlist is sourced from store config
- * (`magebit_mcp/security/allowed_origins`) — one origin per line, exact
- * match or a trailing `*` wildcard that is anchored to a host-component
- * boundary: after the prefix, the only allowed characters are end-of-string,
- * `:` (port), or `/` (path). This rejects hosts crafted to match the prefix
- * via subdomains, e.g. `http://localhost.attacker.com` does NOT match
- * `http://localhost*`.
+ * Allowlist (`magebit_mcp/security/allowed_origins`) — one origin per line,
+ * exact match or trailing `*` anchored to a host-component boundary: after
+ * the prefix only end-of-string, `:` (port), or `/` (path) are allowed. This
+ * rejects `http://localhost.attacker.com` against `http://localhost*`.
  *
- * Non-browser clients (curl, Claude Desktop, ChatGPT Desktop) omit the Origin
- * header entirely — we accept a missing or empty value. We DO NOT accept the
- * literal string `null`: that is what sandboxed iframes and `data:` URIs send,
- * i.e. exactly the attacker shapes this validator exists to block.
+ * Missing/empty Origin is accepted (curl, Claude Desktop, ChatGPT Desktop
+ * omit it). The literal string `null` is REJECTED — that's what sandboxed
+ * iframes and `data:` URIs send, exactly the shape this validator exists for.
  *
- * Bearer authentication is still the primary access control; this check is
- * defense-in-depth against DNS-rebinding attacks against browser contexts.
+ * Defense-in-depth; bearer auth remains the primary access control.
  */
 class OriginValidator
 {
@@ -41,8 +36,6 @@ class OriginValidator
     }
 
     /**
-     * Decide whether the given Origin header value is on the allowlist.
-     *
      * @param string|null $origin
      * @return bool
      */
@@ -57,10 +50,8 @@ class OriginValidator
 
         $allowlist = $this->config->getAllowedOrigins();
         if ($allowlist === []) {
-            // Empty list combined with the "missing Origin → allow" rule would
-            // silently admit every browser request. Fail loud instead of
-            // discovering the misconfiguration after a breach. The store-config
-            // default in etc/config.xml seeds the loopback entries.
+            // Empty list + "missing Origin → allow" would silently admit every
+            // browser request. Fail loud; etc/config.xml seeds loopback defaults.
             throw new RuntimeException(
                 'MCP allowed-origins list is empty — set magebit_mcp/security/allowed_origins.'
             );
@@ -75,8 +66,6 @@ class OriginValidator
     }
 
     /**
-     * True when `$origin` matches the allowlist pattern (exact or wildcard).
-     *
      * @param string $origin
      * @param string $pattern
      * @return bool
@@ -92,9 +81,8 @@ class OriginValidator
             return false;
         }
 
-        // Next character after the prefix must be a host-component boundary so
-        // that `http://localhost*` matches `http://localhost:3000` and
-        // `http://localhost/path` but NOT `http://localhost.attacker.com`.
+        // Enforce host-component boundary so `http://localhost*` does NOT
+        // match `http://localhost.attacker.com`.
         $rest = substr($origin, strlen($prefix));
         return $rest === '' || $rest[0] === ':' || $rest[0] === '/';
     }

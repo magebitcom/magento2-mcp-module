@@ -13,25 +13,14 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 
 /**
- * Form data provider for `magebit_mcp_token_form`.
- *
- * MCP tokens are mint-once, rotate-not-edit: the plaintext is shown only at
- * creation and the hash is immutable afterwards. This provider therefore
- * always returns an empty row — there is no edit flow to hydrate.
- *
- * Even so, we hand the base class a real token collection so {@see
- * AbstractDataProvider::addFilter()} and its siblings have something
- * non-null to call. The collection is kept empty at construction; {@see
- * self::getData()} ignores it entirely.
+ * Form data provider for `magebit_mcp_token_form`. Tokens are mint-once
+ * (rotate-not-edit) so this always returns an empty row. A real collection
+ * is still passed to the base class so {@see AbstractDataProvider::addFilter()}
+ * and siblings have something non-null to call.
  */
 class TokenDataProvider extends AbstractDataProvider
 {
     /**
-     * @param string $name
-     * @param string $primaryFieldName
-     * @param string $requestFieldName
-     * @param CollectionFactory $collectionFactory
-     * @param RequestInterface $request
      * @param array $meta
      * @param array $data
      * @phpstan-param array<string, mixed> $meta
@@ -51,8 +40,6 @@ class TokenDataProvider extends AbstractDataProvider
     }
 
     /**
-     * Hand the UI component a one-row dataset — MCP tokens are mint-once.
-     *
      * @return array<int|string, array<string, mixed>>
      */
     public function getData(): array

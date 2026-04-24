@@ -25,18 +25,8 @@ use Magento\Store\Api\StoreRepositoryInterface;
 use Magento\Store\Model\ScopeInterface;
 
 /**
- * MCP tool `system.store.info` — return branding + URLs for one store view.
- *
- * Sources:
- * - {@see StoreConfigManagerInterface::getStoreConfigs()} for locale, currency,
- *   timezone, weight unit, and the full matrix of base URLs (secure / unsecure
- *   / link / media / static).
- * - Scope-config reads under `general/store_information/*` for the merchant
- *   profile an admin enters in Stores → Configuration → General → Store Information
- *   (name, phone, hours, street, city, country, postcode, VAT number).
- *
- * Read-only and exposes no PII beyond what the merchant already publishes as
- * their store contact info.
+ * MCP tool `system.store.info` — base URLs, locale, currency, and the
+ * `general/store_information/*` merchant profile for one store view.
  */
 class StoreInfo implements ToolInterface
 {
@@ -56,11 +46,6 @@ class StoreInfo implements ToolInterface
         'vat_number' => 'general/store_information/merchant_vat_number',
     ];
 
-    /**
-     * @param StoreRepositoryInterface $storeRepository
-     * @param StoreConfigManagerInterface $storeConfigManager
-     * @param ScopeConfigInterface $scopeConfig
-     */
     public function __construct(
         private readonly StoreRepositoryInterface $storeRepository,
         private readonly StoreConfigManagerInterface $storeConfigManager,
@@ -191,8 +176,6 @@ class StoreInfo implements ToolInterface
     }
 
     /**
-     * Resolve the target store from the caller's arguments.
-     *
      * @param array $arguments
      * @phpstan-param array<string, mixed> $arguments
      * @return StoreInterface
@@ -217,8 +200,6 @@ class StoreInfo implements ToolInterface
     }
 
     /**
-     * Load the API-side store config bundle (base URLs, locale, currency).
-     *
      * @param string $code
      * @return StoreConfigInterface
      * @throws LocalizedException
@@ -234,8 +215,6 @@ class StoreInfo implements ToolInterface
     }
 
     /**
-     * Collect the merchant-profile config block at store scope.
-     *
      * @param int $storeId
      * @return array<string, string|null>
      */

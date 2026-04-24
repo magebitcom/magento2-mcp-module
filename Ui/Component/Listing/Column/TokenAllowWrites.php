@@ -13,15 +13,12 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Renders the `allow_writes` int flag as Yes/No with a visual cue — the
- * default is No and the column is expected to stay No for the vast majority
- * of tokens; flipping to Yes should stand out.
+ * Renders the `allow_writes` flag as Yes/No; Yes gets a severity badge so
+ * the rare write-enabled token stands out.
  */
 class TokenAllowWrites extends Column
 {
     /**
-     * Render each row's allow_writes flag as a Yes/No badge.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>

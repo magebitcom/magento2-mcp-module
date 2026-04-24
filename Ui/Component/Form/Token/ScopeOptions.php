@@ -12,24 +12,17 @@ use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magento\Framework\Data\OptionSourceInterface;
 
 /**
- * Multiselect source for the token form's "Scopes" field — populated from
- * the currently-registered MCP tools. Leaving the field empty on save means
- * "every tool the admin's role grants", per
- * {@see \Magebit\Mcp\Api\Data\TokenInterface::getScopes()}.
+ * Multiselect source for the token form's "Scopes" field. Empty on save means
+ * "every tool the admin's role grants" — see {@see \Magebit\Mcp\Api\Data\TokenInterface::getScopes()}.
  */
 class ScopeOptions implements OptionSourceInterface
 {
-    /**
-     * @param ToolRegistryInterface $toolRegistry
-     */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry
     ) {
     }
 
     /**
-     * Build the multiselect options from the currently-registered tool registry.
-     *
      * @return array<int, array{value: string, label: string}>
      */
     public function toOptionArray(): array

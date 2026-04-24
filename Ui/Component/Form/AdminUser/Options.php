@@ -12,24 +12,17 @@ use Magento\Framework\Data\OptionSourceInterface;
 use Magento\User\Model\ResourceModel\User\CollectionFactory;
 
 /**
- * Populates the admin-user dropdown on the token form with every active
- * admin. Inactive users are filtered out here so the admin can't accidentally
- * mint a token for a deactivated account (the authenticator would reject it
- * anyway, but the dropdown shouldn't suggest it).
+ * Admin-user dropdown source for the token form. Inactive users are filtered
+ * out so the operator can't mint a token the authenticator would reject.
  */
 class Options implements OptionSourceInterface
 {
-    /**
-     * @param CollectionFactory $userCollectionFactory
-     */
     public function __construct(
         private readonly CollectionFactory $userCollectionFactory
     ) {
     }
 
     /**
-     * Build the admin-user dropdown option list.
-     *
      * @return array<int, array{value: int|string, label: string}>
      */
     public function toOptionArray(): array
@@ -66,8 +59,6 @@ class Options implements OptionSourceInterface
     }
 
     /**
-     * Coerce a mixed Magento AbstractModel attribute to a plain string.
-     *
      * @param mixed $value
      * @return string
      */

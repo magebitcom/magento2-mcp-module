@@ -10,9 +10,6 @@ namespace Magebit\Mcp\Model\Tool\Schema\Builder;
 
 /**
  * Fluent builder for a `type: integer` property.
- *
- * Covers the numeric keywords actually used across existing tools:
- * `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `enum`.
  */
 class IntegerBuilder extends PropertyBuilder
 {

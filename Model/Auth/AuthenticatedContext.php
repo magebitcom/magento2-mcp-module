@@ -17,6 +17,10 @@ use Magento\User\Model\User;
  */
 class AuthenticatedContext
 {
+    /**
+     * @param TokenInterface $token
+     * @param User $adminUser
+     */
     public function __construct(
         public readonly TokenInterface $token,
         public readonly User $adminUser

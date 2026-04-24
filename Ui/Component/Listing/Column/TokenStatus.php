@@ -15,17 +15,12 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Derives token state (active / revoked / expired) from the row and renders
- * it as a stock admin `grid-severity-*` badge — the raw columns `revoked_at`
- * and `expires_at` on their own are harder to glance at.
+ * Derives token state (active / revoked / expired) and renders it as a stock
+ * `.grid-severity-*` badge.
  */
 class TokenStatus extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param Escaper $escaper
-     * @param DateTime $dateTime
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -43,8 +38,6 @@ class TokenStatus extends Column
     }
 
     /**
-     * Render each row's status as a grid-severity badge.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
@@ -72,8 +65,6 @@ class TokenStatus extends Column
     }
 
     /**
-     * Pick the severity + label for one row.
-     *
      * @param array $item
      * @phpstan-param array<string, mixed> $item
      * @param int $now

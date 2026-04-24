@@ -27,8 +27,6 @@ class ToolResult implements ToolResultInterface
     }
 
     /**
-     * Shortcut for the common "single text block" case.
-     *
      * @phpstan-param array<string, mixed> $auditSummary
      */
     // phpcs:ignore Magento2.Functions.StaticFunction

@@ -12,10 +12,6 @@ use InvalidArgumentException;
 
 /**
  * Fluent builder for a `type: string` property.
- *
- * Exposes the subset of JSON-Schema string keywords the MCP tools surveyed
- * across the Magebit ecosystem actually use: `minLength`, `maxLength`,
- * `pattern`, `enum`, `format`. Anything else falls back to a raw array.
  */
 class StringBuilder extends PropertyBuilder
 {
@@ -57,7 +53,7 @@ class StringBuilder extends PropertyBuilder
     }
 
     /**
-     * ECMA-262 regex emitted verbatim as the `pattern` keyword.
+     * ECMA-262 regex, emitted as `pattern`.
      *
      * @param string $pattern
      * @return $this
@@ -69,8 +65,6 @@ class StringBuilder extends PropertyBuilder
     }
 
     /**
-     * Restrict the value to a fixed list of strings.
-     *
      * @param array<int, string> $values
      * @return $this
      */

@@ -9,8 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Tool\Schema\Builder;
 
 /**
- * Fluent builder for a `type: boolean` property. Has no constraints beyond
- * the cross-cutting `description` / `required` from {@see PropertyBuilder}.
+ * Fluent builder for a `type: boolean` property.
  */
 class BooleanBuilder extends PropertyBuilder
 {

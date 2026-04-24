@@ -23,18 +23,9 @@ use Magento\Store\Model\ScopeInterface;
 
 /**
  * MCP tool `system.config.get` — read a single `core_config_data` path.
- *
- * Hard-gated against leaking secrets:
- *
- * 1. If the path resolves to a system.xml {@see Field}, reject whenever
- *    its backend model inherits from {@see Encrypted} or its form type is
- *    `password` / `obscure`.
- * 2. If the path has no system.xml definition, fall back to a keyword
- *    blocklist (`password`, `api_key`, `token`, `secret`, etc.) so
- *    config-only values (no admin UI) can't be exfiltrated either.
- *
- * A rejected read returns `FORBIDDEN_FIELD` rather than the raw value —
- * audit-log callers see the attempt but never the payload.
+ * Rejects encrypted / `password` / `obscure` system.xml fields and, for
+ * paths without a system.xml entry, any that hit a sensitive-keyword
+ * blocklist; rejected reads return `forbidden=true` instead of the value.
  */
 class ConfigGet implements ToolInterface
 {
@@ -62,10 +53,6 @@ class ConfigGet implements ToolInterface
 
     private const SENSITIVE_FIELD_TYPES = ['password', 'obscure'];
 
-    /**
-     * @param ScopeConfigInterface $scopeConfig
-     * @param Structure $configStructure
-     */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly Structure $configStructure
@@ -212,8 +199,6 @@ class ConfigGet implements ToolInterface
     }
 
     /**
-     * Normalize the MCP-caller scope keyword to the ScopeConfig constant.
-     *
      * @param string $scope
      * @return string
      * @throws LocalizedException
@@ -231,10 +216,6 @@ class ConfigGet implements ToolInterface
     }
 
     /**
-     * Decide whether a given path is read-forbidden.
-     *
-     * Returns [forbidden, reason].
-     *
      * @param string $path
      * @return array{0: bool, 1: string|null}
      */
@@ -262,8 +243,6 @@ class ConfigGet implements ToolInterface
     }
 
     /**
-     * Whether the declared backend_model is an Encrypted value type.
-     *
      * @param string $className
      * @return bool
      */
@@ -277,8 +256,6 @@ class ConfigGet implements ToolInterface
     }
 
     /**
-     * Conservative fallback when the path has no system.xml entry.
-     *
      * @param string $path
      * @return bool
      */
@@ -294,8 +271,6 @@ class ConfigGet implements ToolInterface
     }
 
     /**
-     * Collapse scalars + arrays to JSON-encodable primitives.
-     *
      * @param mixed $value
      * @return mixed
      */

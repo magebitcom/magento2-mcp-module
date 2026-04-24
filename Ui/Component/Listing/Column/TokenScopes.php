@@ -14,16 +14,12 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Renders `scopes_json` as a comma-separated list of tool names; empty /
- * null scopes renderCell as "(all granted)" — the convention documented on
- * {@see \Magebit\Mcp\Api\Data\TokenInterface::getScopes()}.
+ * Renders `scopes_json` as tool-name chips; empty/null renders as "(all granted)".
+ * See {@see \Magebit\Mcp\Api\Data\TokenInterface::getScopes()}.
  */
 class TokenScopes extends Column
 {
     /**
-     * @param ContextInterface $context
-     * @param UiComponentFactory $uiComponentFactory
-     * @param Escaper $escaper
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -40,8 +36,6 @@ class TokenScopes extends Column
     }
 
     /**
-     * Render each row's scopes cell as a list of tool chips.
-     *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
      * @return array<string, mixed>
@@ -64,8 +58,6 @@ class TokenScopes extends Column
     }
 
     /**
-     * Render one token's scopes_json value as HTML.
-     *
      * @param mixed $raw
      * @return string
      */
