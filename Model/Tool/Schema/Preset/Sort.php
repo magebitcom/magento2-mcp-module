@@ -2,7 +2,7 @@
 /**
  * @author    Magebit <info@magebit.com>
  * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
- * @license   https://magebit.com/code-license
+ * @license   MIT
  */
 declare(strict_types=1);
 

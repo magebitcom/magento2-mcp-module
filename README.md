@@ -252,3 +252,7 @@ app/code/Magebit/Mcp/
     frontend/routes.xml  /mcp route binding
     module.xml
 ```
+
+## License
+
+Released under the [MIT License](LICENSE).

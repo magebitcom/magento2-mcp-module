@@ -2,7 +2,7 @@
     "name": "magebitcom/module2-mcp-module",
     "description": "Magento 2 MCP (Model Context Protocol) server module",
     "type": "magento2-module",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
         "magento/framework": "^103.0",
