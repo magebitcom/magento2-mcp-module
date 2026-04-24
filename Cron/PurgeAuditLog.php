@@ -17,18 +17,12 @@ use Throwable;
  * Deletes audit log rows older than `magebit_mcp/audit/retention_days`.
  *
  * Raw DELETE (not a collection sweep) to keep memory flat under large logs.
- * A retention of 0 means "never purge" — legitimate for compliance-heavy
- * deployments that offload the log before deletion.
+ * Retention of 0 means "never purge".
  */
 class PurgeAuditLog
 {
     private const TABLE = 'magebit_mcp_audit_log';
 
-    /**
-     * @param ResourceConnection $resourceConnection
-     * @param ModuleConfig $config
-     * @param LoggerInterface $logger
-     */
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly ModuleConfig $config,
@@ -36,11 +30,6 @@ class PurgeAuditLog
     ) {
     }
 
-    /**
-     * Delete audit rows older than the configured retention window.
-     *
-     * @return void
-     */
     public function execute(): void
     {
         try {

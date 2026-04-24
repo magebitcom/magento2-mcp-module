@@ -13,11 +13,7 @@ use Magebit\Mcp\Model\ResourceModel\Token as TokenResource;
 use Magento\Framework\Model\AbstractModel;
 
 /**
- * Active-record MCP token.
- *
- * Round-trips {@see TokenInterface::SCOPES_JSON} as a plain PHP array in
- * {@see self::getScopes()} / {@see self::setScopes()} so callers never have
- * to think about JSON serialization.
+ * Active-record MCP token. Scopes round-trip as a plain PHP array.
  */
 class Token extends AbstractModel implements TokenInterface
 {
@@ -225,8 +221,7 @@ class Token extends AbstractModel implements TokenInterface
         if ($exp === null) {
             return false;
         }
-        // expires_at is always stored as UTC (see TokenCreateCommand); parse it
-        // explicitly in UTC so servers on non-UTC timezones don't drift hours.
+        // Parse as UTC — column is UTC; explicit TZ so non-UTC servers don't drift.
         $dt = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $exp, new \DateTimeZone('UTC'));
         return $dt !== false && $dt->getTimestamp() < time();
     }

@@ -26,10 +26,6 @@ class TokenListCommand extends Command
 {
     private const OPT_USER = 'admin-user';
 
-    /**
-     * @param TokenRepository $tokenRepository
-     * @param AdminUserLookup $adminUserLookup
-     */
     public function __construct(
         private readonly TokenRepository $tokenRepository,
         private readonly AdminUserLookup $adminUserLookup
@@ -37,9 +33,6 @@ class TokenListCommand extends Command
         parent::__construct();
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:list')
@@ -47,9 +40,6 @@ class TokenListCommand extends Command
             ->addOption(self::OPT_USER, 'u', InputOption::VALUE_REQUIRED, 'Filter by admin username.');
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $username = $input->getOption(self::OPT_USER);
@@ -94,12 +84,6 @@ class TokenListCommand extends Command
         return Command::SUCCESS;
     }
 
-    /**
-     * Render the token's current state as a single word for the grid.
-     *
-     * @param Token $token
-     * @return string
-     */
     private function statusOf(Token $token): string
     {
         if ($token->isRevoked()) {
@@ -111,12 +95,6 @@ class TokenListCommand extends Command
         return 'active';
     }
 
-    /**
-     * Flatten the scope allowlist for single-cell display.
-     *
-     * @param Token $token
-     * @return string
-     */
     private function scopesOf(Token $token): string
     {
         $scopes = $token->getScopes();
@@ -127,8 +105,6 @@ class TokenListCommand extends Command
     }
 
     /**
-     * Build a reverse lookup from admin-user ID to username for the token rows.
-     *
      * @param Token[] $tokens
      * @return array<int, string>
      */

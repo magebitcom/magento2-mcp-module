@@ -15,9 +15,6 @@ use PHPUnit\Framework\TestCase;
 
 class ResolverPipelineTest extends TestCase
 {
-    /**
-     * @var ResolverPipeline
-     */
     private ResolverPipeline $pipeline;
 
     protected function setUp(): void
@@ -120,11 +117,6 @@ class ResolverPipelineTest extends TestCase
         return array_map(static fn(FieldResolverInterface $r): string => $r->getKey(), $plan);
     }
 
-    /**
-     * @param string $key
-     * @param int $sortOrder
-     * @return FieldResolverInterface
-     */
     private function resolver(string $key, int $sortOrder): FieldResolverInterface
     {
         return new class ($key, $sortOrder) implements FieldResolverInterface {

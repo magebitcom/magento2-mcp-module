@@ -11,10 +11,7 @@ namespace Magebit\Mcp\Exception;
 use RuntimeException;
 
 /**
- * Thrown by {@see \Magebit\Mcp\Model\Auth\TokenAuthenticator} when a bearer
- * fails verification. The controller translates this into an HTTP 401 with a
- * `WWW-Authenticate: Bearer realm="Magento MCP"` header and a JSON-RPC
- * {@see \Magebit\Mcp\Model\JsonRpc\ErrorCode::UNAUTHORIZED} error body.
+ * Bearer verification failure; mapped to HTTP 401 + JSON-RPC UNAUTHORIZED.
  */
 class UnauthorizedException extends RuntimeException
 {

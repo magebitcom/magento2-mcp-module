@@ -11,34 +11,20 @@ namespace Magebit\Mcp\Model\JsonRpc;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 
 /**
- * Contract every JSON-RPC method handler implements.
- *
- * Handlers are registered with the {@see Dispatcher} via DI array injection
- * in etc/di.xml. The dispatcher indexes them by their own `method()` return
- * value — the array key in di.xml is informational only.
- *
- * The authenticated context is passed through so handlers can make decisions
- * based on the acting admin user (ACL, write gate, rate limiting) without
- * consulting session state.
+ * Contract every JSON-RPC method handler implements. The {@see Dispatcher}
+ * indexes handlers by their own `method()` return value — the di.xml array
+ * key is informational only.
  */
 interface HandlerInterface
 {
     /**
      * JSON-RPC method name this handler responds to (e.g. "tools/list").
-     *
-     * @return string
      */
     public function method(): string;
 
     /**
-     * Handle the request.
-     *
-     * Return null ONLY for notification methods (the client sent no `id` and
-     * expects no response). Requests with an id MUST return a Response.
-     *
-     * @param Request $request
-     * @param AuthenticatedContext $context
-     * @return Response|null
+     * Return null ONLY for notification methods (no client `id`, no response).
+     * Requests with an id MUST return a Response.
      */
     public function handle(Request $request, AuthenticatedContext $context): ?Response;
 }

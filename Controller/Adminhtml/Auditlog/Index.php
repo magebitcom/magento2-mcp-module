@@ -21,10 +21,6 @@ class Index extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_audit';
 
-    /**
-     * @param Context $context
-     * @param PageFactory $resultPageFactory
-     */
     public function __construct(
         Context $context,
         private readonly PageFactory $resultPageFactory
@@ -32,9 +28,6 @@ class Index extends Action implements HttpGetActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * Render the MCP Audit Log landing page.
-     */
     public function execute(): Page
     {
         /** @var Page $resultPage */

@@ -44,6 +44,8 @@ Stores → Configuration → **Magebit → MCP Server**:
 | **Allow Write Tools** | Global override. A token's `allow_writes` flag is only honoured when this is **Yes**. |
 | **Allowed Origins** | DNS-rebinding defense. One origin per line, `#` comments ignored, `*` wildcard anchored to a host-component boundary. Defaults cover loopback plus Claude / ChatGPT / Gemini / Copilot / Grok / Perplexity. |
 | **Audit Log Retention (days)** | Rows older than this are purged by the `magebit_mcp_audit_purge` cron. `0` disables purging. |
+| **Enable Rate Limiting** | Caps how many `tools/call` invocations a single admin user may issue against a single tool per minute. Off by default; existing deployments are not throttled until flipped on. Counters are keyed per `(admin_user_id, tool)` — multiple bearer tokens owned by the same admin share a budget. |
+| **Requests Per Minute** | Per-admin-per-tool budget when rate limiting is on. Fixed-window counter; short bursts across a minute boundary may briefly allow up to 2× the configured value. Over-limit calls return `-32013 RATE_LIMITED` with `data.limit` + `data.retry_after_seconds`. Flush in-flight counters with `bin/magento cache:clean MAGEBIT_MCP_RATE_LIMIT`. |
 
 The ACL resource `Magebit_Mcp::config` gates access to this section, separate from `Magebit_Mcp::mcp_tokens` and `Magebit_Mcp::mcp_audit`.
 
@@ -197,22 +199,25 @@ Standard JSON-RPC 2.0 codes (`-32700` parse error, `-32600` invalid request, `-3
 
 | Code | Constant | When |
 |---|---|---|
-| `-32001` | `UNAUTHENTICATED` | Missing / malformed / revoked bearer token. |
-| `-32002` | `ADMIN_DISABLED` | The token's owning admin is inactive or deleted. |
-| `-32003` | `PROTOCOL_MISMATCH` | `Mcp-Protocol-Version` header absent or unsupported. |
-| `-32004` | `FORBIDDEN` | ACL denial on the tool's own resource or its `UnderlyingAclAwareInterface`-declared resource. |
-| `-32010` | `TOOL_UNKNOWN` | `tools/call` referenced a tool not in the registry. |
-| `-32011` | `VALIDATION_FAILED` | Tool arguments failed JSON Schema validation. |
-| `-32012` | `WRITE_NOT_ALLOWED` | Write tool blocked by the global kill-switch or the token's `allow_writes=0`. |
-| `-32013` | `ORIGIN_REJECTED` | `Origin` header not on the allowlist. |
-| `-32014` | `PAYLOAD_TOO_LARGE` | Request body exceeds 256 KiB. |
+| `-32001` | `UNAUTHORIZED` | Missing / malformed / revoked bearer token, or the token's owning admin is inactive or deleted. Returned with HTTP 401 + `WWW-Authenticate: Bearer`. |
+| `-32002` | `INVALID_ORIGIN` | `Origin` header not on the allowlist. Returned with HTTP 403. |
+| `-32003` | `UNSUPPORTED_PROTOCOL_VERSION` | `Mcp-Protocol-Version` header absent or unsupported. |
+| `-32004` | `FORBIDDEN` | ACL denial on the tool's own resource, its `UnderlyingAclAwareInterface`-declared resource, or the token's explicit scope list. |
+| `-32010` | `TOOL_NOT_FOUND` | `tools/call` referenced a tool not in the registry. |
+| `-32011` | `TOOL_EXECUTION_FAILED` | Tool raised a `LocalizedException` (message passed through) or an unexpected throwable (generic message; full exception logged to `var/log/magebit_mcp.log`). |
+| `-32012` | `WRITE_NOT_ALLOWED` | Write tool blocked by the global `allow_writes` kill-switch or the token's `allow_writes=0`. |
+| `-32013` | `RATE_LIMITED` | Caller exceeded their per-minute allowance for the tool. `data` carries `limit` (int, requests/minute) and `retry_after_seconds` (int, 1..60) so clients can back off. |
+| `-32014` | `SCHEMA_VALIDATION_FAILED` | Tool arguments failed JSON Schema validation. `data.errors` carries the structured opis error tree. |
 | `-32015` | `SERVER_DISABLED` | `magebit_mcp/general/enabled=0`. Returned with HTTP 503. |
+
+Oversized request bodies (> 256 KiB) short-circuit with HTTP 413 + JSON-RPC `INVALID_REQUEST`.
 
 ## Extending
 
 - **Adding a tool from a satellite module** — see `docs/EXTENDING.md`. Implement `Magebit\Mcp\Api\ToolInterface`, declare an ACL resource under `Magebit_Mcp::tools`, register with `ToolRegistry` via `etc/di.xml`.
 - **Adding a per-entity field to a read tool that composes its response from resolvers** — see the target satellite's own `docs/EXTENDING.md` (e.g. `Magebit_McpOrderTools` docs `EXTENDING.md` for orders/invoices/shipments/credit-memos/comments). Resolvers all extend the base `Magebit\Mcp\Api\FieldResolverInterface` marker and are run through a shared `Magebit\Mcp\Model\Util\ResolverPipeline`.
-- **Call-lifecycle observers** (rate limiting, custom audit sinks, result masking) — subscribe to `magebit_mcp_tool_call_before` / `magebit_mcp_tool_call_after`. Event params are read-only; arguments are already redacted for audit when the event fires.
+- **Call-lifecycle observers** (custom audit sinks, result masking, bespoke throttling) — subscribe to `magebit_mcp_tool_call_before` / `magebit_mcp_tool_call_after`. Event params are read-only; arguments are already redacted for audit when the event fires.
+- **Replacing the rate limiter** — the shipped `Magebit\Mcp\Model\RateLimiter\ConfigurableRateLimiter` is admin-configurable (see above) and throws `Magebit\Mcp\Exception\RateLimitedException` when a caller is over budget. Swap it out by overriding the `Magebit\Mcp\Api\RateLimiterInterface` DI preference — `NoOpRateLimiter` is retained as the documented escape hatch for deployments that need to bypass throttling entirely. A sliding-window or token-bucket implementation can also drop in behind the same interface.
 
 ## What's where
 
@@ -229,7 +234,7 @@ app/code/Magebit/Mcp/
     AuditLog/       Audit writer, PII redactor, AuditContext
     Config/         ModuleConfig — single reader for magebit_mcp/* store-config paths
     JsonRpc/        Dispatcher, handlers (initialize, ping, tools/list, tools/call), Request/Response DTOs, ErrorCode enum
-    RateLimiter/    No-op default; swap via DI preference for a real limiter
+    RateLimiter/    Admin-configurable fixed-window limiter (ConfigurableRateLimiter) + NoOp escape hatch
     Tool/           ToolRegistry + ToolResult + WriteMode enum
     Util/           ResolverPipeline — shared resolver sort/filter used by satellite read tools
     Validator/      OriginValidator, ProtocolVersionValidator, JsonSchemaValidator
@@ -243,7 +248,7 @@ app/code/Magebit/Mcp/
     acl.xml         Magebit_Mcp::mcp → mcp_tokens / mcp_audit / tools / config
     adminhtml/
       menu.xml      Admin → System → MCP (tokens, audit)
-      system.xml    Store config UI — enabled, server_name, server_description, allow_writes, allowed_origins, retention_days
+      system.xml    Store config UI — enabled, server_name, server_description, allow_writes, allowed_origins, retention_days, rate_limiting.*
       routes.xml
     config.xml      Defaults (incl. the Allowed Origins list)
     crontab.xml     Audit purge schedule

@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 class WebsiteStoreResolverTest extends TestCase
 {
     /**
-     * @var StoreRepositoryInterface&MockObject
+     * @phpstan-var StoreRepositoryInterface&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private StoreRepositoryInterface&MockObject $storeRepository;
@@ -58,10 +58,6 @@ class WebsiteStoreResolverTest extends TestCase
 
     public function testAdminWebsiteIdIsRejectedAsInvalid(): void
     {
-        // Website id 0 is the admin scope; we reject it at the input gate
-        // (same as any other non-positive id) rather than let it reach the
-        // store-list traversal — the admin store is never what a caller
-        // filtering by website actually wants.
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessageMatches('/requires a positive integer/');
 

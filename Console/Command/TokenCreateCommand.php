@@ -23,9 +23,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * `bin/magento magebit:mcp:token:create` — mint a bearer for an admin user.
  *
- * Plaintext is printed to stdout exactly once and then only its HMAC-SHA256
- * hash lives in the database. Paste the plaintext into your MCP client's
- * config; it cannot be retrieved afterwards.
+ * Plaintext is printed to stdout once; only the hash is persisted, so it
+ * cannot be retrieved afterwards.
  */
 class TokenCreateCommand extends Command
 {
@@ -35,13 +34,6 @@ class TokenCreateCommand extends Command
     private const OPT_EXPIRES = 'expires';
     private const OPT_SCOPE = 'scope';
 
-    /**
-     * @param AdminUserLookup $adminUserLookup
-     * @param TokenFactory $tokenFactory
-     * @param TokenGenerator $tokenGenerator
-     * @param TokenHasher $tokenHasher
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         private readonly AdminUserLookup $adminUserLookup,
         private readonly TokenFactory $tokenFactory,
@@ -52,9 +44,6 @@ class TokenCreateCommand extends Command
         parent::__construct();
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:create')
@@ -91,9 +80,6 @@ class TokenCreateCommand extends Command
             );
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $username = $this->requiredString($input->getOption(self::OPT_USER), '--admin-user');
@@ -169,13 +155,6 @@ class TokenCreateCommand extends Command
         return Command::SUCCESS;
     }
 
-    /**
-     * Narrow a mixed Console option value to a non-empty string or fail.
-     *
-     * @param mixed $value
-     * @param string $flag
-     * @return string
-     */
     private function requiredString(mixed $value, string $flag): string
     {
         if (!is_string($value) || $value === '') {

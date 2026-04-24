@@ -11,15 +11,12 @@ namespace Magebit\Mcp\Exception;
 use RuntimeException;
 
 /**
- * Raised by {@see \Magebit\Mcp\Model\Validator\JsonSchemaValidator} when
- * tool call arguments fail their JSON Schema. Carries the formatted opis
- * error structure so callers can surface detail to the client.
+ * Tool-call arguments failed JSON Schema validation; carries the formatted opis error tree.
  */
 class SchemaValidationException extends RuntimeException
 {
     /**
-     * @param string $message
-     * @param array $errors Formatted opis/json-schema error tree.
+     * @param array $errors
      * @phpstan-param array<int|string, mixed> $errors
      */
     public function __construct(
@@ -30,8 +27,6 @@ class SchemaValidationException extends RuntimeException
     }
 
     /**
-     * Retrieve the structured opis error tree for inclusion in a JSON-RPC error.
-     *
      * @return array<int|string, mixed>
      */
     public function getErrors(): array

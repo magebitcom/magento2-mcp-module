@@ -11,10 +11,9 @@ namespace Magebit\Mcp\Model\Tool\Schema;
 use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
 
 /**
- * Entry point for the fluent input-schema DSL used by MCP tools in place
- * of raw JSON-Schema arrays.
- *
- * Typical usage inside {@see \Magebit\Mcp\Api\ToolInterface::getInputSchema()}:
+ * Entry point for the fluent input-schema DSL. Locks in MCP-compliant
+ * invariants: draft-07 `$schema`, root `type: object`, `additionalProperties:
+ * false` everywhere, and no forbidden composition keywords.
  *
  * ```php
  * return Schema::object()
@@ -27,20 +26,9 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
  *     ->integer('qty', fn ($i) => $i->minimum(1)->required())
  *     ->toArray();
  * ```
- *
- * The builder locks in MCP-compliant invariants — draft-07 `$schema`,
- * `type: object` at the root, `additionalProperties: false` everywhere —
- * and refuses (at the API surface) the composition keywords the MCP
- * spec forbids: `oneOf` / `anyOf` / `allOf` / `if` / `then` / `else` /
- * `not` / `$ref` / `$defs`. If a rare tool genuinely needs them, fall
- * back to a hand-written array and accept the {@see \Magebit\Mcp\Model\Tool\SchemaSanitizer}
- * runtime warning.
  */
 final class Schema
 {
-    /**
-     * Start a new root-level object schema.
-     */
     public static function object(): ObjectBuilder
     {
         return ObjectBuilder::root();

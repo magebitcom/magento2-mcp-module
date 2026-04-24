@@ -8,26 +8,26 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Ui\Component\Listing\Column;
 
-use Magento\Framework\Escaper;
+use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Renders the JSON-RPC method as a monospace chip. The called tool for
- * `tools/call` rows has its own dedicated `Tool` column, so it is not
- * duplicated here.
+ * Per-row "View" action for the audit log grid, pointing at
+ * `magebit_mcp/auditlog/view/id/<id>`.
  *
- * `(request)` is the placeholder written by the controller when the bearer
- * auth / origin / parse step fails *before* the JSON-RPC envelope is read —
- * shown explicitly as "(unparsed request)" so it doesn't look like a bug.
+ * Rows are immutable — no edit / revoke / delete — so this is a single-link
+ * actions column rather than a dropdown.
  */
-class Method extends Column
+class AuditViewAction extends Column
 {
+    private const URL_VIEW = 'magebit_mcp/auditlog/view';
+
     /**
      * @param ContextInterface $context
      * @param UiComponentFactory $uiComponentFactory
-     * @param Escaper $escaper
+     * @param UrlInterface $urlBuilder
      * @param array $components
      * @param array $data
      * @phpstan-param array<string, mixed> $components
@@ -36,7 +36,7 @@ class Method extends Column
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
-        private readonly Escaper $escaper,
+        private readonly UrlInterface $urlBuilder,
         array $components = [],
         array $data = []
     ) {
@@ -44,7 +44,7 @@ class Method extends Column
     }
 
     /**
-     * Render the JSON-RPC method chip plus an optional tool-name sub-label.
+     * Populate each row with a single "View" link.
      *
      * @param array $dataSource
      * @phpstan-param array{data?: array{items?: array<int, array<string, mixed>>}} $dataSource
@@ -57,36 +57,20 @@ class Method extends Column
         }
 
         $name = $this->getName();
-
         foreach ($dataSource['data']['items'] as &$item) {
-            $raw = $item[$name] ?? null;
-            if (!is_string($raw) || $raw === '') {
-                $item[$name] = '';
+            $rawId = $item['id'] ?? null;
+            if (!is_scalar($rawId) || (int) $rawId === 0) {
                 continue;
             }
-
-            $item[$name] = $this->renderCell($raw);
+            $item[$name] = [
+                'view' => [
+                    'href' => $this->urlBuilder->getUrl(self::URL_VIEW, ['id' => (int) $rawId]),
+                    'label' => __('View'),
+                ],
+            ];
         }
         unset($item);
 
         return $dataSource;
-    }
-
-    /**
-     * Render a single row's method cell as HTML.
-     *
-     * @param string $method
-     * @return string
-     */
-    private function renderCell(string $method): string
-    {
-        if ($method === '(request)') {
-            return '<span class="mcp-audit-muted">(unparsed request)</span>';
-        }
-
-        return sprintf(
-            '<code class="mcp-audit-method">%s</code>',
-            HtmlEscape::toString($this->escaper->escapeHtml($method))
-        );
     }
 }

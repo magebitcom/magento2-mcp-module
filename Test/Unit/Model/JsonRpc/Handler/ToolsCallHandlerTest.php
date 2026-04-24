@@ -102,8 +102,6 @@ class ToolsCallHandlerTest extends TestCase
             $response->error->data
         );
 
-        // $this->fail() stamps the audit context so rate-limited calls land
-        // in the admin audit grid with the right error code.
         $this->assertSame('-32013', $auditContext->errorCode);
     }
 }

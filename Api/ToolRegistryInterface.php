@@ -11,32 +11,22 @@ namespace Magebit\Mcp\Api;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * Registry of all MCP tools known to the module.
- *
- * Populated at DI compile time via `<argument name="tools" xsi:type="array">`
- * on the registry's constructor. 3rd-party modules append to this array from
- * their own etc/di.xml without touching Magebit_Mcp code.
+ * Registry of all MCP tools, populated via DI array injection at compile time.
  */
 interface ToolRegistryInterface
 {
     /**
-     * All registered tools, keyed by tool name.
-     *
      * @return array<string, ToolInterface>
      */
     public function all(): array;
 
     /**
-     * True if a tool with the given name is registered.
-     *
      * @param string $name
      * @return bool
      */
     public function has(string $name): bool;
 
     /**
-     * Fetch a registered tool by name.
-     *
      * @param string $name
      * @return ToolInterface
      * @throws NoSuchEntityException when the tool is not registered.

@@ -18,20 +18,14 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Throwable;
 
 /**
- * POST `magebit_mcp/token/delete/id/<n>` — hard-removes the row.
- *
- * Audit log foreign key is `ON DELETE SET NULL`, so existing audit rows
- * survive the deletion but lose their `token_id` linkage. Prefer
- * {@see Revoke} for compliance deployments that need the reverse index.
+ * POST `magebit_mcp/token/delete/id/<n>` — hard-removes the row. Prefer
+ * {@see Revoke} when compliance needs the `token_id` linkage preserved on
+ * audit rows (`ON DELETE SET NULL`).
  */
 class Delete extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
-    /**
-     * @param Context $context
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         Context $context,
         private readonly TokenRepository $tokenRepository
@@ -39,9 +33,6 @@ class Delete extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */

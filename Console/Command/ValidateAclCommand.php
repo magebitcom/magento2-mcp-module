@@ -15,18 +15,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * `bin/magento magebit:mcp:tools:validate-acl`
- *
- * Walks every registered MCP tool and confirms its getAclResource() is declared
- * somewhere in the merged acl.xml tree. Catches "tool registered but ACL entry
- * forgotten" drift at build/CI time instead of on first call.
+ * `bin/magento magebit:mcp:tools:validate-acl` — CI gate that catches tools whose
+ * `getAclResource()` is missing from the merged acl.xml tree.
  */
 class ValidateAclCommand extends Command
 {
-    /**
-     * @param ToolRegistryInterface $toolRegistry
-     * @param ProviderInterface $aclResourceProvider
-     */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly ProviderInterface $aclResourceProvider
@@ -34,18 +27,12 @@ class ValidateAclCommand extends Command
         parent::__construct();
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:tools:validate-acl')
             ->setDescription('Fail if any registered MCP tool references an ACL resource not declared in acl.xml.');
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $declared = $this->flattenResourceIds($this->aclResourceProvider->getAclResources());
@@ -71,9 +58,6 @@ class ValidateAclCommand extends Command
     }
 
     /**
-     * Recursively collect every `id` key from the nested ACL resource tree.
-     *
-     * @param array $resources Nested resource tree as returned by Magento's ACL provider.
      * @phpstan-param array<int, array<string, mixed>> $resources
      * @return array<int, string>
      */

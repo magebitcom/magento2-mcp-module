@@ -11,19 +11,14 @@ namespace Magebit\Mcp\Model\JsonRpc;
 use stdClass;
 
 /**
- * JSON-RPC 2.0 response envelope.
- *
- * Exactly one of {@see $result} / {@see $error} is non-null, per spec.
- * Construct via the {@see self::success()} / {@see self::failure()} named
- * constructors so this invariant is always maintained.
+ * JSON-RPC 2.0 response envelope. Exactly one of {@see $result} / {@see $error}
+ * is non-null per spec; use {@see self::success()} / {@see self::failure()} to
+ * preserve the invariant.
  */
 class Response
 {
     /**
-     * @param int|string|null $id
-     * @param array|null $result
      * @phpstan-param array<string, mixed>|null $result
-     * @param Error|null $error
      */
     public function __construct(
         public readonly int|string|null $id,
@@ -33,18 +28,9 @@ class Response
     }
 
     /**
-     * Build a successful response carrying a result payload.
-     *
-     * Static named constructor on this value object — it has no behaviour
-     * plugins would ever want to decorate, so the Magento2 "static discouraged"
-     * sniff is silenced intentionally.
-     *
      * @SuppressWarnings(PHPMD.StaticAccess)
      *
-     * @param int|string|null $id
-     * @param array $result
      * @phpstan-param array<string, mixed> $result
-     * @return self
      */
     // phpcs:ignore Magento2.Functions.StaticFunction
     public static function success(int|string|null $id, array $result): self
@@ -53,16 +39,9 @@ class Response
     }
 
     /**
-     * Build an error response with optional structured data.
-     *
      * @SuppressWarnings(PHPMD.StaticAccess)
      *
-     * @param int|string|null $id
-     * @param ErrorCode $code
-     * @param string $message
-     * @param array|null $data
      * @phpstan-param array<string, mixed>|null $data
-     * @return self
      */
     // phpcs:ignore Magento2.Functions.StaticFunction
     public static function failure(
@@ -75,8 +54,6 @@ class Response
     }
 
     /**
-     * Render the envelope as the JSON-RPC wire payload.
-     *
      * @return array<string, mixed>
      */
     public function toArray(): array

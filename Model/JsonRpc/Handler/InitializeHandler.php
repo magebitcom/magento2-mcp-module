@@ -17,17 +17,10 @@ use Magebit\Mcp\Model\Validator\ProtocolVersionValidator;
 use stdClass;
 
 /**
- * Handles the `initialize` JSON-RPC method.
- *
- * Advertises only the `tools` capability; `resources`, `prompts`,
- * `sampling`, `logging` etc. are deliberately omitted.
- *
- * `protocolVersion` is sourced from {@see ProtocolVersionValidator::LATEST}
+ * Handles the `initialize` JSON-RPC method. Advertises only the `tools`
+ * capability; `resources`, `prompts`, `sampling`, `logging` are deliberately
+ * omitted. `protocolVersion` is sourced from {@see ProtocolVersionValidator}
  * so the two places that need to agree on the version never drift.
- * `serverVersion` comes from etc/di.xml — bumped once per release.
- * `serverName` / `instructions` are admin-editable via
- * Stores → Configuration → Magebit → MCP Server so each deployment can brand
- * its own server and drop a short note for the AI client.
  */
 class InitializeHandler implements HandlerInterface
 {

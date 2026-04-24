@@ -20,19 +20,12 @@ use Magento\Ui\Component\MassAction\Filter;
 use Throwable;
 
 /**
- * Bulk variant of {@see Delete} — hard-removes the selected rows. See
- * {@see Delete} for the trade-off against {@see Revoke}.
+ * Bulk variant of {@see Delete}; see {@see Delete} for the trade-off vs {@see Revoke}.
  */
 class MassDelete extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
-    /**
-     * @param Context $context
-     * @param Filter $filter
-     * @param CollectionFactory $collectionFactory
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
@@ -42,9 +35,6 @@ class MassDelete extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */
@@ -70,7 +60,6 @@ class MassDelete extends Action implements HttpPostActionInterface
                 $this->tokenRepository->deleteById($id);
                 $deleted++;
             } catch (Throwable $ignoredDeleteError) {
-                // Continue; aggregate reported below.
                 unset($ignoredDeleteError);
             }
         }

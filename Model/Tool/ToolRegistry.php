@@ -14,11 +14,9 @@ use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * Default {@see ToolRegistryInterface} implementation backed by a DI-injected array.
- *
- * Validates at construction that every entry implements {@see ToolInterface}, that
- * tool names match the canonical format, and that the di.xml key matches the tool's
- * own getName() — catching drift between registration and self-reported identity.
+ * Validates tool names match the canonical dotted regex and that each di.xml
+ * key matches the tool's own getName() — catches drift between registration
+ * and self-reported identity.
  */
 class ToolRegistry implements ToolRegistryInterface
 {
@@ -28,7 +26,6 @@ class ToolRegistry implements ToolRegistryInterface
     private array $tools;
 
     /**
-     * @param array $tools Injected via etc/di.xml.
      * @phpstan-param array<string, ToolInterface> $tools
      */
     public function __construct(array $tools = [])
@@ -65,11 +62,7 @@ class ToolRegistry implements ToolRegistryInterface
     }
 
     /**
-     * Enforce registration invariants at construction time.
-     *
-     * @param array $tools
      * @phpstan-param array<string, ToolInterface> $tools
-     * @return void
      */
     private function validate(array $tools): void
     {

@@ -13,13 +13,9 @@ use InvalidArgumentException;
 use LogicException;
 
 /**
- * Fluent builder for a `type: array` property.
- *
- * Item shape is declared through typed convenience methods — `ofStrings()`,
- * `ofIntegers()`, `ofNumbers()`, `ofBooleans()`, `ofObjects()` — which
- * cover every item pattern found across the 57 existing tools. An item
- * shape MUST be set; calling {@see toSchemaArray()} on an ArrayBuilder
- * without one raises at build time rather than emitting an invalid schema.
+ * Fluent builder for a `type: array` property. An item shape MUST be set via
+ * one of `ofStrings()` / `ofIntegers()` / `ofNumbers()` / `ofBooleans()` /
+ * `ofObjects()` — otherwise {@see toSchemaArray()} raises.
  */
 class ArrayBuilder extends PropertyBuilder
 {
@@ -33,9 +29,6 @@ class ArrayBuilder extends PropertyBuilder
     private ?bool $uniqueItems = null;
 
     /**
-     * Items are strings. Optional closure receives a {@see StringBuilder}
-     * to attach item-level constraints (pattern, enum, lengths).
-     *
      * @param Closure(StringBuilder):mixed|null $configure
      * @return $this
      */
@@ -50,9 +43,6 @@ class ArrayBuilder extends PropertyBuilder
     }
 
     /**
-     * Items are integers. Optional closure receives an {@see IntegerBuilder}
-     * to attach item-level bounds.
-     *
      * @param Closure(IntegerBuilder):mixed|null $configure
      * @return $this
      */
@@ -67,8 +57,6 @@ class ArrayBuilder extends PropertyBuilder
     }
 
     /**
-     * Items are numbers (floats).
-     *
      * @param Closure(NumberBuilder):mixed|null $configure
      * @return $this
      */
@@ -83,8 +71,6 @@ class ArrayBuilder extends PropertyBuilder
     }
 
     /**
-     * Items are booleans.
-     *
      * @return $this
      */
     public function ofBooleans(): self
@@ -94,9 +80,7 @@ class ArrayBuilder extends PropertyBuilder
     }
 
     /**
-     * Items are objects. Closure receives a nested {@see ObjectBuilder}
-     * configured like any other object — `string()`, `integer()`,
-     * `required()`, etc. `additionalProperties: false` is forced.
+     * `additionalProperties: false` is forced on the nested object.
      *
      * @param Closure(ObjectBuilder):mixed $configure
      * @return $this

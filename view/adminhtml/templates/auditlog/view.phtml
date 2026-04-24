@@ -1,0 +1,239 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+declare(strict_types=1);
+
+/** @var \Magebit\Mcp\Block\Adminhtml\Auditlog\View $block */
+/** @var \Magento\Framework\Escaper $escaper */
+
+$entry = $block->getEntry();
+if ($entry === null) {
+    return;
+}
+
+$createdAt = $block->getCreatedAtFormatted();
+$adminUser = $block->getAdminUser();
+$adminUserUrl = $block->getAdminUserEditUrl();
+$tokenName = $block->getTokenName();
+$errorLabel = $block->getErrorLabel();
+$method = $entry->getMethod();
+$tool = $entry->getToolName();
+$protocol = $entry->getProtocolVersion();
+$requestId = $entry->getRequestId();
+$duration = $entry->getDurationMs();
+$ip = $entry->getIpAddress();
+$userAgent = $entry->getUserAgent();
+$args = $block->getPrettyArguments();
+$result = $block->getPrettyResultSummary();
+$isOk = $block->isOk();
+$statusSeverity = $isOk ? 'notice' : 'critical';
+$statusLabel = $isOk ? __('OK') : __('Error');
+?>
+<div class="mcp-audit-view">
+    <div class="mcp-audit-view__toolbar">
+        <a class="action-default scalable back"
+           href="<?= $escaper->escapeUrl($block->getBackUrl()) ?>">
+            <span><?= $escaper->escapeHtml(__('Back to Audit Log')) ?></span>
+        </a>
+    </div>
+
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title">
+                <?= $escaper->escapeHtml(__('Entry #%1', (int) $entry->getId())) ?>
+            </span>
+            <span class="mcp-audit-view__meta">
+                <span class="grid-severity-<?= $escaper->escapeHtmlAttr($statusSeverity) ?>">
+                    <span><?= $escaper->escapeHtml($statusLabel) ?></span>
+                </span>
+                <?php if ($duration !== null) : ?>
+                    <span class="mcp-audit-view__duration">
+                        <?= (int) $duration ?><small><?= $escaper->escapeHtml(__('ms')) ?></small>
+                    </span>
+                <?php endif; ?>
+                <?php if ($createdAt !== null) : ?>
+                    <span class="mcp-audit-view__timestamp">
+                        <?= $escaper->escapeHtml($createdAt) ?>
+                    </span>
+                <?php endif; ?>
+            </span>
+        </div>
+        <div class="admin__page-section-content mcp-audit-view__columns">
+            <div class="admin__page-section-item mcp-audit-view__half">
+                <div class="admin__page-section-item-title">
+                    <span class="title"><?= $escaper->escapeHtml(__('Request')) ?></span>
+                </div>
+                <div class="admin__page-section-item-content">
+                    <table class="admin__table-secondary">
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Method')) ?></th>
+                            <td>
+                                <?php if ($method === '' || $method === '(request)') : ?>
+                                    <span class="mcp-audit-muted">
+                                        <?= $escaper->escapeHtml(__('(unparsed request)')) ?>
+                                    </span>
+                                <?php else : ?>
+                                    <code class="mcp-audit-method"><?= $escaper->escapeHtml($method) ?></code>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Tool')) ?></th>
+                            <td>
+                                <?php if ($tool !== null && $tool !== '') : ?>
+                                    <code class="mcp-audit-method"><?= $escaper->escapeHtml($tool) ?></code>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('MCP Protocol')) ?></th>
+                            <td>
+                                <?php if ($protocol !== null) : ?>
+                                    <code class="mcp-audit-code"><?= $escaper->escapeHtml($protocol) ?></code>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Request ID')) ?></th>
+                            <td>
+                                <?php if ($requestId !== null && $requestId !== '') : ?>
+                                    <code class="mcp-audit-code"><?= $escaper->escapeHtml($requestId) ?></code>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin__page-section-item mcp-audit-view__half">
+                <div class="admin__page-section-item-title">
+                    <span class="title"><?= $escaper->escapeHtml(__('Caller')) ?></span>
+                </div>
+                <div class="admin__page-section-item-content">
+                    <table class="admin__table-secondary">
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Admin')) ?></th>
+                            <td>
+                                <?php if ($adminUser !== null && $adminUserUrl !== null) : ?>
+                                    <a href="<?= $escaper->escapeUrl($adminUserUrl) ?>">
+                                        <?= $escaper->escapeHtml((string) $adminUser->getUsername()) ?>
+                                    </a>
+                                    <?php
+                                    $firstName = (string) $adminUser->getData('firstname');
+                                    $lastName = (string) $adminUser->getData('lastname');
+                                    $fullName = trim($firstName . ' ' . $lastName);
+                                    ?>
+                                    <?php if ($fullName !== '') : ?>
+                                        <span class="mcp-audit-muted">
+                                            (<?= $escaper->escapeHtml($fullName) ?>)
+                                        </span>
+                                    <?php endif; ?>
+                                <?php elseif ($entry->getAdminUserId() !== null) : ?>
+                                    #<?= (int) $entry->getAdminUserId() ?>
+                                    <span class="mcp-audit-muted">
+                                        (<?= $escaper->escapeHtml(__('deleted')) ?>)
+                                    </span>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('Token')) ?></th>
+                            <td>
+                                <?php if ($tokenName !== null) : ?>
+                                    <?= $escaper->escapeHtml($tokenName) ?>
+                                    <span class="mcp-audit-muted">
+                                        (#<?= (int) $entry->getTokenId() ?>)
+                                    </span>
+                                <?php elseif ($entry->getTokenId() !== null) : ?>
+                                    #<?= (int) $entry->getTokenId() ?>
+                                    <span class="mcp-audit-muted">
+                                        (<?= $escaper->escapeHtml(__('deleted')) ?>)
+                                    </span>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('IP Address')) ?></th>
+                            <td>
+                                <?php if ($ip !== null && $ip !== '') : ?>
+                                    <code class="mcp-audit-code"><?= $escaper->escapeHtml($ip) ?></code>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th><?= $escaper->escapeHtml(__('User-Agent')) ?></th>
+                            <td>
+                                <?php if ($userAgent !== null && $userAgent !== '') : ?>
+                                    <span class="mcp-audit-view__ua"
+                                          title="<?= $escaper->escapeHtmlAttr($userAgent) ?>">
+                                        <?= $escaper->escapeHtml($userAgent) ?>
+                                    </span>
+                                <?php else : ?>
+                                    <span class="mcp-audit-muted">&mdash;</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <?php if ($errorLabel !== null) : ?>
+        <div class="message message-error error">
+            <strong><?= $escaper->escapeHtml(__('Error:')) ?></strong>
+            <?= $escaper->escapeHtml($errorLabel) ?>
+        </div>
+    <?php endif; ?>
+
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Arguments')) ?></span>
+            <span class="mcp-audit-view__hint">
+                <?= $escaper->escapeHtml(__('PII-redacted, keyed by crypt/key')) ?>
+            </span>
+        </div>
+        <div class="admin__page-section-content">
+            <?php if ($args !== null) : ?>
+                <pre class="mcp-audit-view__code"><?= $escaper->escapeHtml($args) ?></pre>
+            <?php else : ?>
+                <div class="mcp-audit-view__empty">
+                    <?= $escaper->escapeHtml(__('No arguments recorded.')) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $escaper->escapeHtml(__('Result summary')) ?></span>
+            <span class="mcp-audit-view__hint">
+                <?= $escaper->escapeHtml(__('This is not the full response body. It is a summary of the response. The full response body is not stored in the database.')) ?>
+            </span>
+        </div>
+        <div class="admin__page-section-content">
+            <?php if ($result !== null) : ?>
+                <pre class="mcp-audit-view__code"><?= $escaper->escapeHtml($result) ?></pre>
+            <?php else : ?>
+                <div class="mcp-audit-view__empty">
+                    <?= $escaper->escapeHtml(__('No result summary recorded.')) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </section>
+</div>

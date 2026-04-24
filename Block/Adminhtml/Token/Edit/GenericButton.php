@@ -11,26 +11,18 @@ namespace Magebit\Mcp\Block\Adminhtml\Token\Edit;
 use Magento\Backend\Block\Widget\Context;
 
 /**
- * Base class for the token-form buttons ({@see SaveButton}, {@see BackButton}).
- *
- * We don't extend Magento's CMS GenericButton because it pulls in a
- * `PageRepositoryInterface` we don't need — the token form has no "load
- * existing entity" flow; see {@see \Magebit\Mcp\Ui\DataProvider\Form\TokenDataProvider}
- * for why.
+ * Base class for the token-form buttons. We don't extend Magento's CMS
+ * GenericButton because it pulls in `PageRepositoryInterface` we don't need
+ * — tokens are mint-only, there's no load-existing-entity flow.
  */
 class GenericButton
 {
-    /**
-     * @param Context $context
-     */
     public function __construct(
         protected readonly Context $context
     ) {
     }
 
     /**
-     * Build a URL through the backend URL builder for subclasses.
-     *
      * @param string $route
      * @param array $params
      * @phpstan-param array<string, mixed> $params

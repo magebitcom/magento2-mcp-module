@@ -11,16 +11,11 @@ namespace Magebit\Mcp\Api;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
- * Invoked by the JSON-RPC dispatcher immediately before every tools/call.
- *
- * The module ships a no-op default ({@see \Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter}).
- * Real implementations override the preference in etc/di.xml.
+ * Invoked before every tools/call; ships as a no-op default and is overridden via DI preference.
  */
 interface RateLimiterInterface
 {
     /**
-     * Check whether the caller may invoke the named tool right now.
-     *
      * @param int $adminUserId
      * @param string $toolName
      * @return void

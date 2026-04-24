@@ -13,12 +13,7 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
 /**
- * Adds the standard `sort_by` / `sort_dir` pair used by every list tool.
- *
- * ```
- * sort_by:  { type: string, enum: <sortableFields> }
- * sort_dir: { type: string, enum: [asc, desc] }
- * ```
+ * Produces `sort_by` / `sort_dir`.
  */
 final class Sort implements SchemaContribution
 {
@@ -31,8 +26,6 @@ final class Sort implements SchemaContribution
 
     /**
      * @param array<int, string> $sortableFields
-     * @param string $defaultField
-     * @param string $defaultDirection
      */
     private function __construct(
         array $sortableFields,
@@ -45,13 +38,7 @@ final class Sort implements SchemaContribution
     }
 
     /**
-     * Build a sort preset for a list tool. `defaultField` is surfaced in
-     * the `sort_by` description so the AI client knows what it'll get
-     * when the argument is omitted.
-     *
-     * @param array<int, string> $sortableFields Typically the tool's
-     *     `SearchCriteriaBuilder::SORTABLE_FIELDS` constant.
-     * @param string $defaultField
+     * @param array<int, string> $sortableFields
      * @param string $defaultDirection `asc` or `desc`.
      */
     public static function fields(

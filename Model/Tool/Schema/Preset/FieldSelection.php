@@ -13,14 +13,8 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
 /**
- * Adds the `fields` / `exclude` pair that drives the field-resolver
- * pipeline on tools built from resolvers. Whitelist + blacklist over the
- * per-entity resolver key set.
- *
- * ```
- * fields:  { type: array, items: { type: string } }
- * exclude: { type: array, items: { type: string } }
- * ```
+ * Produces `fields` / `exclude` — whitelist/blacklist for the field-resolver
+ * pipeline's per-entity resolver keys.
  */
 final class FieldSelection implements SchemaContribution
 {
@@ -36,11 +30,6 @@ final class FieldSelection implements SchemaContribution
         $this->excludeDescription = $excludeDescription;
     }
 
-    /**
-     * Default copy that matches the descriptions used across existing list
-     * tools ("Whitelist of resolver keys per row." / "Resolver keys to
-     * drop from each row.").
-     */
     public static function default(): self
     {
         return new self(
@@ -49,11 +38,6 @@ final class FieldSelection implements SchemaContribution
         );
     }
 
-    /**
-     * Override the descriptions when a tool has a more specific story to
-     * tell — e.g. single-entity `.get` tools that speak about "this
-     * entity's" fields rather than "per row".
-     */
     public static function describing(string $fields, string $exclude): self
     {
         return new self($fields, $exclude);

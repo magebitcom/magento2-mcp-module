@@ -10,18 +10,13 @@ namespace Magebit\Mcp\Model\Auth;
 
 /**
  * Generates cryptographically random plaintext bearer tokens.
- *
- * 32 bytes = 256 bits of entropy → 64 hex characters. Matches the strength
- * we'd expect from a production API key and is well within MCP client config
- * size limits.
+ * 32 bytes = 256 bits of entropy → 64 hex characters.
  */
 class TokenGenerator
 {
     private const BYTE_LENGTH = 32;
 
     /**
-     * Produce a 64-character hex token backed by `random_bytes()`.
-     *
      * @return string
      */
     public function generate(): string

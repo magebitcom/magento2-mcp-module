@@ -15,19 +15,13 @@ use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\View\Result\PageFactory;
 
 /**
- * Renders the "New MCP Connection" form at `magebit_mcp/token/new`.
- *
- * Tokens are mint-once (rotate-not-edit), so there's no matching `Edit`
- * controller — the form posts to {@see Save} which always creates.
+ * Renders the "New MCP Connection" form. Tokens are mint-once (rotate-not-edit),
+ * so there's no matching Edit controller — the form always posts to {@see Save}.
  */
 class NewAction extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
-    /**
-     * @param Context $context
-     * @param PageFactory $resultPageFactory
-     */
     public function __construct(
         Context $context,
         private readonly PageFactory $resultPageFactory
@@ -35,9 +29,6 @@ class NewAction extends Action implements HttpGetActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Page
     {
         /** @var Page $resultPage */

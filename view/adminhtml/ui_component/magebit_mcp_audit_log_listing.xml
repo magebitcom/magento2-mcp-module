@@ -71,7 +71,6 @@
             <settings>
                 <filter>text</filter>
                 <label translate="true">Tool</label>
-                <visible>false</visible>
             </settings>
         </column>
         <column name="admin_user_id" sortOrder="50" class="Magebit\Mcp\Ui\Component\Listing\Column\AdminUser">
@@ -82,10 +81,12 @@
                 <sortable>false</sortable>
             </settings>
         </column>
-        <column name="token_id" sortOrder="60">
+        <column name="token_id" sortOrder="60" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenName">
             <settings>
                 <filter>textRange</filter>
                 <label translate="true">Token ID</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
             </settings>
         </column>
         <column name="response_status" sortOrder="70" class="Magebit\Mcp\Ui\Component\Listing\Column\ResponseStatus">
@@ -149,5 +150,14 @@
                 <visible>false</visible>
             </settings>
         </column>
+        <actionsColumn name="actions"
+                       sortOrder="160"
+                       class="Magebit\Mcp\Ui\Component\Listing\Column\AuditViewAction">
+            <settings>
+                <indexField>id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+                <resizeDefaultWidth>80</resizeDefaultWidth>
+            </settings>
+        </actionsColumn>
     </columns>
 </listing>

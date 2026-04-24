@@ -13,9 +13,6 @@ use PHPUnit\Framework\TestCase;
 
 class ProtocolVersionValidatorTest extends TestCase
 {
-    /**
-     * @var ProtocolVersionValidator
-     */
     private ProtocolVersionValidator $validator;
 
     protected function setUp(): void
@@ -40,8 +37,7 @@ class ProtocolVersionValidatorTest extends TestCase
 
     public function testAcceptsFoldedDuplicateHeader(): void
     {
-        // HTTP layer or dev proxies (e.g. MCP Inspector) may fold two identical
-        // `Mcp-Protocol-Version` headers into one comma-separated value.
+        // Proxies may fold duplicate headers into a comma-separated value.
         $this->assertTrue($this->validator->isSupported('2025-06-18, 2025-06-18'));
     }
 

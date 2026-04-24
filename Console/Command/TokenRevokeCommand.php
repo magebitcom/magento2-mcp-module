@@ -18,25 +18,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * `bin/magento magebit:mcp:token:revoke <id>` — stamps revoked_at = now.
- * The token row stays in the DB so the audit log can still reference it.
- * To remove entirely, use `magebit:mcp:token:delete`.
+ *
+ * Row stays in the DB so the audit log can still reference it; use
+ * `magebit:mcp:token:delete` to remove it entirely.
  */
 class TokenRevokeCommand extends Command
 {
     private const ARG_ID = 'id';
 
-    /**
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         private readonly TokenRepository $tokenRepository
     ) {
         parent::__construct();
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:revoke')
@@ -46,9 +41,6 @@ class TokenRevokeCommand extends Command
             ->addArgument(self::ARG_ID, InputArgument::REQUIRED, 'Token id (numeric).');
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $raw = $input->getArgument(self::ARG_ID);

@@ -59,7 +59,7 @@ Satellite modules must reuse these five contracts — never duplicate them.
 - **`Api/UnderlyingAclAwareInterface`** — opt-in second ACL check. If a tool wraps a Magento service contract (e.g. an invoice-create tool wrapping `InvoiceOrderInterface`), return the underlying Magento admin-UI resource here. `ToolsCallHandler` then enforces *both* the MCP-specific ACL AND the admin-UI ACL. Invariant: "MCP cannot do what the admin UI cannot."
 - **`Api/FieldResolverInterface`** — marker for the field-resolver pattern used by satellite read tools. Each resolver owns a named slice of the response (`totals`, `items`, …). `Model/Util/ResolverPipeline` walks heterogeneous resolver arrays and orders them by `getSortOrder()` (default 100). Satellites define entity-typed sub-interfaces (`OrderFieldResolverInterface` etc.); the pipeline only needs the marker.
 - **`Api/ToolRegistryInterface`** / **`ToolResultInterface`** — registry + result envelope.
-- **Events `magebit_mcp_tool_call_before` / `_after`** — cross-cutting concerns (rate limiting, result masking, custom audit sinks). Params are read-only; arguments have already been redacted for audit when the event fires, so mutating them desyncs the audit row from what ran.
+- **Events `magebit_mcp_tool_call_before` / `_after`** — cross-cutting concerns (result masking, custom audit sinks, bespoke throttling on top of the shipped limiter). Params are read-only; arguments have already been redacted for audit when the event fires, so mutating them desyncs the audit row from what ran.
 
 For DI wiring and a full worked example see `docs/EXTENDING.md`.
 
@@ -102,4 +102,4 @@ Purged by `Cron/PurgeAuditLog` per `magebit_mcp/general/retention_days` (`0` dis
 ## Error codes
 
 Module-specific JSON-RPC codes are declared in `Model/JsonRpc/ErrorCode`:
-`-32001 UNAUTHENTICATED`, `-32002 ADMIN_DISABLED`, `-32003 PROTOCOL_MISMATCH`, `-32004 FORBIDDEN`, `-32010 TOOL_UNKNOWN`, `-32011 VALIDATION_FAILED`, `-32012 WRITE_NOT_ALLOWED`, `-32013 ORIGIN_REJECTED`, `-32014 PAYLOAD_TOO_LARGE`, `-32015 SERVER_DISABLED`. When adding a new one, extend `ErrorCode` *and* document in the root `README.md` error-codes table.
+`-32001 UNAUTHORIZED`, `-32002 INVALID_ORIGIN`, `-32003 UNSUPPORTED_PROTOCOL_VERSION`, `-32004 FORBIDDEN`, `-32010 TOOL_NOT_FOUND`, `-32011 TOOL_EXECUTION_FAILED`, `-32012 WRITE_NOT_ALLOWED`, `-32013 RATE_LIMITED`, `-32014 SCHEMA_VALIDATION_FAILED`, `-32015 SERVER_DISABLED`. Next free: `-32016`. When adding a new one, extend `ErrorCode` (value + `label()` case) *and* document in the root `README.md` error-codes table.

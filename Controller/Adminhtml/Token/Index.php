@@ -15,21 +15,15 @@ use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\View\Result\PageFactory;
 
 /**
- * Admin landing page for MCP connection (bearer token) management.
- *
- * Pops a one-shot plaintext bearer from the session if the user just came
- * from {@see Save} — shown as a warning message (warning rather than success
- * because the user MUST copy it before navigating away; success messages
- * read as "you're done, move on").
+ * Admin landing page for MCP connection (bearer token) management. Pops a
+ * one-shot plaintext bearer from the session as a warning message — not a
+ * success message, which would imply the user can safely navigate away
+ * before copying the secret.
  */
 class Index extends Action implements HttpGetActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
-    /**
-     * @param Context $context
-     * @param PageFactory $resultPageFactory
-     */
     public function __construct(
         Context $context,
         private readonly PageFactory $resultPageFactory
@@ -37,9 +31,6 @@ class Index extends Action implements HttpGetActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Page
     {
         $this->surfaceNewBearerIfAny();
@@ -51,11 +42,6 @@ class Index extends Action implements HttpGetActionInterface
         return $resultPage;
     }
 
-    /**
-     * Pull the one-shot plaintext from the session and surface it as a warning.
-     *
-     * @return void
-     */
     private function surfaceNewBearerIfAny(): void
     {
         $bag = $this->_session->getData(Save::SESSION_KEY_PLAINTEXT, true);

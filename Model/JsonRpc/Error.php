@@ -14,9 +14,6 @@ namespace Magebit\Mcp\Model\JsonRpc;
 class Error
 {
     /**
-     * @param ErrorCode $code
-     * @param string $message
-     * @param array|null $data Optional context (e.g. schema validation errors).
      * @phpstan-param array<string, mixed>|null $data
      */
     public function __construct(
@@ -27,8 +24,6 @@ class Error
     }
 
     /**
-     * Render as the wire payload under the JSON-RPC `error` field.
-     *
      * @return array<string, mixed>
      */
     public function toArray(): array

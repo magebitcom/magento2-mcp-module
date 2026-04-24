@@ -11,11 +11,9 @@ namespace Magebit\Mcp\Model\JsonRpc;
 use InvalidArgumentException;
 
 /**
- * Parsed JSON-RPC 2.0 request envelope.
- *
- * A JSON-RPC notification is a request whose `id` field is entirely absent
- * (NOT `id: null` — `id: null` is a valid request). We track this via
- * {@see $isNotification} because the server must suppress responses for
+ * Parsed JSON-RPC 2.0 request envelope. A notification is a request whose `id`
+ * field is entirely absent (NOT `id: null` — `id: null` is a valid request);
+ * {@see $isNotification} tracks this so the server can suppress responses for
  * notifications even on error.
  */
 class Request

@@ -15,11 +15,6 @@ use Magebit\Mcp\Model\Tool\Schema\Preset\Sort;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Verifies that the four list-tool presets emit the exact same property
- * blocks the hand-written list tools use today. The reference shapes are
- * copied from `Magebit_McpOrderTools\Tool\Sales\Order\OrderList::getInputSchema()`.
- */
 class PresetTest extends TestCase
 {
     public function testPaginationEmitsPageAndPageSize(): void

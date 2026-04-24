@@ -104,6 +104,23 @@
             <column name="created_at"/>
         </index>
 
+        <index referenceId="MAGEBIT_MCP_AUDIT_LOG_RESPONSE_STATUS_CREATED_AT" indexType="btree">
+            <column name="response_status"/>
+            <column name="created_at"/>
+        </index>
+
+        <index referenceId="MAGEBIT_MCP_AUDIT_LOG_ERROR_CODE_CREATED_AT" indexType="btree">
+            <column name="error_code"/>
+            <column name="created_at"/>
+        </index>
+
+        <index referenceId="MAGEBIT_MCP_AUDIT_LOG_TOKEN_ID_CREATED_AT" indexType="btree">
+            <column name="token_id"/>
+            <column name="created_at"/>
+        </index>
+
+        <!-- Single-column index reserved for the retention-purge cron;
+             composites above can't serve `WHERE created_at < ?` alone. -->
         <index referenceId="MAGEBIT_MCP_AUDIT_LOG_CREATED_AT" indexType="btree">
             <column name="created_at"/>
         </index>

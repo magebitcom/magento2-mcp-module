@@ -19,27 +19,18 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class ListToolsCommand extends Command
 {
-    /**
-     * @param ToolRegistryInterface $toolRegistry
-     */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry
     ) {
         parent::__construct();
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:tools:list')
             ->setDescription('List all registered MCP tools with their ACL resource and write mode.');
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $tools = $this->toolRegistry->all();

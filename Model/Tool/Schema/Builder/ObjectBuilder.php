@@ -13,16 +13,10 @@ use InvalidArgumentException;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
 /**
- * Fluent builder for a `type: object` schema — root or nested.
- *
- * The root variant is what {@see \Magebit\Mcp\Model\Tool\Schema\Schema::object()}
- * returns: `toArray()` emits `$schema` + `type` + `properties` + `required`
- * + `additionalProperties: false`. Nested variants skip `$schema`.
- *
- * `additionalProperties: false` is forced on every builder-constructed
- * object. Open-bag object shapes (e.g. the `filters` field on list tools,
- * whose keys are enumerated at runtime) are emitted by presets via
- * {@see rawProperty()} rather than by the typed DSL.
+ * Fluent builder for a `type: object` schema — root or nested. Root emits
+ * draft-07 `$schema`; nested skips it. `additionalProperties: false` is
+ * forced on every builder-constructed object; open-bag shapes go through
+ * {@see rawProperty()}.
  */
 class ObjectBuilder extends PropertyBuilder
 {
@@ -42,28 +36,17 @@ class ObjectBuilder extends PropertyBuilder
     ) {
     }
 
-    /**
-     * Create a root-level object schema — the one a tool returns from
-     * {@see \Magebit\Mcp\Api\ToolInterface::getInputSchema()}.
-     */
     public static function root(): self
     {
         return new self(true);
     }
 
-    /**
-     * Create a nested object schema — used for `->object()` properties
-     * and for `ArrayBuilder::ofObjects()` item shapes.
-     */
     public static function nested(): self
     {
         return new self(false);
     }
 
     /**
-     * Add a string property. The closure receives a {@see StringBuilder}
-     * to configure constraints.
-     *
      * @param string $name
      * @param Closure(StringBuilder):mixed $configure
      * @return $this
@@ -77,8 +60,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Add an integer property.
-     *
      * @param string $name
      * @param Closure(IntegerBuilder):mixed $configure
      * @return $this
@@ -92,8 +73,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Add a number property.
-     *
      * @param string $name
      * @param Closure(NumberBuilder):mixed $configure
      * @return $this
@@ -107,8 +86,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Add a boolean property.
-     *
      * @param string $name
      * @param Closure(BooleanBuilder):mixed $configure
      * @return $this
@@ -122,8 +99,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Add an array property.
-     *
      * @param string $name
      * @param Closure(ArrayBuilder):mixed $configure
      * @return $this
@@ -137,9 +112,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Add a nested object property. `additionalProperties: false` is forced
-     * on the nested object.
-     *
      * @param string $name
      * @param Closure(ObjectBuilder):mixed $configure
      * @return $this
@@ -153,9 +125,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Apply a {@see SchemaContribution} — typically a preset from
-     * `Model/Tool/Schema/Preset/` — which adds its own named properties.
-     *
      * @param SchemaContribution $contribution
      * @return $this
      */
@@ -166,10 +135,7 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Escape hatch: inject a fully-formed JSON-Schema fragment as a named
-     * property. Used by presets that emit open-bag objects (e.g. `filters`)
-     * which the typed DSL intentionally can't express. Application code
-     * should reach for the typed methods first.
+     * Escape hatch for open-bag shapes the typed DSL can't express.
      *
      * @param string $name
      * @param array<string, mixed> $schema
@@ -187,8 +153,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Root-variant convenience — terminal call on a root builder.
-     *
      * @return array<string, mixed>
      * @phpstan-return array{
      *     '$schema': string,
@@ -226,9 +190,6 @@ class ObjectBuilder extends PropertyBuilder
     }
 
     /**
-     * Attach a configured property builder as a named property, recording
-     * its `required` state on the enclosing object.
-     *
      * @param string $name
      * @param PropertyBuilder $builder
      * @return void

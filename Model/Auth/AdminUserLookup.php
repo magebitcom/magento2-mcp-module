@@ -14,21 +14,10 @@ use Magento\User\Model\User;
 use Magento\User\Model\UserFactory;
 
 /**
- * Wraps the admin user loaders the MCP module actually needs.
- *
- * Magento ships no ServiceContract for admin users — `\Magento\User\Model\User`
- * / `UserFactory` / `ResourceModel\User\CollectionFactory` are the only handles.
- * Every MCP call site that needs admin data goes through this class so the
- * service-contract exception is documented in exactly one place, and the
- * collection-level batching in {@see self::listByIds()} doesn't get duplicated
- * in each consumer.
+ * Wraps admin user loaders; Magento ships no ServiceContract for admin users.
  */
 class AdminUserLookup
 {
-    /**
-     * @param UserFactory $userFactory
-     * @param UserCollectionFactory $userCollectionFactory
-     */
     public function __construct(
         private readonly UserFactory $userFactory,
         private readonly UserCollectionFactory $userCollectionFactory
@@ -36,16 +25,12 @@ class AdminUserLookup
     }
 
     /**
-     * Load an admin user by primary key.
-     *
-     * @param int $id
-     * @return User
      * @throws NoSuchEntityException
      */
     public function getById(int $id): User
     {
         $user = $this->userFactory->create();
-        // @phpstan-ignore-next-line magento.serviceContract — no ServiceContract for admin users.
+        // @phpstan-ignore-next-line magento.serviceContract — no ServiceContract exists.
         $user->load($id);
         if ($user->getId() === null) {
             throw NoSuchEntityException::singleField('user_id', $id);
@@ -54,10 +39,6 @@ class AdminUserLookup
     }
 
     /**
-     * Load an admin user by username.
-     *
-     * @param string $username
-     * @return User
      * @throws NoSuchEntityException
      */
     public function getByUsername(string $username): User
@@ -72,9 +53,6 @@ class AdminUserLookup
     }
 
     /**
-     * Batch-load a set of admin users via a single collection query.
-     *
-     * @param array $ids
      * @phpstan-param array<int, int> $ids
      * @return array<int, User>
      */

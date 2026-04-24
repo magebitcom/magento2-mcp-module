@@ -19,22 +19,17 @@ use RuntimeException;
 class AclCheckerTest extends TestCase
 {
     /**
-     * @var AclBuilder
      * @phpstan-var AclBuilder&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private AclBuilder&MockObject $aclBuilder;
 
     /**
-     * @var Acl
      * @phpstan-var Acl&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private Acl&MockObject $acl;
 
-    /**
-     * @var AclChecker
-     */
     private AclChecker $checker;
 
     protected function setUp(): void
@@ -71,7 +66,6 @@ class AclCheckerTest extends TestCase
     {
         $user = $this->createMock(User::class);
         $user->method('getAclRole')->willReturn(null);
-        // Should short-circuit before hitting Laminas ACL.
         $this->acl->expects($this->never())->method('isAllowed');
 
         $this->assertFalse($this->checker->isAllowed($user, 'Magebit_Mcp::anything'));

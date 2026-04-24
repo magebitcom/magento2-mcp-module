@@ -12,18 +12,11 @@ use Magebit\Mcp\Api\Data\TokenInterface;
 use Magento\User\Model\User;
 
 /**
- * Result of a successful MCP authentication.
- *
- * Passed through the dispatcher to every handler so tool visibility (ACL) and
- * enforcement (write gate, rate limit) can reference the real admin user that
- * owns the bearer — never the Magento session user.
+ * Result of a successful MCP authentication; references the admin user that
+ * owns the bearer (never the Magento session user).
  */
 class AuthenticatedContext
 {
-    /**
-     * @param TokenInterface $token
-     * @param User $adminUser
-     */
     public function __construct(
         public readonly TokenInterface $token,
         public readonly User $adminUser
@@ -31,8 +24,6 @@ class AuthenticatedContext
     }
 
     /**
-     * Return the admin-user primary key, defaulting to 0 for unloaded users.
-     *
      * @return int
      */
     public function getAdminUserId(): int

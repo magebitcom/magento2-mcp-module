@@ -11,15 +11,11 @@ namespace Magebit\Mcp\Block\Adminhtml\Token\Edit;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 /**
- * Primary "Save" button on the token form. Wires the standard UI-component
- * save action against the form's namespace — `magebit_mcp_token_form` —
- * which posts to `magebit_mcp/token/save` per the dataSource submitUrl.
+ * Primary "Save" button on the token form.
  */
 class SaveButton extends GenericButton implements ButtonProviderInterface
 {
     /**
-     * Provide the button definition consumed by the UI-component save action.
-     *
      * @return array<string, mixed>
      */
     public function getButtonData(): array

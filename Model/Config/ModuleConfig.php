@@ -12,13 +12,6 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 
 /**
  * Reader for every `magebit_mcp/*` store-config value.
- *
- * Centralizing access here means system.xml is the single source of truth —
- * DI-time lists in etc/di.xml would otherwise force a compile after every
- * admin change. `ScopeConfigInterface` honours the `default` scope that
- * system.xml declares, so values edited in Stores → Configuration take
- * effect on the next cached-config reload (or immediately after a
- * `cache:clean config` flush).
  */
 class ModuleConfig
 {
@@ -34,17 +27,12 @@ class ModuleConfig
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
     public const DEFAULT_RATE_LIMITING_RPM = 60;
 
-    /**
-     * @param ScopeConfigInterface $scopeConfig
-     */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig
     ) {
     }
 
     /**
-     * True when the master kill-switch allows traffic through `POST /mcp`.
-     *
      * @return bool
      */
     public function isEnabled(): bool
@@ -53,8 +41,6 @@ class ModuleConfig
     }
 
     /**
-     * True when global-config permits WRITE-mode tools (tokens must also opt in).
-     *
      * @return bool
      */
     public function isAllowWrites(): bool
@@ -63,10 +49,7 @@ class ModuleConfig
     }
 
     /**
-     * Server name advertised to MCP clients via `initialize.serverInfo.name`.
-     *
-     * Falls back to {@see self::DEFAULT_SERVER_NAME} when the admin leaves the
-     * field blank so clients never see an empty identifier.
+     * Server name advertised via `initialize.serverInfo.name`.
      *
      * @return string
      */
@@ -78,8 +61,6 @@ class ModuleConfig
     }
 
     /**
-     * Optional free-text description surfaced via `initialize.instructions`.
-     *
      * @return string|null
      */
     public function getServerDescription(): ?string
@@ -90,9 +71,8 @@ class ModuleConfig
     }
 
     /**
-     * Parsed allowlist — one origin per line, `#` comments and blank lines
-     * stripped. Trailing `*` wildcards are handled by
-     * {@see \Magebit\Mcp\Model\Validator\OriginValidator}.
+     * One origin per line; `#` comments and blank lines stripped.
+     * Trailing `*` wildcards are handled by {@see \Magebit\Mcp\Model\Validator\OriginValidator}.
      *
      * @return array<int, string>
      */
@@ -115,8 +95,6 @@ class ModuleConfig
     }
 
     /**
-     * Retention window (in days) applied by the audit-log purge cron.
-     *
      * @return int
      */
     public function getAuditRetentionDays(): int
@@ -126,10 +104,7 @@ class ModuleConfig
     }
 
     /**
-     * True when rate limiting is switched on in the admin UI.
-     *
-     * Defaults to off ({@see etc/config.xml}) so existing deployments retain
-     * unlimited throughput across upgrades — operators opt in explicitly.
+     * Defaults to off so upgrades retain unlimited throughput until opt-in.
      *
      * @return bool
      */
@@ -139,11 +114,8 @@ class ModuleConfig
     }
 
     /**
-     * Maximum `tools/call` invocations per admin-user + tool pair per minute.
-     *
-     * Non-positive admin input is treated as "unlimited" defensively — the
-     * limiter short-circuits when this returns `<= 0`. Missing config falls
-     * back to {@see self::DEFAULT_RATE_LIMITING_RPM}.
+     * Max `tools/call` invocations per (admin-user, tool) per minute.
+     * `<= 0` short-circuits the limiter (unlimited).
      *
      * @return int
      */

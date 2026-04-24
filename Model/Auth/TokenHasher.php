@@ -14,31 +14,23 @@ use RuntimeException;
 /**
  * Deterministic HMAC-SHA256 hasher for MCP bearer tokens.
  *
- * **Why HMAC not password_hash():** bearer tokens are already 256 bits of
- * entropy — brute-force isn't the threat. The threat is a leaked DB dump
- * letting attackers impersonate tokens. HMAC keyed by the install's crypt key
- * means the DB rows alone aren't enough to forge a valid bearer; you need the
- * key file too.
+ * HMAC (not password_hash): tokens already carry 256 bits of entropy; the
+ * threat is a leaked DB dump, so keying by the install's crypt key means rows
+ * alone can't forge a bearer — the key file is also required.
  *
- * **Why deterministic:** same plaintext → same hash, so we can index the
- * `token_hash` column and do O(1) lookup at authentication time. Timing-safe
- * comparison happens via {@see self::verify()}.
+ * Deterministic so `token_hash` can be UNIQUE-indexed for O(1) lookup.
+ * Use {@see self::verify()} for timing-safe comparison.
  */
 class TokenHasher
 {
     private const ALGO = 'sha256';
 
-    /**
-     * @param DeploymentConfig $deploymentConfig
-     */
     public function __construct(
         private readonly DeploymentConfig $deploymentConfig
     ) {
     }
 
     /**
-     * Derive the HMAC-SHA256 hash for a plaintext bearer.
-     *
      * @param string $plaintext
      * @return string
      */
@@ -60,8 +52,6 @@ class TokenHasher
     }
 
     /**
-     * Fetch the per-install crypt key used to seed the HMAC.
-     *
      * @return string
      */
     private function key(): string

@@ -33,14 +33,9 @@ class DispatcherTest extends TestCase
         );
     }
 
-    /**
-     * @param string $method JSON-RPC method name the stub handler claims
-     */
     private function stubHandler(string $method): HandlerInterface&MockObject
     {
         $handler = $this->createMock(HandlerInterface::class);
-        // `method()` is both PHPUnit's builder and the interface's contract;
-        // the full `expects()->method()` form disambiguates.
         $handler->expects($this->any())->method('method')->willReturn($method);
         return $handler;
     }

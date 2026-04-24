@@ -16,27 +16,10 @@ use Throwable;
 
 /**
  * Verifies the `Authorization: Bearer` header on every MCP HTTP request.
- *
- * The full pipeline:
- *   1. Parse `Bearer <plaintext>` (reject missing / malformed).
- *   2. Hash plaintext via {@see TokenHasher} (deterministic HMAC-SHA256).
- *   3. Lookup token row by hash (UNIQUE index → single statement).
- *   4. Reject revoked / expired tokens.
- *   5. Load admin user and reject if `is_active = 0` or user deleted.
- *   6. Touch `last_used_at` (non-blocking, direct UPDATE).
- *   7. Return {@see AuthenticatedContext} for downstream ACL / audit use.
- *
- * Any failure throws {@see UnauthorizedException}. The controller converts
- * that to a 401 with `WWW-Authenticate: Bearer realm="Magento MCP"`.
+ * Failure throws {@see UnauthorizedException} (controller → 401 + WWW-Authenticate).
  */
 class TokenAuthenticator
 {
-    /**
-     * @param TokenHasher $tokenHasher
-     * @param TokenRepository $tokenRepository
-     * @param AdminUserLookup $adminUserLookup
-     * @param LoggerInterface $logger
-     */
     public function __construct(
         private readonly TokenHasher $tokenHasher,
         private readonly TokenRepository $tokenRepository,
@@ -46,10 +29,6 @@ class TokenAuthenticator
     }
 
     /**
-     * Run the full auth pipeline and return a context or throw.
-     *
-     * @param string|null $authorizationHeader
-     * @return AuthenticatedContext
      * @throws UnauthorizedException
      */
     public function authenticate(?string $authorizationHeader): AuthenticatedContext
@@ -85,7 +64,7 @@ class TokenAuthenticator
 
         $tokenId = $token->getId();
         if ($tokenId !== null) {
-            // Best-effort telemetry — never fail an otherwise valid auth on this.
+            // Best-effort telemetry — never fail a valid auth on this.
             try {
                 $this->tokenRepository->touchLastUsed($tokenId);
             } catch (Throwable $e) {
@@ -99,12 +78,6 @@ class TokenAuthenticator
         return new AuthenticatedContext($token, $admin);
     }
 
-    /**
-     * Strip the `Bearer ` prefix from the Authorization header.
-     *
-     * @param string|null $header
-     * @return string|null
-     */
     private function extractBearer(?string $header): ?string
     {
         if ($header === null || $header === '') {

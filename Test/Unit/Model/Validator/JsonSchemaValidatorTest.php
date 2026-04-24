@@ -15,9 +15,6 @@ use PHPUnit\Framework\TestCase;
 
 class JsonSchemaValidatorTest extends TestCase
 {
-    /**
-     * @var JsonSchemaValidator
-     */
     private JsonSchemaValidator $validator;
 
     protected function setUp(): void
@@ -38,7 +35,6 @@ class JsonSchemaValidatorTest extends TestCase
 
         $this->validator->validate($schema, ['increment_id' => '000000001']);
 
-        // No exception means pass.
         $this->assertTrue(true);
     }
 

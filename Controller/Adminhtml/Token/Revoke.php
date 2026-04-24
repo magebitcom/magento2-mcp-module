@@ -18,17 +18,12 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Throwable;
 
 /**
- * POST `magebit_mcp/token/revoke/id/<n>` — stamps `revoked_at`.
- * Idempotent — re-revoking an already-revoked token is a no-op.
+ * POST `magebit_mcp/token/revoke/id/<n>` — idempotent; stamps `revoked_at`.
  */
 class Revoke extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
-    /**
-     * @param Context $context
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         Context $context,
         private readonly TokenRepository $tokenRepository
@@ -36,9 +31,6 @@ class Revoke extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */

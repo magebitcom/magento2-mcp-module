@@ -20,14 +20,10 @@ use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 
 /**
- * Handles the `tools/list` JSON-RPC method.
- *
- * Returns only tools the authenticated admin's role grants AND the token's
- * scope (if any) permits. Write-mode tools are hidden unless both the
- * site-wide kill-switch and the token's allow_writes flag are on, matching
- * what `tools/call` will actually execute. Tokens narrow — an admin with
- * broad ACL can still hand out a token that exposes only a single tool to
- * a specific AI client.
+ * Handles the `tools/list` JSON-RPC method. Tokens narrow — only tools the
+ * admin's role grants AND the token's scope permits are returned. Write tools
+ * are hidden unless both the site-wide kill-switch and the token's
+ * allow_writes flag are on, matching what `tools/call` will actually execute.
  */
 class ToolsListHandler implements HandlerInterface
 {

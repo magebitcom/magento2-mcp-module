@@ -24,14 +24,10 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Throwable;
 
 /**
- * Handles POST `magebit_mcp/token/save` — mints a bearer for the selected
- * admin user and drops the plaintext into a *separate* session key so the
- * listing page shows it exactly once.
- *
- * The plaintext DOES NOT go through the standard `messageManager` success
- * stream: those messages can be replayed by reloads / iframes / concurrent
- * tabs, which we don't want for a secret. The listing page pops the value
- * from its dedicated session bucket after one render and clears it.
+ * POST `magebit_mcp/token/save` — mints a bearer and stashes the plaintext
+ * in a dedicated session key (NOT the messageManager success stream, which
+ * can be replayed by reloads / iframes / concurrent tabs) so the listing
+ * page can surface it exactly once.
  */
 class Save extends Action implements HttpPostActionInterface
 {
@@ -40,14 +36,6 @@ class Save extends Action implements HttpPostActionInterface
     /** @see \Magebit\Mcp\Controller\Adminhtml\Token\Index for the consumer. */
     public const SESSION_KEY_PLAINTEXT = 'magebit_mcp_new_token';
 
-    /**
-     * @param Context $context
-     * @param AdminUserLookup $adminUserLookup
-     * @param TokenFactory $tokenFactory
-     * @param TokenGenerator $tokenGenerator
-     * @param TokenHasher $tokenHasher
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         Context $context,
         private readonly AdminUserLookup $adminUserLookup,
@@ -59,9 +47,6 @@ class Save extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */
@@ -117,7 +102,6 @@ class Save extends Action implements HttpPostActionInterface
             return $redirect->setPath('*/*/new');
         }
 
-        // Stash the plaintext so the listing controller can display it once.
         $this->_session->setData(self::SESSION_KEY_PLAINTEXT, [
             'token_id' => (int) $token->getId(),
             'plaintext' => $plaintext,
@@ -131,8 +115,6 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * Coerce `data[admin_user_id]` into a positive int or fail.
-     *
      * @param array $raw
      * @phpstan-param array<string, mixed> $raw
      * @return int
@@ -147,8 +129,6 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * Validate + trim the form's Name field, capping at 128 chars.
-     *
      * @param array $raw
      * @phpstan-param array<string, mixed> $raw
      * @return string
@@ -167,8 +147,6 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * Parse the optional expires_at input into a UTC "Y-m-d H:i:s" string.
-     *
      * @param array $raw
      * @phpstan-param array<string, mixed> $raw
      * @return string|null
@@ -190,8 +168,6 @@ class Save extends Action implements HttpPostActionInterface
     }
 
     /**
-     * Normalize the scopes multiselect value to a deduped array of tool names.
-     *
      * @param array $raw
      * @phpstan-param array<string, mixed> $raw
      * @return array<int, string>
@@ -200,8 +176,7 @@ class Save extends Action implements HttpPostActionInterface
     {
         $value = $raw['scopes'] ?? [];
         if (is_string($value)) {
-            // UI multiselect sometimes serializes an empty picker as '' and a
-            // one-option pick as a comma-joined string. Handle both.
+            // UI multiselect serializes single / empty picks as strings, not arrays.
             $value = $value === '' ? [] : explode(',', $value);
         }
         if (!is_array($value)) {

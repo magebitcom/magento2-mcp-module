@@ -217,7 +217,7 @@ If you see `UNKNOWN ACL RESOURCE`, your `acl.xml` didn't load — re-run `bin/ma
 
 ## Hooking into the call lifecycle
 
-For cross-cutting behavior (rate limiting, result masking, custom audit sinks) subscribe to the events:
+For cross-cutting behavior (result masking, custom audit sinks, bespoke throttling on top of the shipped limiter) subscribe to the events:
 
 - `magebit_mcp_tool_call_before` — params: `tool`, `arguments`, `admin_user`, `token`
 - `magebit_mcp_tool_call_after` — params: `tool`, `arguments`, `result`, `exception`, `duration_ms`, `admin_user`, `token`
@@ -227,12 +227,26 @@ Example:
 ```xml
 <!-- Vendor/Module/etc/events.xml -->
 <event name="magebit_mcp_tool_call_before">
-    <observer name="vendor_module_rate_limit"
-              instance="Vendor\Module\Observer\RateLimitMcpTool"/>
+    <observer name="vendor_module_audit_sink"
+              instance="Vendor\Module\Observer\StreamMcpToolCallToSiem"/>
 </event>
 ```
 
 Observers must treat the event params as read-only. Arguments have already been redacted for audit purposes upstream; mutating them mid-flight causes the audit row to disagree with what the tool actually ran on.
+
+## Swapping the rate limiter
+
+The module ships `Magebit\Mcp\Model\RateLimiter\ConfigurableRateLimiter` — a fixed-window-per-minute limiter that keys counters per `(admin_user_id, tool_name)` via Magento's cache frontend. It is wired through the `Magebit\Mcp\Api\RateLimiterInterface` DI preference and configured from Stores → Configuration → Magebit → MCP Server → **Rate Limiting**. Default: off, so existing deployments retain unlimited throughput until an operator opts in.
+
+To supply a different algorithm (sliding-window log, token bucket, Redis `INCR` with atomic semantics, …), implement `RateLimiterInterface::check()` and override the preference:
+
+```xml
+<!-- Vendor/Module/etc/di.xml -->
+<preference for="Magebit\Mcp\Api\RateLimiterInterface"
+            type="Vendor\Module\Model\RateLimiter\MyRateLimiter"/>
+```
+
+Throw `Magebit\Mcp\Exception\RateLimitedException($message, $limit, $retryAfterSeconds)` from `check()` to surface as a `-32013 RATE_LIMITED` JSON-RPC error with `data.limit` and `data.retry_after_seconds`. To disable the interface entirely (e.g. in a test environment) swap in `Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter`, which is retained as the documented escape hatch.
 
 ## Write tools
 

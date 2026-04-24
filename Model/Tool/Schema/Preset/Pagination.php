@@ -13,28 +13,18 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
 /**
- * Adds the standard `page` / `page_size` properties to a list-tool schema.
- *
- * Mirrors the shape every list tool currently hand-rolls:
- * ```
- * page:      { type: integer, minimum: 1 }
- * page_size: { type: integer, minimum: 1, maximum: <MAX_PAGE_SIZE> }
- * ```
+ * Produces `page` / `page_size`.
  */
 final class Pagination implements SchemaContribution
 {
     /**
-     * @param int $maxPageSize Upper bound on `page_size`. Typically pulled from
-     *                        the tool's `SearchCriteriaBuilder::MAX_PAGE_SIZE`.
+     * @param int $maxPageSize
      */
     private function __construct(
         private readonly int $maxPageSize
     ) {
     }
 
-    /**
-     * Build a pagination preset for the given max page size.
-     */
     public static function maxPageSize(int $maxPageSize): self
     {
         return new self($maxPageSize);

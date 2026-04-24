@@ -13,10 +13,7 @@ use Magebit\Mcp\Model\ResourceModel\AuditEntry as AuditEntryResource;
 use Magento\Framework\Model\AbstractModel;
 
 /**
- * Read-only row of the MCP audit log.
- *
- * Writes go through {@see AuditLogger} (direct INSERT) — the model is only
- * used for admin grid listings and programmatic lookup.
+ * Read-only row of the MCP audit log; writes go through {@see AuditLogger}.
  */
 class AuditEntry extends AbstractModel implements AuditEntryInterface
 {
@@ -154,12 +151,6 @@ class AuditEntry extends AbstractModel implements AuditEntryInterface
         return $this->stringOrNull(self::CREATED_AT);
     }
 
-    /**
-     * Read a string-typed field, treating empty strings as null.
-     *
-     * @param string $field
-     * @return string|null
-     */
     private function stringOrNull(string $field): ?string
     {
         $v = $this->getData($field);

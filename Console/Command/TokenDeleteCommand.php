@@ -19,26 +19,19 @@ use Symfony\Component\Console\Output\OutputInterface;
 /**
  * `bin/magento magebit:mcp:token:delete <id>` — hard-remove a token row.
  *
- * The referencing audit rows keep `token_id = NULL` afterwards (FK ON DELETE
- * SET NULL). Prefer `token:revoke` for day-to-day use — deletion is for
- * housekeeping / GDPR requests.
+ * Audit rows survive via FK ON DELETE SET NULL. Prefer `token:revoke` for
+ * day-to-day use — deletion is for housekeeping / GDPR requests.
  */
 class TokenDeleteCommand extends Command
 {
     private const ARG_ID = 'id';
 
-    /**
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         private readonly TokenRepository $tokenRepository
     ) {
         parent::__construct();
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function configure(): void
     {
         $this->setName('magebit:mcp:token:delete')
@@ -48,9 +41,6 @@ class TokenDeleteCommand extends Command
             ->addArgument(self::ARG_ID, InputArgument::REQUIRED, 'Token id (numeric).');
     }
 
-    /**
-     * @inheritDoc
-     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $raw = $input->getArgument(self::ARG_ID);

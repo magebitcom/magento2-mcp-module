@@ -13,13 +13,6 @@
     padding: 2px 6px;
 }
 
-.mcp-audit-tool {
-    color: #575757;
-    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
-    font-size: 12px;
-    margin-top: 3px;
-}
-
 .mcp-audit-code {
     color: #858585;
     font-family: 'Source Code Pro', Menlo, Consolas, monospace;
@@ -33,4 +26,98 @@
 .admin__data-grid-outer-wrap .grid-severity-minor {
     display: inline-block;
     padding: 1px 8px;
+}
+
+/* -------- Audit entry detail page (sits on top of admin__page-section) -------- */
+
+.mcp-audit-view__toolbar {
+    margin-bottom: 18px;
+}
+
+.mcp-audit-view__meta {
+    align-items: center;
+    display: inline-flex;
+    float: right;
+    gap: 14px;
+    margin-top: 2px;
+}
+
+.mcp-audit-view__duration {
+    color: #303030;
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.mcp-audit-view__duration small {
+    color: #858585;
+    font-size: 11px;
+    margin-left: 2px;
+}
+
+.mcp-audit-view__timestamp {
+    color: #858585;
+    font-size: 13px;
+}
+
+.mcp-audit-view__hint {
+    color: #858585;
+    float: right;
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: none;
+}
+
+.mcp-audit-view__columns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+}
+
+.mcp-audit-view__half {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.mcp-audit-view__half .admin__table-secondary {
+    width: 100%;
+}
+
+.mcp-audit-view__code {
+    background: #1f2430;
+    color: #d8e0f0;
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    margin: 0;
+    max-height: 520px;
+    overflow: auto;
+    padding: 14px 16px;
+    white-space: pre;
+}
+
+.mcp-audit-view__empty {
+    color: #858585;
+    font-style: italic;
+    padding: 10px 0;
+}
+
+.mcp-audit-view__ua {
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    word-break: break-all;
+}
+
+@media (max-width: 768px) {
+    .mcp-audit-view__columns {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .mcp-audit-view__meta {
+        float: none;
+        display: flex;
+        margin-top: 6px;
+    }
 }

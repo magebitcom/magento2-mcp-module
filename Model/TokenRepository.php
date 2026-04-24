@@ -17,17 +17,10 @@ use RuntimeException;
 /**
  * CRUD + lookup service for {@see Token} entities.
  *
- * {@see self::getByHash()} is the hot path used by the MCP authenticator on
- * every request — relies on the UNIQUE index on `token_hash` for O(1) lookup.
+ * {@see self::getByHash()} relies on the UNIQUE index on `token_hash` for O(1) lookup.
  */
 class TokenRepository
 {
-    /**
-     * @param TokenFactory $tokenFactory
-     * @param TokenResource $resource
-     * @param CollectionFactory $collectionFactory
-     * @param DateTime $dateTime
-     */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
         private readonly TokenResource $resource,
@@ -36,12 +29,6 @@ class TokenRepository
     ) {
     }
 
-    /**
-     * Persist a token and return the saved instance.
-     *
-     * @param Token $token
-     * @return Token
-     */
     public function save(Token $token): Token
     {
         $this->resource->save($token);
@@ -49,10 +36,6 @@ class TokenRepository
     }
 
     /**
-     * Load a token by primary key.
-     *
-     * @param int $id
-     * @return Token
      * @throws NoSuchEntityException
      */
     public function getById(int $id): Token
@@ -66,10 +49,6 @@ class TokenRepository
     }
 
     /**
-     * Load a token by its stored HMAC hash.
-     *
-     * @param string $hash
-     * @return Token
      * @throws NoSuchEntityException
      */
     public function getByHash(string $hash): Token
@@ -77,18 +56,13 @@ class TokenRepository
         $token = $this->tokenFactory->create();
         $this->resource->load($token, $hash, 'token_hash');
         if ($token->getId() === null) {
-            // Column name intentionally omitted — don't leak schema detail into
-            // logs of the wrapping UnauthorizedException chain.
+            // Column name omitted so the wrapping UnauthorizedException doesn't leak schema detail.
             throw NoSuchEntityException::singleField('bearer', '<redacted>');
         }
         return $token;
     }
 
     /**
-     * Delete a token by primary key.
-     *
-     * @param int $id
-     * @return void
      * @throws NoSuchEntityException
      */
     public function deleteById(int $id): void
@@ -98,10 +72,8 @@ class TokenRepository
     }
 
     /**
-     * Mark a token as revoked. Idempotent — returns the token regardless of its prior state.
+     * Idempotent.
      *
-     * @param int $id
-     * @return Token
      * @throws NoSuchEntityException
      */
     public function revoke(int $id): Token
@@ -115,21 +87,13 @@ class TokenRepository
     }
 
     /**
-     * Lightweight last-used update — direct UPDATE, no model round-trip.
-     *
-     * Safe to call on every successful authentication.
-     *
-     * @param int $id
-     * @return void
+     * Direct UPDATE, no model round-trip. Safe to call on every successful authentication.
      */
     public function touchLastUsed(int $id): void
     {
         $connection = $this->resource->getConnection();
         if ($connection === false) {
-            // ResourceModel\Db\AbstractDb::getConnection() is documented to
-            // return `AdapterInterface|false`. In practice we only reach this
-            // branch on a very broken install; surface it clearly so the
-            // authenticator's outer catch can log+swallow the telemetry miss.
+            // AbstractDb::getConnection() returns AdapterInterface|false.
             throw new RuntimeException('Default DB connection unavailable.');
         }
         $connection->update(
@@ -140,9 +104,6 @@ class TokenRepository
     }
 
     /**
-     * List every token belonging to the given admin user.
-     *
-     * @param int $adminUserId
      * @return array<int, Token>
      */
     public function getByAdminUserId(int $adminUserId): array
@@ -153,8 +114,6 @@ class TokenRepository
     }
 
     /**
-     * List every token in the system.
-     *
      * @return array<int, Token>
      */
     public function getList(): array
@@ -164,9 +123,31 @@ class TokenRepository
     }
 
     /**
-     * Narrow a mixed-type collection array down to Token instances only.
-     *
-     * @param array $items
+     * @phpstan-param array<int, int> $ids
+     * @return array<int, Token>
+     */
+    public function listByIds(array $ids): array
+    {
+        $filtered = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+        if ($filtered === []) {
+            return [];
+        }
+
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('id', ['in' => $filtered]);
+
+        $out = [];
+        foreach ($this->narrowItems($collection->getItems()) as $token) {
+            $id = $token->getId();
+            if ($id === null) {
+                continue;
+            }
+            $out[$id] = $token;
+        }
+        return $out;
+    }
+
+    /**
      * @phpstan-param array<int|string, mixed> $items
      * @return array<int, Token>
      */

@@ -141,16 +141,19 @@ class ConfigurableRateLimiterTest extends TestCase
                 })
             );
 
+        $caught = null;
         try {
             $this->limiter->check(42, 'system.store.list');
-            $this->fail('Expected RateLimitedException was not thrown.');
-        } catch (RateLimitedException $e) {
-            $this->assertSame(10, $e->getLimit());
-            $this->assertGreaterThanOrEqual(1, $e->getRetryAfterSeconds());
-            $this->assertLessThanOrEqual(60, $e->getRetryAfterSeconds());
-            $this->assertStringContainsString('10 requests/minute', $e->getMessage());
-            $this->assertStringContainsString('system.store.list', $e->getMessage());
+        } catch (\Throwable $e) {
+            $caught = $e;
         }
+
+        $this->assertInstanceOf(RateLimitedException::class, $caught);
+        $this->assertSame(10, $caught->getLimit());
+        $this->assertGreaterThanOrEqual(1, $caught->getRetryAfterSeconds());
+        $this->assertLessThanOrEqual(60, $caught->getRetryAfterSeconds());
+        $this->assertStringContainsString('10 requests/minute', $caught->getMessage());
+        $this->assertStringContainsString('system.store.list', $caught->getMessage());
     }
 
     public function testThrowsWhenCurrentCountExceedsLimit(): void
@@ -213,8 +216,7 @@ class ConfigurableRateLimiterTest extends TestCase
     {
         $this->config->method('isRateLimitingEnabled')->willReturn(true);
         $this->config->method('getRateLimitRequestsPerMinute')->willReturn(10);
-        // Magento's CacheInterface::load returns `false` on miss, but some
-        // backends return the empty string. Both must behave as "zero".
+        // Some cache backends return '' instead of false on miss; both must read as zero.
         $this->cache->method('load')->willReturn(false);
 
         $this->cache->expects($this->once())

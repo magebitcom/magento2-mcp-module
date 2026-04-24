@@ -20,20 +20,13 @@ use Magento\Ui\Component\MassAction\Filter;
 use Throwable;
 
 /**
- * Bulk variant of {@see Revoke} — accepts either a filter set from the UI
- * component or an explicit `selected[]` list. Revoke is idempotent, so
- * re-revoking already-revoked rows in the selection is safe.
+ * Bulk variant of {@see Revoke}; revoke is idempotent so re-revoking selected
+ * already-revoked rows is safe.
  */
 class MassRevoke extends Action implements HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_tokens';
 
-    /**
-     * @param Context $context
-     * @param Filter $filter
-     * @param CollectionFactory $collectionFactory
-     * @param TokenRepository $tokenRepository
-     */
     public function __construct(
         Context $context,
         private readonly Filter $filter,
@@ -43,9 +36,6 @@ class MassRevoke extends Action implements HttpPostActionInterface
         parent::__construct($context);
     }
 
-    /**
-     * @inheritDoc
-     */
     public function execute(): Redirect
     {
         /** @var Redirect $redirect */
@@ -71,7 +61,6 @@ class MassRevoke extends Action implements HttpPostActionInterface
                 $this->tokenRepository->revoke($id);
                 $revoked++;
             } catch (Throwable $ignoredRevokeError) {
-                // Keep going — report the aggregate at the end.
                 unset($ignoredRevokeError);
             }
         }

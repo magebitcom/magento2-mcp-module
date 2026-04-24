@@ -39,8 +39,7 @@ class OriginValidatorTest extends TestCase
 
     public function testRejectsOriginLiteralNull(): void
     {
-        // Sandboxed iframes and data: URIs send `Origin: null` — precisely the
-        // attacker shapes the DNS-rebinding defense is there to catch.
+        // Sandboxed iframes/data: URIs send `Origin: null`; DNS-rebinding defense must catch it.
         $this->assertFalse($this->validator()->isAllowed('null'));
     }
 
@@ -98,8 +97,7 @@ class OriginValidatorTest extends TestCase
 
     public function testEmptyAllowlistStillAcceptsMissingOrigin(): void
     {
-        // Non-browser clients omit the Origin header. They shouldn't be blocked
-        // by a misconfigured allowlist — the bearer token is still required.
+        // Non-browser clients omit Origin; bearer still gates them.
         $this->assertTrue($this->validator([])->isAllowed(null));
     }
 }

@@ -12,15 +12,10 @@ use Magebit\Mcp\Api\ToolResultInterface;
 
 /**
  * Immutable default implementation of {@see ToolResultInterface}.
- *
- * Has no dependencies — tools instantiate it directly (no factory / ObjectManager).
  */
 class ToolResult implements ToolResultInterface
 {
     /**
-     * @param array $content MCP content blocks.
-     * @param bool $isError
-     * @param array $auditSummary PII-free summary for audit log.
      * @phpstan-param array<int, array<string, mixed>> $content
      * @phpstan-param array<string, mixed> $auditSummary
      */
@@ -34,10 +29,7 @@ class ToolResult implements ToolResultInterface
     /**
      * Shortcut for the common "single text block" case.
      *
-     * @param string $text
-     * @param array $auditSummary
      * @phpstan-param array<string, mixed> $auditSummary
-     * @return self
      */
     // phpcs:ignore Magento2.Functions.StaticFunction
     public static function text(string $text, array $auditSummary = []): self

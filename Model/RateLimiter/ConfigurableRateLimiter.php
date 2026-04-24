@@ -15,55 +15,26 @@ use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\Framework\App\CacheInterface;
 
 /**
- * Fixed-window-per-minute rate limiter, admin-configurable via
- * Stores → Configuration → Magebit → MCP Server → Rate Limiting.
+ * Fixed-window-per-minute rate limiter, admin-configurable.
  *
- * Keys a counter per `(admin_user_id, tool_name, minute_epoch)` in Magento's
- * cache frontend. Multiple bearer tokens owned by the same admin share the
- * budget; different tools and different admins are isolated.
+ * Counter key: `(admin_user_id, tool_name, minute_epoch)`. Multiple bearers for
+ * the same admin share budget; different tools/admins are isolated.
  *
- * Known caveats (documented, acceptable for v1):
- *
- * - **Minute boundary burst** — a caller that uses their full quota at second
- *   59 and immediately issues the same quota at second 00 of the next minute
- *   effectively sees 2× the configured limit in a two-second span. This is
- *   inherent to fixed-window counters; swap in a sliding-window or token-bucket
- *   implementation behind the interface if strict smoothing is required.
- *
- * - **Non-atomic increment** — {@see CacheInterface} exposes `load` and `save`
- *   but no atomic `INCR`, so two concurrent FPM workers reading the same
- *   counter can both write counter+1 when the real count should be counter+2.
- *   Under heavy concurrency this allows a small overshoot. For a soft abuse
- *   limiter this is acceptable; for hard accounting, move to a DB-backed
- *   counter with `INSERT … ON DUPLICATE KEY UPDATE counter = counter + 1`.
+ * Caveats (acceptable for v1):
+ * - Minute-boundary burst: up to 2× limit across the boundary (fixed-window artefact).
+ * - Non-atomic increment: {@see CacheInterface} has no INCR, so concurrent FPM
+ *   workers can overshoot slightly. OK for a soft abuse limiter.
  */
 class ConfigurableRateLimiter implements RateLimiterInterface
 {
-    /**
-     * Cache tag applied to every counter. Operators can purge all in-flight
-     * rate-limit state with `bin/magento cache:clean MAGEBIT_MCP_RATE_LIMIT`.
-     */
+    /** Purge via `bin/magento cache:clean MAGEBIT_MCP_RATE_LIMIT`. */
     public const CACHE_TAG = 'MAGEBIT_MCP_RATE_LIMIT';
 
-    /**
-     * Cache TTL (seconds). Longer than the window itself so entries created
-     * near the end of a minute still live long enough for their successors
-     * to read the previous count during the boundary transition, then expire
-     * naturally.
-     */
+    /** Longer than the window so boundary-straddling entries survive the transition. */
     private const CACHE_TTL_SECONDS = 90;
 
-    /**
-     * Window length in seconds. Not configurable in v1 — "per minute" is the
-     * unit exposed in the admin UI.
-     */
     private const WINDOW_SECONDS = 60;
 
-    /**
-     * @param ModuleConfig $config
-     * @param CacheInterface $cache
-     * @param LoggerInterface $logger
-     */
     public function __construct(
         private readonly ModuleConfig $config,
         private readonly CacheInterface $cache,
@@ -89,8 +60,8 @@ class ConfigurableRateLimiter implements RateLimiterInterface
         $windowEpoch = intdiv($now, self::WINDOW_SECONDS);
         $key = $this->buildKey($adminUserId, $toolName, $windowEpoch);
 
-        $raw = $this->cache->load($key);
-        $current = is_string($raw) ? (int) $raw : 0;
+        // Cache returns string on hit, false on miss; (int) false === 0.
+        $current = (int) $this->cache->load($key);
 
         if ($current >= $limit) {
             $retryAfter = self::WINDOW_SECONDS - ($now % self::WINDOW_SECONDS);
@@ -123,10 +94,7 @@ class ConfigurableRateLimiter implements RateLimiterInterface
     }
 
     /**
-     * Build the cache key for a counter.
-     *
-     * Tool names are already constrained to `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`
-     * by {@see \Magebit\Mcp\Model\Tool\ToolRegistry}, so no escaping is needed.
+     * Tool names are already constrained by ToolRegistry; no escaping needed.
      *
      * @param int $adminUserId
      * @param string $toolName

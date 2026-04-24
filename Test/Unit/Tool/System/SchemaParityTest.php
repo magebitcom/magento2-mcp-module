@@ -20,13 +20,7 @@ use Magento\Store\Api\WebsiteRepositoryInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Locks in that the builder-driven schemas for the three core tools emit
- * byte-identical arrays to what the hand-written raw-array form produced.
- *
- * If these tests ever fail, it's a signal that a migrated tool's public
- * input schema changed shape. Either the builder output drifted, or the
- * expected payload here is stale because we deliberately changed the tool.
- * Both are worth a conscious review — don't just rubber-stamp the new shape.
+ * Guards that builder-driven schemas for the three core tools stay byte-identical to the raw-array form.
  */
 class SchemaParityTest extends TestCase
 {

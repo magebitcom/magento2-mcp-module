@@ -10,12 +10,8 @@ namespace Magebit\Mcp\Model\JsonRpc;
 
 /**
  * JSON-RPC 2.0 standard error codes plus MCP-specific codes in the
- * implementation-defined -32000..-32099 range.
- *
- * Backed int enum so the wire format (JSON-RPC requires integer codes) is the
- * single source of truth. Human-readable labels live on the cases themselves
- * via {@see self::label()} — adding a new case therefore forces the author to
- * ship a label in the same commit.
+ * implementation-defined -32000..-32099 range. Adding a case forces a matching
+ * {@see self::label()} branch in the same commit.
  */
 enum ErrorCode: int
 {
@@ -38,8 +34,6 @@ enum ErrorCode: int
 
     /**
      * Human-readable label rendered in the audit-log admin grid.
-     *
-     * @return string
      */
     public function label(): string
     {
@@ -63,13 +57,8 @@ enum ErrorCode: int
     }
 
     /**
-     * Resolve a raw wire-format integer to an enum case, with a fallback label.
-     *
-     * Used by the admin audit grid where old rows might reference codes that
-     * have since been removed from the codebase.
-     *
-     * @param int $code
-     * @return string
+     * Resolve a raw wire-format integer to a label, falling back when the code
+     * has since been removed (old audit rows may still reference it).
      */
     // phpcs:ignore Magento2.Functions.StaticFunction
     public static function labelFor(int $code): string

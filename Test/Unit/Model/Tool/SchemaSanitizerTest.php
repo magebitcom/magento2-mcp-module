@@ -16,7 +16,6 @@ use PHPUnit\Framework\TestCase;
 class SchemaSanitizerTest extends TestCase
 {
     /**
-     * @var LoggerInterface
      * @phpstan-var LoggerInterface&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting

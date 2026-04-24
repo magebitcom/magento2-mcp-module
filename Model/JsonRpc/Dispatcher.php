@@ -54,8 +54,6 @@ class Dispatcher
     }
 
     /**
-     * Route a JSON-RPC request to its handler and wrap handler failures.
-     *
      * @param Request $request
      * @param AuthenticatedContext $context
      * @return Response|null  Null for notifications (the server stays silent).
