@@ -10,7 +10,11 @@
         "magento/module-user": "^101.2",
         "magento/module-authorization": "^100.4",
         "opis/json-schema": "^2.3",
-        "magebitcom/magento2-core": "*"
+        "magebitcom/magento2-core": "*",
+        "magebitcom/module2-mcp-order-tools": "*",
+        "magebitcom/module2-mcp-catalog-tools": "*",
+        "magebitcom/module2-mcp-customer-tools": "*",
+        "magebitcom/module2-mcp-cms-tools": "*"
     },
     "autoload": {
         "files": [
