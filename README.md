@@ -4,16 +4,6 @@ Magento 2 implementation of the [Model Context Protocol](https://modelcontextpro
 
 This module provides the **transport, authentication, authorization, audit, and tool-registry primitives**. Domain-specific tools live in sub-modules (see below) or ship inside this module when they belong to the core system surface — stores, websites, system configuration.
 
-- JSON-RPC 2.0 + HTTP POST
-- MCP protocol version **2025-06-18**
-- Bearer-token auth (`Authorization: Bearer <token>`), bcrypt-hashed at rest, one-shot plaintext on creation
-- ACL enforcement per tool — tokens inherit their owning admin's role; every `tools/call` re-checks the tool's ACL resource, and tools that implement `UnderlyingAclAwareInterface` also re-check the Magento admin-UI resource they delegate to
-- Write-tool gating via a global store-config kill-switch + a per-token `allow_writes` flag
-- DNS-rebinding defense via an admin-editable `Origin` allowlist
-- Full audit trail of every call (method, arguments, result, duration, admin, token) with PII redacted to HMAC fingerprints at write time
-- Admin UI for browsing tokens + the audit log, plus store-config for name/description/kill-switch/origins/retention
-- Console commands for token lifecycle, tool listing, and ACL validation
-
 ## Install
 
 ```bash
