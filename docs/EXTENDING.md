@@ -90,6 +90,81 @@ class ProductGet implements ToolInterface
 }
 ```
 
+## Declaring input schema
+
+Use `Magebit\Mcp\Model\Tool\Schema\Schema` — a fluent, typed builder — rather than hand-writing JSON-Schema arrays. The builder locks in the invariants every MCP tool must honour (draft-07 `$schema`, `type=object`, `additionalProperties=false`) and refuses the composition keywords the spec forbids (`oneOf` / `anyOf` / `allOf` / `if` / `then` / `else` / `not` / `$ref` / `$defs`).
+
+### Typed property builders
+
+```php
+Schema::object()
+    ->string('name', fn ($s) => $s
+        ->minLength(1)->maxLength(255)->description('Display name.')->required()
+    )
+    ->integer('website_id', fn ($i) => $i->minimum(1)->description('Website scope.'))
+    ->number('price', fn ($n) => $n->minimum(0)->description('Gross price.'))
+    ->boolean('is_active', fn ($b) => $b->description('Whether the entity is live.'))
+    ->array('sku', fn ($a) => $a
+        ->ofStrings(fn ($s) => $s->minLength(1))
+        ->minItems(1)
+        ->description('One or more SKUs.')
+    )
+    ->array('items', fn ($a) => $a->ofObjects(fn ($o) => $o
+        ->string('item_id', fn ($s) => $s->minLength(1)->required())
+        ->integer('qty', fn ($i) => $i->minimum(1)->required())
+    ))
+    ->object('comment', fn ($o) => $o
+        ->string('text', fn ($s) => $s->minLength(1)->required())
+        ->boolean('is_visible_on_front', fn ($b) => $b)
+        ->description('Optional comment payload.')
+    )
+    ->toArray();
+```
+
+`->required()` on a property marks it required on the enclosing object — no separate `required` array to keep in sync. `->description()` is available at every level and belongs on every property: descriptions are what the AI client sees when choosing arguments.
+
+### Presets for list-tool patterns
+
+Four presets bundle the property blocks every list tool repeats. They live in `Magebit\Mcp\Model\Tool\Schema\Preset\`:
+
+```php
+use Magebit\Mcp\Model\Tool\Schema\Preset\{Filters, Sort, Pagination, FieldSelection};
+
+public function getInputSchema(): array
+{
+    return Schema::object()
+        ->with(Filters::describing(
+            'Filter clauses. Built-in keys: status, state, store_id, website_id.'
+        ))
+        ->with(Sort::fields(
+            OrderSearchCriteriaBuilder::SORTABLE_FIELDS,
+            defaultField: 'created_at',
+            defaultDirection: 'desc'
+        ))
+        ->with(Pagination::maxPageSize(OrderSearchCriteriaBuilder::MAX_PAGE_SIZE))
+        ->with(FieldSelection::default())
+        ->string('store_id', fn ($s) => $s->description('Limit to a single store view id.'))
+        ->toArray();
+}
+```
+
+Presets implement `Magebit\Mcp\Model\Tool\Schema\SchemaContribution`. Ship your own with a `Vendor\Module\Mcp\Schema\Preset` namespace if you have cross-tool patterns inside a single domain module.
+
+### Escape hatch
+
+Anything the typed DSL cannot express (an open-bag object whose keys aren't known in advance, an exotic keyword, composition for a genuinely polymorphic argument) can be injected via `ObjectBuilder::rawProperty()`:
+
+```php
+Schema::object()
+    ->rawProperty('filters', [
+        'type' => 'object',
+        'description' => 'Open-ended filter bag.',
+    ])
+    ->toArray();
+```
+
+Raw schemas still flow through `SchemaSanitizer` so stray composition keywords get stripped with a logged warning — prefer fixing the schema to taking the warning.
+
 ## Step 2 — Declare the ACL resource
 
 Every tool MUST declare its own ACL resource under a node that's NOT a descendant of `Magento_Backend::admin`'s default wide-allow resources. For clarity, group MCP tool resources under a top-level `mcp` node:
