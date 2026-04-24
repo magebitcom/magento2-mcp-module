@@ -36,7 +36,7 @@ class ArrayBuilder extends PropertyBuilder
      * Items are strings. Optional closure receives a {@see StringBuilder}
      * to attach item-level constraints (pattern, enum, lengths).
      *
-     * @param Closure(StringBuilder):void|null $configure
+     * @param Closure(StringBuilder):mixed|null $configure
      * @return $this
      */
     public function ofStrings(?Closure $configure = null): self
@@ -53,7 +53,7 @@ class ArrayBuilder extends PropertyBuilder
      * Items are integers. Optional closure receives an {@see IntegerBuilder}
      * to attach item-level bounds.
      *
-     * @param Closure(IntegerBuilder):void|null $configure
+     * @param Closure(IntegerBuilder):mixed|null $configure
      * @return $this
      */
     public function ofIntegers(?Closure $configure = null): self
@@ -69,7 +69,7 @@ class ArrayBuilder extends PropertyBuilder
     /**
      * Items are numbers (floats).
      *
-     * @param Closure(NumberBuilder):void|null $configure
+     * @param Closure(NumberBuilder):mixed|null $configure
      * @return $this
      */
     public function ofNumbers(?Closure $configure = null): self
@@ -98,7 +98,7 @@ class ArrayBuilder extends PropertyBuilder
      * configured like any other object — `string()`, `integer()`,
      * `required()`, etc. `additionalProperties: false` is forced.
      *
-     * @param Closure(ObjectBuilder):void $configure
+     * @param Closure(ObjectBuilder):mixed $configure
      * @return $this
      */
     public function ofObjects(Closure $configure): self

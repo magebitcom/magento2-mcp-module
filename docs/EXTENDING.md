@@ -17,6 +17,7 @@ namespace Vendor\Module\Mcp\Tool;
 
 use Magebit\Mcp\Api\Data\ToolResultInterface;
 use Magebit\Mcp\Api\ToolInterface;
+use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -49,7 +50,7 @@ class ProductGet implements ToolInterface
     public function getInputSchema(): array
     {
         return Schema::object()
-            ->string('sku', fn ($s) => $s
+            ->string('sku', fn (StringBuilder $s) => $s
                 ->minLength(1)
                 ->maxLength(64)
                 ->description('Product SKU.')
@@ -96,26 +97,30 @@ Use `Magebit\Mcp\Model\Tool\Schema\Schema` — a fluent, typed builder — rathe
 
 ### Typed property builders
 
+Type-hint the closure parameter (`fn (StringBuilder $s) => …`) — PHPStan level 9 in this module requires it, and it unlocks IDE autocomplete for the type-specific constraint methods inside the closure.
+
 ```php
+use Magebit\Mcp\Model\Tool\Schema\Builder\{ArrayBuilder, BooleanBuilder, IntegerBuilder, NumberBuilder, ObjectBuilder, StringBuilder};
+
 Schema::object()
-    ->string('name', fn ($s) => $s
+    ->string('name', fn (StringBuilder $s) => $s
         ->minLength(1)->maxLength(255)->description('Display name.')->required()
     )
-    ->integer('website_id', fn ($i) => $i->minimum(1)->description('Website scope.'))
-    ->number('price', fn ($n) => $n->minimum(0)->description('Gross price.'))
-    ->boolean('is_active', fn ($b) => $b->description('Whether the entity is live.'))
-    ->array('sku', fn ($a) => $a
-        ->ofStrings(fn ($s) => $s->minLength(1))
+    ->integer('website_id', fn (IntegerBuilder $i) => $i->minimum(1)->description('Website scope.'))
+    ->number('price', fn (NumberBuilder $n) => $n->minimum(0)->description('Gross price.'))
+    ->boolean('is_active', fn (BooleanBuilder $b) => $b->description('Whether the entity is live.'))
+    ->array('sku', fn (ArrayBuilder $a) => $a
+        ->ofStrings(fn (StringBuilder $s) => $s->minLength(1))
         ->minItems(1)
         ->description('One or more SKUs.')
     )
-    ->array('items', fn ($a) => $a->ofObjects(fn ($o) => $o
-        ->string('item_id', fn ($s) => $s->minLength(1)->required())
-        ->integer('qty', fn ($i) => $i->minimum(1)->required())
+    ->array('items', fn (ArrayBuilder $a) => $a->ofObjects(fn (ObjectBuilder $o) => $o
+        ->string('item_id', fn (StringBuilder $s) => $s->minLength(1)->required())
+        ->integer('qty', fn (IntegerBuilder $i) => $i->minimum(1)->required())
     ))
-    ->object('comment', fn ($o) => $o
-        ->string('text', fn ($s) => $s->minLength(1)->required())
-        ->boolean('is_visible_on_front', fn ($b) => $b)
+    ->object('comment', fn (ObjectBuilder $o) => $o
+        ->string('text', fn (StringBuilder $s) => $s->minLength(1)->required())
+        ->boolean('is_visible_on_front', fn (BooleanBuilder $b) => $b)
         ->description('Optional comment payload.')
     )
     ->toArray();

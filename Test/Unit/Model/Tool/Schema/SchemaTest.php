@@ -10,6 +10,12 @@ namespace Magebit\Mcp\Test\Unit\Model\Tool\Schema;
 
 use InvalidArgumentException;
 use LogicException;
+use Magebit\Mcp\Model\Tool\Schema\Builder\ArrayBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\BooleanBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\NumberBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use PHPUnit\Framework\TestCase;
 
@@ -30,7 +36,7 @@ class SchemaTest extends TestCase
     public function testStringPropertyCoversAllKeywords(): void
     {
         $schema = Schema::object()
-            ->string('path', fn ($s) => $s
+            ->string('path', fn (StringBuilder $s) => $s
                 ->minLength(1)
                 ->maxLength(255)
                 ->pattern('^[a-z_/]+$')
@@ -59,7 +65,7 @@ class SchemaTest extends TestCase
     public function testStringEnumRendered(): void
     {
         $schema = Schema::object()
-            ->string('scope', fn ($s) => $s->enum(['default', 'websites', 'stores']))
+            ->string('scope', fn (StringBuilder $s) => $s->enum(['default', 'websites', 'stores']))
             ->toArray();
 
         self::assertSame(
@@ -71,7 +77,7 @@ class SchemaTest extends TestCase
     public function testStringFormatRendered(): void
     {
         $schema = Schema::object()
-            ->string('email', fn ($s) => $s->format('email'))
+            ->string('email', fn (StringBuilder $s) => $s->format('email'))
             ->toArray();
 
         self::assertSame(
@@ -83,7 +89,7 @@ class SchemaTest extends TestCase
     public function testIntegerBoundsRendered(): void
     {
         $schema = Schema::object()
-            ->integer('qty', fn ($i) => $i
+            ->integer('qty', fn (IntegerBuilder $i) => $i
                 ->minimum(1)
                 ->maximum(99)
                 ->exclusiveMinimum(0)
@@ -105,7 +111,7 @@ class SchemaTest extends TestCase
     public function testNumberBoundsRendered(): void
     {
         $schema = Schema::object()
-            ->number('price', fn ($n) => $n->minimum(0.01)->maximum(9999.99))
+            ->number('price', fn (NumberBuilder $n) => $n->minimum(0.01)->maximum(9999.99))
             ->toArray();
 
         self::assertSame(
@@ -117,7 +123,7 @@ class SchemaTest extends TestCase
     public function testBooleanProperty(): void
     {
         $schema = Schema::object()
-            ->boolean('include_inactive', fn ($b) => $b->description('Include inactive.'))
+            ->boolean('include_inactive', fn (BooleanBuilder $b) => $b->description('Include inactive.'))
             ->toArray();
 
         self::assertSame(
@@ -129,8 +135,8 @@ class SchemaTest extends TestCase
     public function testArrayOfIntegersWithItemMinimumAndMinItems(): void
     {
         $schema = Schema::object()
-            ->array('website_id', fn ($a) => $a
-                ->ofIntegers(fn ($i) => $i->minimum(1))
+            ->array('website_id', fn (ArrayBuilder $a) => $a
+                ->ofIntegers(fn (IntegerBuilder $i) => $i->minimum(1))
                 ->minItems(1)
                 ->description('Website ids.')
             )
@@ -147,7 +153,7 @@ class SchemaTest extends TestCase
     public function testArrayOfStrings(): void
     {
         $schema = Schema::object()
-            ->array('fields', fn ($a) => $a->ofStrings()->description('Field whitelist.'))
+            ->array('fields', fn (ArrayBuilder $a) => $a->ofStrings()->description('Field whitelist.'))
             ->toArray();
 
         self::assertSame([
@@ -160,9 +166,9 @@ class SchemaTest extends TestCase
     public function testArrayOfObjectsForcesAdditionalPropertiesFalse(): void
     {
         $schema = Schema::object()
-            ->array('items', fn ($a) => $a->ofObjects(fn ($o) => $o
-                ->integer('item_id', fn ($i) => $i->minimum(1)->required())
-                ->integer('qty', fn ($i) => $i->minimum(1)->required())
+            ->array('items', fn (ArrayBuilder $a) => $a->ofObjects(fn (ObjectBuilder $o) => $o
+                ->integer('item_id', fn (IntegerBuilder $i) => $i->minimum(1)->required())
+                ->integer('qty', fn (IntegerBuilder $i) => $i->minimum(1)->required())
             ))
             ->toArray();
 
@@ -183,9 +189,9 @@ class SchemaTest extends TestCase
     public function testNestedObjectPropertyForcesAdditionalPropertiesFalse(): void
     {
         $schema = Schema::object()
-            ->object('comment', fn ($o) => $o
-                ->string('text', fn ($s) => $s->minLength(1)->required())
-                ->boolean('is_visible_on_front', fn ($b) => $b)
+            ->object('comment', fn (ObjectBuilder $o) => $o
+                ->string('text', fn (StringBuilder $s) => $s->minLength(1)->required())
+                ->boolean('is_visible_on_front', fn (BooleanBuilder $b) => $b)
                 ->description('Optional comment.')
             )
             ->toArray();
@@ -205,9 +211,9 @@ class SchemaTest extends TestCase
     public function testPropertyInsertionOrderPreserved(): void
     {
         $schema = Schema::object()
-            ->string('c', fn ($s) => $s)
-            ->string('a', fn ($s) => $s)
-            ->string('b', fn ($s) => $s)
+            ->string('c', fn (StringBuilder $s) => $s)
+            ->string('a', fn (StringBuilder $s) => $s)
+            ->string('b', fn (StringBuilder $s) => $s)
             ->toArray();
 
         self::assertSame(['c', 'a', 'b'], array_keys($schema['properties']));
@@ -216,18 +222,19 @@ class SchemaTest extends TestCase
     public function testRequiredArrayReflectsFlaggedPropertiesOnly(): void
     {
         $schema = Schema::object()
-            ->string('a', fn ($s) => $s->required())
-            ->string('b', fn ($s) => $s)
-            ->string('c', fn ($s) => $s->required())
+            ->string('a', fn (StringBuilder $s) => $s->required())
+            ->string('b', fn (StringBuilder $s) => $s)
+            ->string('c', fn (StringBuilder $s) => $s->required())
             ->toArray();
 
-        self::assertSame(['a', 'c'], $schema['required']);
+        self::assertArrayHasKey('required', $schema);
+        self::assertSame(['a', 'c'], $schema['required'] ?? null);
     }
 
     public function testRequiredArrayOmittedWhenNoneFlagged(): void
     {
         $schema = Schema::object()
-            ->string('a', fn ($s) => $s)
+            ->string('a', fn (StringBuilder $s) => $s)
             ->toArray();
 
         self::assertArrayNotHasKey('required', $schema);
@@ -239,15 +246,15 @@ class SchemaTest extends TestCase
         $this->expectExceptionMessage('"sku" is already defined');
 
         Schema::object()
-            ->string('sku', fn ($s) => $s)
-            ->string('sku', fn ($s) => $s);
+            ->string('sku', fn (StringBuilder $s) => $s)
+            ->string('sku', fn (StringBuilder $s) => $s);
     }
 
     public function testEmptyPropertyNameFails(): void
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Schema::object()->string('', fn ($s) => $s);
+        Schema::object()->string('', fn (StringBuilder $s) => $s);
     }
 
     public function testArrayWithoutItemShapeFailsAtBuild(): void
@@ -256,7 +263,7 @@ class SchemaTest extends TestCase
         $this->expectExceptionMessage('ArrayBuilder requires an item shape');
 
         Schema::object()
-            ->array('untyped', fn ($a) => $a->minItems(1))
+            ->array('untyped', fn (ArrayBuilder $a) => $a->minItems(1))
             ->toArray();
     }
 
@@ -264,7 +271,7 @@ class SchemaTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        Schema::object()->string('x', fn ($s) => $s->enum([]));
+        Schema::object()->string('x', fn (StringBuilder $s) => $s->enum([]));
     }
 
     public function testNoOneOfAnyOfAllOfMethodsExist(): void
@@ -299,6 +306,7 @@ class SchemaTest extends TestCase
             ->rawProperty('filters', ['type' => 'object'], required: true)
             ->toArray();
 
-        self::assertSame(['filters'], $schema['required']);
+        self::assertArrayHasKey('required', $schema);
+        self::assertSame(['filters'], $schema['required'] ?? null);
     }
 }

@@ -10,6 +10,8 @@ namespace Magebit\Mcp\Tool\System;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -99,11 +101,11 @@ class StoreInfo implements ToolInterface
     public function getInputSchema(): array
     {
         return Schema::object()
-            ->integer('store_id', fn ($i) => $i
+            ->integer('store_id', fn (IntegerBuilder $i) => $i
                 ->minimum(1)
                 ->description('Numeric store view id (see `system.store.list`).')
             )
-            ->string('store_code', fn ($s) => $s
+            ->string('store_code', fn (StringBuilder $s) => $s
                 ->minLength(1)
                 ->description('Store-view code (e.g. `default`).')
             )

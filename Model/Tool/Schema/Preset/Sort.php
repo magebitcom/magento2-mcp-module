@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Tool\Schema\Preset;
 
 use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
 /**
@@ -67,11 +68,11 @@ final class Sort implements SchemaContribution
     public function applyTo(ObjectBuilder $object): void
     {
         $object
-            ->string('sort_by', fn ($s) => $s
+            ->string('sort_by', fn (StringBuilder $s) => $s
                 ->enum($this->sortableFields)
                 ->description(sprintf('Sort field. Defaults to `%s`.', $this->defaultField))
             )
-            ->string('sort_dir', fn ($s) => $s
+            ->string('sort_dir', fn (StringBuilder $s) => $s
                 ->enum(['asc', 'desc'])
                 ->description(sprintf('Sort direction. Defaults to `%s`.', $this->defaultDirection))
             );

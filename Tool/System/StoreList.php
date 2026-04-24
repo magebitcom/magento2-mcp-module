@@ -10,6 +10,9 @@ namespace Magebit\Mcp\Tool\System;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Model\Tool\Schema\Builder\ArrayBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\BooleanBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Builder\IntegerBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -80,11 +83,11 @@ class StoreList implements ToolInterface
     public function getInputSchema(): array
     {
         return Schema::object()
-            ->boolean('include_inactive', fn ($b) => $b
+            ->boolean('include_inactive', fn (BooleanBuilder $b) => $b
                 ->description('Include stores with `is_active=0`. Defaults to `false`.')
             )
-            ->array('website_id', fn ($a) => $a
-                ->ofIntegers(fn ($i) => $i->minimum(1))
+            ->array('website_id', fn (ArrayBuilder $a) => $a
+                ->ofIntegers(fn (IntegerBuilder $i) => $i->minimum(1))
                 ->minItems(1)
                 ->description('Narrow the output to these website ids '
                     . '(e.g. `[1]` for a single website). Groups and stores '

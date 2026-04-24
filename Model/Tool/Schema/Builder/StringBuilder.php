@@ -80,7 +80,6 @@ class StringBuilder extends PropertyBuilder
             throw new InvalidArgumentException('String enum must have at least one value.');
         }
         foreach ($values as $value) {
-            /** @phpstan-ignore-next-line runtime guard against callers that leak non-string arrays. */
             if (!is_string($value)) {
                 throw new InvalidArgumentException('String enum values must all be strings.');
             }

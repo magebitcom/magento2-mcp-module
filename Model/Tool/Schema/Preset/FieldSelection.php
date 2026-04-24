@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Tool\Schema\Preset;
 
+use Magebit\Mcp\Model\Tool\Schema\Builder\ArrayBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
@@ -64,11 +65,11 @@ final class FieldSelection implements SchemaContribution
     public function applyTo(ObjectBuilder $object): void
     {
         $object
-            ->array('fields', fn ($a) => $a
+            ->array('fields', fn (ArrayBuilder $a) => $a
                 ->ofStrings()
                 ->description($this->fieldsDescription)
             )
-            ->array('exclude', fn ($a) => $a
+            ->array('exclude', fn (ArrayBuilder $a) => $a
                 ->ofStrings()
                 ->description($this->excludeDescription)
             );

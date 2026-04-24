@@ -65,7 +65,7 @@ class ObjectBuilder extends PropertyBuilder
      * to configure constraints.
      *
      * @param string $name
-     * @param Closure(StringBuilder):void $configure
+     * @param Closure(StringBuilder):mixed $configure
      * @return $this
      */
     public function string(string $name, Closure $configure): self
@@ -80,7 +80,7 @@ class ObjectBuilder extends PropertyBuilder
      * Add an integer property.
      *
      * @param string $name
-     * @param Closure(IntegerBuilder):void $configure
+     * @param Closure(IntegerBuilder):mixed $configure
      * @return $this
      */
     public function integer(string $name, Closure $configure): self
@@ -95,7 +95,7 @@ class ObjectBuilder extends PropertyBuilder
      * Add a number property.
      *
      * @param string $name
-     * @param Closure(NumberBuilder):void $configure
+     * @param Closure(NumberBuilder):mixed $configure
      * @return $this
      */
     public function number(string $name, Closure $configure): self
@@ -110,7 +110,7 @@ class ObjectBuilder extends PropertyBuilder
      * Add a boolean property.
      *
      * @param string $name
-     * @param Closure(BooleanBuilder):void $configure
+     * @param Closure(BooleanBuilder):mixed $configure
      * @return $this
      */
     public function boolean(string $name, Closure $configure): self
@@ -125,7 +125,7 @@ class ObjectBuilder extends PropertyBuilder
      * Add an array property.
      *
      * @param string $name
-     * @param Closure(ArrayBuilder):void $configure
+     * @param Closure(ArrayBuilder):mixed $configure
      * @return $this
      */
     public function array(string $name, Closure $configure): self
@@ -141,7 +141,7 @@ class ObjectBuilder extends PropertyBuilder
      * on the nested object.
      *
      * @param string $name
-     * @param Closure(ObjectBuilder):void $configure
+     * @param Closure(ObjectBuilder):mixed $configure
      * @return $this
      */
     public function object(string $name, Closure $configure): self
@@ -190,9 +190,17 @@ class ObjectBuilder extends PropertyBuilder
      * Root-variant convenience — terminal call on a root builder.
      *
      * @return array<string, mixed>
+     * @phpstan-return array{
+     *     '$schema': string,
+     *     type: 'object',
+     *     properties: array<string, array<string, mixed>>,
+     *     required?: list<string>,
+     *     additionalProperties: false,
+     * }
      */
     public function toArray(): array
     {
+        /** @phpstan-ignore-next-line narrowed for callers via @phpstan-return above. */
         return $this->toSchemaArray();
     }
 
