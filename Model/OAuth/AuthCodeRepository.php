@@ -69,7 +69,8 @@ final class AuthCodeRepository
 
     /**
      * Atomically stamps `used_at` on a code so a concurrent redemption can't reuse it. Written in
-     * UTC to match {@see AuthCode::isExpired()}'s comparison.
+     * UTC to match {@see AuthCode::isExpired()}'s comparison. Callers MUST have just resolved
+     * the row via {@see getByHash()}; this method does not verify the id still exists.
      */
     public function markUsed(int $id): void
     {
@@ -83,8 +84,9 @@ final class AuthCodeRepository
     }
 
     /**
-     * Deletes expired and stale-used authorization codes. Used codes are kept for 24 hours so
-     * audit-log correlations can still resolve the row before it disappears.
+     * Deletes authorization codes whose expiry was more than 24 hours ago. Single-bound predicate
+     * so the index on `expires_at` is exercised. The 24-hour grace window keeps used and unused
+     * expired rows around long enough that audit-log correlations can still resolve them.
      *
      * @return int Rows deleted.
      */
@@ -92,9 +94,6 @@ final class AuthCodeRepository
     {
         $connection = $this->resourceConnection->getConnection();
         $table = $this->resourceConnection->getTableName('magebit_mcp_oauth_auth_code');
-        return $connection->delete(
-            $table,
-            'expires_at < NOW() OR (used_at IS NOT NULL AND used_at < NOW() - INTERVAL 1 DAY)'
-        );
+        return $connection->delete($table, 'expires_at < NOW() - INTERVAL 1 DAY');
     }
 }
