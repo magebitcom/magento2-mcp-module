@@ -98,6 +98,28 @@
                     <code>bin/magento cache:clean MAGEBIT_MCP_RATE_LIMIT</code>.]]></comment>
                 </field>
             </group>
+            <group id="oauth" translate="label" type="text" sortOrder="50"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>OAuth 2.1</label>
+                <field id="access_token_lifetime" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Access Token Lifetime (seconds)</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <comment>How long an OAuth-issued bearer token stays valid. Default 3600 (1 hour).</comment>
+                </field>
+                <field id="refresh_token_lifetime_days" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Refresh Token Lifetime (days)</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <comment>How long a refresh token stays valid before the user must re-authorize. Default 30.</comment>
+                </field>
+                <field id="auth_code_lifetime" translate="label comment" type="text" sortOrder="30"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Authorization Code Lifetime (seconds)</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <comment>How long an authorization code stays valid before exchange. Default 60. Increase only for debugging.</comment>
+                </field>
+            </group>
         </section>
     </system>
 </config>

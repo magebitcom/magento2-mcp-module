@@ -15,6 +15,13 @@
              parent="Magebit_Mcp::mcp"
              action="magebit_mcp/token/index"
              resource="Magebit_Mcp::mcp_tokens"/>
+        <add id="Magebit_Mcp::mcp_oauth_clients"
+             title="OAuth Clients"
+             module="Magebit_Mcp"
+             sortOrder="15"
+             parent="Magebit_Mcp::mcp"
+             action="magebit_mcp/oauthclient/index"
+             resource="Magebit_Mcp::mcp_oauth_clients"/>
         <add id="Magebit_Mcp::mcp_audit"
              title="Audit Log"
              module="Magebit_Mcp"
