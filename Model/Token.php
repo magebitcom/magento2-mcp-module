@@ -207,6 +207,24 @@ class Token extends AbstractModel implements TokenInterface
     /**
      * @inheritDoc
      */
+    public function getOAuthClientId(): ?int
+    {
+        $value = $this->getData(self::OAUTH_CLIENT_ID);
+        return is_scalar($value) && (int) $value > 0 ? (int) $value : null;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function setOAuthClientId(?int $id): self
+    {
+        $this->setData(self::OAUTH_CLIENT_ID, $id);
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function isRevoked(): bool
     {
         return $this->getRevokedAt() !== null;

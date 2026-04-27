@@ -38,6 +38,8 @@ https://www.perplexity.ai</allowed_origins>
             </rate_limiting>
             <oauth>
                 <auth_code_lifetime>60</auth_code_lifetime>
+                <access_token_lifetime>3600</access_token_lifetime>
+                <refresh_token_lifetime_days>30</refresh_token_lifetime_days>
             </oauth>
         </magebit_mcp>
     </default>

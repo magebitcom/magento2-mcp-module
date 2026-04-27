@@ -24,10 +24,14 @@ class ModuleConfig
     public const XML_PATH_RATE_LIMITING_ENABLED = 'magebit_mcp/rate_limiting/enabled';
     public const XML_PATH_RATE_LIMITING_RPM = 'magebit_mcp/rate_limiting/requests_per_minute';
     public const XML_PATH_OAUTH_AUTH_CODE_LIFETIME = 'magebit_mcp/oauth/auth_code_lifetime';
+    public const XML_PATH_OAUTH_ACCESS_TOKEN_LIFETIME = 'magebit_mcp/oauth/access_token_lifetime';
+    public const XML_PATH_OAUTH_REFRESH_TOKEN_LIFETIME_DAYS = 'magebit_mcp/oauth/refresh_token_lifetime_days';
 
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
     public const DEFAULT_RATE_LIMITING_RPM = 60;
     public const DEFAULT_OAUTH_AUTH_CODE_LIFETIME = 60;
+    public const DEFAULT_OAUTH_ACCESS_TOKEN_LIFETIME = 3600;
+    public const DEFAULT_OAUTH_REFRESH_TOKEN_LIFETIME_DAYS = 30;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -144,5 +148,31 @@ class ModuleConfig
         $value = $this->scopeConfig->getValue(self::XML_PATH_OAUTH_AUTH_CODE_LIFETIME);
         $seconds = is_scalar($value) ? (int) $value : 0;
         return $seconds > 0 ? $seconds : self::DEFAULT_OAUTH_AUTH_CODE_LIFETIME;
+    }
+
+    /**
+     * Lifetime in seconds for OAuth 2.1 access tokens. Defaults to 3600s
+     * (one hour) when unset or non-positive.
+     *
+     * @return int
+     */
+    public function getOAuthAccessTokenLifetime(): int
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_OAUTH_ACCESS_TOKEN_LIFETIME);
+        $seconds = is_scalar($value) ? (int) $value : 0;
+        return $seconds > 0 ? $seconds : self::DEFAULT_OAUTH_ACCESS_TOKEN_LIFETIME;
+    }
+
+    /**
+     * Lifetime in days for OAuth 2.1 refresh tokens. Defaults to 30 days
+     * when unset or non-positive.
+     *
+     * @return int
+     */
+    public function getOAuthRefreshTokenLifetimeDays(): int
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_OAUTH_REFRESH_TOKEN_LIFETIME_DAYS);
+        $days = is_scalar($value) ? (int) $value : 0;
+        return $days > 0 ? $days : self::DEFAULT_OAUTH_REFRESH_TOKEN_LIFETIME_DAYS;
     }
 }

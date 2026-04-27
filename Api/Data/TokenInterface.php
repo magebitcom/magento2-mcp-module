@@ -23,6 +23,7 @@ interface TokenInterface
     public const EXPIRES_AT = 'expires_at';
     public const REVOKED_AT = 'revoked_at';
     public const CREATED_AT = 'created_at';
+    public const OAUTH_CLIENT_ID = 'oauth_client_id';
 
     /**
      * @return int|null
@@ -128,6 +129,19 @@ interface TokenInterface
      * @return string|null
      */
     public function getCreatedAt(): ?string;
+
+    /**
+     * Linkback to the OAuth client that minted this token; null for CLI-issued tokens.
+     *
+     * @return int|null
+     */
+    public function getOAuthClientId(): ?int;
+
+    /**
+     * @param int|null $id
+     * @return self
+     */
+    public function setOAuthClientId(?int $id): self;
 
     /**
      * @return bool
