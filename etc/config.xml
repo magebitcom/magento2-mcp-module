@@ -36,6 +36,9 @@ https://www.perplexity.ai</allowed_origins>
                 <enabled>0</enabled>
                 <requests_per_minute>60</requests_per_minute>
             </rate_limiting>
+            <oauth>
+                <auth_code_lifetime>60</auth_code_lifetime>
+            </oauth>
         </magebit_mcp>
     </default>
 </config>

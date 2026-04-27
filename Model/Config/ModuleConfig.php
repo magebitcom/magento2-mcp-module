@@ -23,9 +23,11 @@ class ModuleConfig
     public const XML_PATH_AUDIT_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
     public const XML_PATH_RATE_LIMITING_ENABLED = 'magebit_mcp/rate_limiting/enabled';
     public const XML_PATH_RATE_LIMITING_RPM = 'magebit_mcp/rate_limiting/requests_per_minute';
+    public const XML_PATH_OAUTH_AUTH_CODE_LIFETIME = 'magebit_mcp/oauth/auth_code_lifetime';
 
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
     public const DEFAULT_RATE_LIMITING_RPM = 60;
+    public const DEFAULT_OAUTH_AUTH_CODE_LIFETIME = 60;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -129,5 +131,18 @@ class ModuleConfig
             return self::DEFAULT_RATE_LIMITING_RPM;
         }
         return max(0, (int) $value);
+    }
+
+    /**
+     * Lifetime in seconds for OAuth 2.1 authorization codes. One-shot,
+     * short-lived; defaults to 60s when unset or non-positive.
+     *
+     * @return int
+     */
+    public function getOAuthAuthCodeLifetime(): int
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_OAUTH_AUTH_CODE_LIFETIME);
+        $seconds = is_scalar($value) ? (int) $value : 0;
+        return $seconds > 0 ? $seconds : self::DEFAULT_OAUTH_AUTH_CODE_LIFETIME;
     }
 }
