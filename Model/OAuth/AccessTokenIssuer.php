@@ -82,7 +82,8 @@ class AccessTokenIssuer
 
         $token = $this->tokenFactory->create();
         $token->setAdminUserId($adminUserId);
-        $token->setName(sprintf('OAuth: %s', $oauthClientName));
+        // Cap the client-name slice so 'OAuth: <name>' fits in magebit_mcp_token.name (varchar 128).
+        $token->setName(sprintf('OAuth: %s', mb_substr($oauthClientName, 0, 121)));
         $token->setTokenHash($accessHash);
         $token->setAllowWrites($allowWrites);
         $token->setExpiresAt($accessExpiresAt);
