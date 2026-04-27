@@ -121,7 +121,7 @@ class Save extends Action implements HttpPostActionInterface
         ]);
 
         $this->messageManager->addSuccessMessage(
-            (string) __('Connection "%1" created — bearer token shown on the next screen.', $name)
+            (string) __('Connection "%1" created.', $name)
         );
 
         return $redirect->setPath('*/*/index');
