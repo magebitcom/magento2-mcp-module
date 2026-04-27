@@ -17,7 +17,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
  *
  * {@see self::getByClientId()} relies on the UNIQUE index on `client_id` for O(1) lookup.
  */
-final class ClientRepository
+class ClientRepository
 {
     public function __construct(
         private readonly ClientFactory $clientFactory,
