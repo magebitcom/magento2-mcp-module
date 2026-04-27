@@ -1,0 +1,76 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+declare(strict_types=1);
+
+/** @var \Magebit\Mcp\Block\Adminhtml\Token\Edit\Tab\Scopes $block */
+/** @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer */
+
+$widgetOptions = [
+    'mcpScopesTree' => [
+        'treeUrl' => $block->getResourceTreeUrl(),
+        'editFormSelector' => '#edit_form',
+        'adminUserSelector' => '#magebit_mcp_token_admin_user_id',
+        'allResourcesSelector' => '[data-role="all-resources-select"]',
+        'treeContainerSelector' => '[data-role="tree-resources-container"]',
+        'noAdminPlaceholderSelector' => '[data-role="no-admin-placeholder"]',
+        'treeWrapperSelector' => '[data-role="resource-tree-wrapper"]',
+        'initialTree' => json_decode($block->getInitialTreeJson(), true),
+        'initialSelection' => json_decode($block->getRestoredSelectionJson(), true),
+    ],
+];
+$isAllSelected = $block->isAllResourcesRestored();
+$hasAdminSelected = $block->hasRestoredAdminUser();
+?>
+<fieldset class="admin__fieldset form-inline entry-edit">
+    <div class="message message-warning" data-role="scope-warning" style="margin-bottom: 20px;">
+        <span><?= $block->escapeHtml(__(
+            'This token can only use tools that the selected admin user is also allowed to use.'
+            . ' Greyed-out tools are blocked by the admin user\'s role — change their role to'
+            . ' unlock them.'
+        )) ?></span>
+    </div>
+
+    <div class="field">
+        <label class="label" for="all_resources">
+            <span><?= $block->escapeHtml(__('Resource Access')) ?></span>
+        </label>
+        <div class="control">
+            <select id="all_resources"
+                    name="all_resources"
+                    class="select admin__control-select"
+                    data-role="all-resources-select">
+                <option value="1" <?= $isAllSelected ? 'selected="selected"' : '' ?>>
+                    <?= $block->escapeHtml(__('All')) ?>
+                </option>
+                <option value="0" <?= $isAllSelected ? '' : 'selected="selected"' ?>>
+                    <?= $block->escapeHtml(__('Custom')) ?>
+                </option>
+            </select>
+        </div>
+    </div>
+
+    <div class="field<?= $isAllSelected ? ' no-display' : '' ?>" data-role="tree-resources-container">
+        <label class="label">
+            <span><?= $block->escapeHtml(__('Resources')) ?></span>
+        </label>
+        <div class="control">
+            <div class="message message-notice<?= $hasAdminSelected ? ' no-display' : '' ?>"
+                 data-role="no-admin-placeholder"
+                 style="margin-bottom: 16px;">
+                <span><?= $block->escapeHtml(__(
+                    'Pick an admin user on the Token Info tab to load available scopes.'
+                )) ?></span>
+            </div>
+            <div data-role="resource-tree-wrapper"<?= $hasAdminSelected ? '' : ' class="no-display"' ?>>
+                <div class="tree x-tree"
+                     id="magebit-mcp-resource-tree"
+                     data-role="resource-tree"
+                     data-mage-init='<?= $block->escapeHtmlAttr(json_encode($widgetOptions, JSON_UNESCAPED_SLASHES)) ?>'></div>
+            </div>
+        </div>
+    </div>
+</fieldset>
