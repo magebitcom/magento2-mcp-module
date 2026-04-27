@@ -29,6 +29,7 @@ use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
+use Magento\Framework\UrlInterface;
 
 /**
  * Single HTTP endpoint for the Magebit MCP server, reached as `POST /mcp`.
@@ -48,7 +49,8 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         private readonly TokenAuthenticator $authenticator,
         private readonly AuditContext $auditContext,
         private readonly AuditLogger $auditLogger,
-        private readonly ModuleConfig $config
+        private readonly ModuleConfig $config,
+        private readonly UrlInterface $urlBuilder
     ) {
     }
 
@@ -69,7 +71,16 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             try {
                 $context = $this->authenticator->authenticate($this->header('Authorization'));
             } catch (UnauthorizedException $e) {
-                $this->response->setHeader('WWW-Authenticate', 'Bearer realm="Magento MCP"', true);
+                $metadataUrl = $this->urlBuilder->getUrl(
+                    'mcp/oauth/protected-resource-metadata',
+                    ['_nosid' => true, '_secure' => true]
+                );
+                $metadataUrl = rtrim($metadataUrl, '/');
+                $this->response->setHeader(
+                    'WWW-Authenticate',
+                    sprintf('Bearer realm="Magento MCP", resource_metadata="%s"', $metadataUrl),
+                    true
+                );
                 return $this->failRpc(401, null, ErrorCode::UNAUTHORIZED, $e->getMessage());
             }
 

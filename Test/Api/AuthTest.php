@@ -28,6 +28,14 @@ class AuthTest extends McpTestCase
         $this->assertJsonRpcError($response, ErrorCode::UNAUTHORIZED->value, 401);
         self::assertArrayHasKey('www-authenticate', $response['headers']);
         self::assertStringStartsWith('Bearer', $response['headers']['www-authenticate']);
+        self::assertStringContainsString(
+            'resource_metadata="',
+            $response['headers']['www-authenticate']
+        );
+        self::assertStringContainsString(
+            '/mcp/oauth/protected-resource-metadata',
+            $response['headers']['www-authenticate']
+        );
     }
 
     public function testInvalidBearerReturnsUnauthorized(): void
