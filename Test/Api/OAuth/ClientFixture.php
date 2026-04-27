@@ -16,7 +16,6 @@ use Magebit\Mcp\Model\OAuth\ClientRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\TestFramework\Helper\Bootstrap;
 use RuntimeException;
-use Throwable;
 
 /**
  * Programmatic OAuth client issuance for api-functional tests.
@@ -83,8 +82,6 @@ final class ClientFixture
             $repo->deleteById($id);
         } catch (NoSuchEntityException) {
             // Already gone — nothing to do.
-        } catch (Throwable) {
-            // Swallow any other persistence error during teardown.
         }
     }
 
