@@ -16,7 +16,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 /**
  * CRUD + lookup service for {@see RefreshToken} entities.
  *
- * {@see self::revoke()} and {@see self::deleteRevokedAndExpired()} bypass the model layer to keep
+ * {@see self::revoke()} and {@see self::deleteExpired()} bypass the model layer to keep
  * the rotator's revoke-on-use write atomic and to keep the cron purge a single statement.
  */
 final class RefreshTokenRepository
@@ -94,7 +94,7 @@ final class RefreshTokenRepository
      *
      * @return int Rows deleted.
      */
-    public function deleteRevokedAndExpired(): int
+    public function deleteExpired(): int
     {
         $connection = $this->resourceConnection->getConnection();
         $table = $this->resourceConnection->getTableName('magebit_mcp_oauth_refresh_token');
