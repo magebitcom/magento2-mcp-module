@@ -19,7 +19,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
  * {@see self::revoke()} and {@see self::deleteExpired()} bypass the model layer to keep
  * the rotator's revoke-on-use write atomic and to keep the cron purge a single statement.
  */
-final class RefreshTokenRepository
+class RefreshTokenRepository
 {
     public function __construct(
         private readonly RefreshTokenFactory $refreshTokenFactory,

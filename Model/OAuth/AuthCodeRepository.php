@@ -19,7 +19,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
  * {@see self::markUsed()} and {@see self::deleteExpired()} bypass the model layer to keep the
  * one-shot redemption write atomic and to keep the cron purge a single statement.
  */
-final class AuthCodeRepository
+class AuthCodeRepository
 {
     public function __construct(
         private readonly AuthCodeFactory $authCodeFactory,
