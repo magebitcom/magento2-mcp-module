@@ -10,15 +10,18 @@
             "last_used_at": true,
             "expires_at": true,
             "revoked_at": true,
-            "created_at": true
+            "created_at": true,
+            "oauth_client_id": true
         },
         "index": {
-            "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_REVOKED_AT": true
+            "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_REVOKED_AT": true,
+            "MAGEBIT_MCP_TOKEN_OAUTH_CLIENT_ID": true
         },
         "constraint": {
             "PRIMARY": true,
             "MAGEBIT_MCP_TOKEN_TOKEN_HASH": true,
-            "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_ADMIN_USER_USER_ID": true
+            "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_ADMIN_USER_USER_ID": true,
+            "MAGEBIT_MCP_TOKEN_OAUTH_CLIENT_ID_MAGEBIT_MCP_OAUTH_CLIENT_ID": true
         }
     },
     "magebit_mcp_audit_log": {
@@ -42,12 +45,73 @@
         "index": {
             "MAGEBIT_MCP_AUDIT_LOG_ADMIN_USER_ID_CREATED_AT": true,
             "MAGEBIT_MCP_AUDIT_LOG_TOOL_NAME_CREATED_AT": true,
-            "MAGEBIT_MCP_AUDIT_LOG_CREATED_AT": true
+            "MAGEBIT_MCP_AUDIT_LOG_CREATED_AT": true,
+            "MAGEBIT_MCP_AUDIT_LOG_RESPONSE_STATUS_CREATED_AT": true,
+            "MAGEBIT_MCP_AUDIT_LOG_ERROR_CODE_CREATED_AT": true,
+            "MAGEBIT_MCP_AUDIT_LOG_TOKEN_ID_CREATED_AT": true
         },
         "constraint": {
             "PRIMARY": true,
             "MAGEBIT_MCP_AUDIT_LOG_TOKEN_ID_MAGEBIT_MCP_TOKEN_ID": true,
             "MAGEBIT_MCP_AUDIT_LOG_ADMIN_USER_ID_ADMIN_USER_USER_ID": true
+        }
+    },
+    "magebit_mcp_oauth_client": {
+        "column": {
+            "id": true,
+            "client_id": true,
+            "client_secret_hash": true,
+            "name": true,
+            "redirect_uris_json": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_OAUTH_CLIENT_CLIENT_ID": true
+        }
+    },
+    "magebit_mcp_oauth_auth_code": {
+        "column": {
+            "id": true,
+            "code_hash": true,
+            "oauth_client_id": true,
+            "admin_user_id": true,
+            "redirect_uri": true,
+            "code_challenge": true,
+            "code_challenge_method": true,
+            "scope": true,
+            "expires_at": true,
+            "used_at": true,
+            "created_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_OAUTH_AUTH_CODE_EXPIRES_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_OAUTH_AUTH_CODE_CODE_HASH": true,
+            "FK_6444F9E3E674C9F504DC0C076D95FE17": true,
+            "MAGEBIT_MCP_OAUTH_AUTH_CODE_ADMIN_USER_ID_ADMIN_USER_USER_ID": true
+        }
+    },
+    "magebit_mcp_oauth_refresh_token": {
+        "column": {
+            "id": true,
+            "token_hash": true,
+            "oauth_client_id": true,
+            "access_token_id": true,
+            "expires_at": true,
+            "revoked_at": true,
+            "created_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_OAUTH_REFRESH_TOKEN_EXPIRES_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_OAUTH_REFRESH_TOKEN_TOKEN_HASH": true,
+            "FK_AA2A4F9186CFB3688041DD3686123659": true,
+            "FK_2FEB0E12C667080D1EE23BA9E2C0D237": true
         }
     }
 }

@@ -24,6 +24,8 @@
                 comment="Revocation timestamp (null = active)"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
                 default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
+        <column xsi:type="int" name="oauth_client_id" unsigned="true" nullable="true"
+                comment="FK to magebit_mcp_oauth_client when issued via OAuth"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="id"/>
@@ -34,6 +36,12 @@
         </constraint>
 
         <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_TOKEN_OAUTH_CLIENT_ID_FK"
+                    table="magebit_mcp_token" column="oauth_client_id"
+                    referenceTable="magebit_mcp_oauth_client" referenceColumn="id"
+                    onDelete="SET NULL"/>
+
+        <constraint xsi:type="foreign"
                     referenceId="MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_ADMIN_USER_USER_ID"
                     table="magebit_mcp_token" column="admin_user_id"
                     referenceTable="admin_user" referenceColumn="user_id"
@@ -42,6 +50,10 @@
         <index referenceId="MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_REVOKED_AT" indexType="btree">
             <column name="admin_user_id"/>
             <column name="revoked_at"/>
+        </index>
+
+        <index referenceId="MAGEBIT_MCP_TOKEN_OAUTH_CLIENT_ID" indexType="btree">
+            <column name="oauth_client_id"/>
         </index>
     </table>
 
@@ -123,6 +135,111 @@
              composites above can't serve `WHERE created_at < ?` alone. -->
         <index referenceId="MAGEBIT_MCP_AUDIT_LOG_CREATED_AT" indexType="btree">
             <column name="created_at"/>
+        </index>
+    </table>
+
+    <table name="magebit_mcp_oauth_client" resource="default" engine="innodb"
+           comment="OAuth 2.1 pre-registered clients (issuers of MCP access tokens)">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"/>
+        <column xsi:type="varchar" name="client_id" length="64" nullable="false"
+                comment="Public client identifier (UUID v4)"/>
+        <column xsi:type="varchar" name="client_secret_hash" length="255" nullable="false"
+                comment="HMAC-SHA256 of plaintext secret, keyed by install crypt/key"/>
+        <column xsi:type="varchar" name="name" length="128" nullable="false"
+                comment="Operator-facing label"/>
+        <column xsi:type="text" name="redirect_uris_json" nullable="false"
+                comment="JSON array of allowed redirect URIs (exact match)"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false"
+                default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_OAUTH_CLIENT_CLIENT_ID">
+            <column name="client_id"/>
+        </constraint>
+    </table>
+
+    <table name="magebit_mcp_oauth_auth_code" resource="default" engine="innodb"
+           comment="One-shot authorization codes (60s TTL) carrying PKCE challenge">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"/>
+        <column xsi:type="varchar" name="code_hash" length="255" nullable="false"
+                comment="HMAC-SHA256 of plaintext code"/>
+        <column xsi:type="int" name="oauth_client_id" unsigned="true" nullable="false"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false"
+                comment="Admin user who approved the consent"/>
+        <column xsi:type="varchar" name="redirect_uri" length="1024" nullable="false"/>
+        <column xsi:type="varchar" name="code_challenge" length="255" nullable="false"
+                comment="Base64url-encoded SHA256 challenge from PKCE"/>
+        <column xsi:type="varchar" name="code_challenge_method" length="16" nullable="false"
+                default="S256"/>
+        <column xsi:type="varchar" name="scope" length="255" nullable="true"/>
+        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="false"/>
+        <column xsi:type="timestamp" name="used_at" on_update="false" nullable="true"
+                comment="Set the moment the code is exchanged; codes are one-shot"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false"
+                default="CURRENT_TIMESTAMP"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_OAUTH_AUTH_CODE_CODE_HASH">
+            <column name="code_hash"/>
+        </constraint>
+
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_OAUTH_AUTH_CODE_CLIENT_ID_FK"
+                    table="magebit_mcp_oauth_auth_code" column="oauth_client_id"
+                    referenceTable="magebit_mcp_oauth_client" referenceColumn="id"
+                    onDelete="CASCADE"/>
+
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_OAUTH_AUTH_CODE_ADMIN_USER_ID_FK"
+                    table="magebit_mcp_oauth_auth_code" column="admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id"
+                    onDelete="CASCADE"/>
+
+        <index referenceId="MAGEBIT_MCP_OAUTH_AUTH_CODE_EXPIRES_AT" indexType="btree">
+            <column name="expires_at"/>
+        </index>
+    </table>
+
+    <table name="magebit_mcp_oauth_refresh_token" resource="default" engine="innodb"
+           comment="Refresh tokens for OAuth-issued access tokens; rotation strategy = revoke-on-use">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"/>
+        <column xsi:type="varchar" name="token_hash" length="255" nullable="false"/>
+        <column xsi:type="int" name="oauth_client_id" unsigned="true" nullable="false"/>
+        <column xsi:type="int" name="access_token_id" unsigned="true" nullable="false"
+                comment="FK to the magebit_mcp_token row this refresh was paired with"/>
+        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="false"/>
+        <column xsi:type="timestamp" name="revoked_at" on_update="false" nullable="true"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false"
+                default="CURRENT_TIMESTAMP"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_OAUTH_REFRESH_TOKEN_HASH">
+            <column name="token_hash"/>
+        </constraint>
+
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_OAUTH_REFRESH_CLIENT_ID_FK"
+                    table="magebit_mcp_oauth_refresh_token" column="oauth_client_id"
+                    referenceTable="magebit_mcp_oauth_client" referenceColumn="id"
+                    onDelete="CASCADE"/>
+
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_OAUTH_REFRESH_ACCESS_TOKEN_ID_FK"
+                    table="magebit_mcp_oauth_refresh_token" column="access_token_id"
+                    referenceTable="magebit_mcp_token" referenceColumn="id"
+                    onDelete="CASCADE"/>
+
+        <index referenceId="MAGEBIT_MCP_OAUTH_REFRESH_EXPIRES_AT" indexType="btree">
+            <column name="expires_at"/>
         </index>
     </table>
 
