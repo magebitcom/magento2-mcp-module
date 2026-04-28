@@ -10,66 +10,63 @@ namespace Magebit\Mcp\Controller\OAuth;
 
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\OAuthException;
-use Magebit\Mcp\Model\OAuth\AuthCodeIssuer;
+use Magebit\Mcp\Model\Auth\TokenGenerator;
+use Magebit\Mcp\Model\OAuth\AuthorizeHandoffStorage;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ClientRepository;
 use Magebit\Mcp\Model\OAuth\PkceVerifier;
 use Magebit\Mcp\Model\OAuth\RedirectUriValidator;
-use Magento\Backend\Model\Auth\Session as AdminSession;
+use Magento\Backend\Model\UrlInterface as BackendUrl;
 use Magento\Framework\App\Action\HttpGetActionInterface;
-use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
-use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Data\Form\FormKey\Validator as FormKeyValidator;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\View\Element\AbstractBlock;
-use Magento\Framework\View\Result\Page;
-use Magento\Framework\View\Result\PageFactory;
 
 /**
- * `GET|POST /mcp/oauth/authorize` — OAuth 2.1 authorization endpoint.
+ * Public-facing `GET /mcp/oauth/authorize` — the URL advertised in the
+ * RFC 8414 authorization-server-metadata document.
  *
- * GET: validates query params, then either renders the "log in to admin first"
- * page or the consent screen.
+ * This controller deliberately does **not** render the consent screen and
+ * does **not** read the admin session: those live behind the admin URL,
+ * which we never expose in any public document. Instead it:
  *
- * POST: handles the consent form submit. Validates the form key, requires an
- * admin session, then either mints an auth code (redirecting back with
- * `code=...&state=...`) or — on `oauth_action=deny` — redirects back with
- * `error=access_denied`.
+ *   1. Validates the OAuth params (per OAuth 2.1 §4.1.2.1, two error
+ *      families: redirect_uri/client_id failures render inline; protocol
+ *      failures redirect back to the registered redirect_uri with `error=`).
+ *   2. Stashes the validated params in a short-lived server-side handoff
+ *      keyed by a single-use random nonce.
+ *   3. 302-redirects the user's browser to the admin-area authorize URL
+ *      with the nonce — that URL lives under `/<adminFrontName>/...`,
+ *      which Magento's admin auth wraps automatically.
  *
- * Per OAuth 2.1 §4.1.2.1 there are two error families:
- *   - Bad `client_id` / `redirect_uri` → render error inline (we MUST NOT
- *     redirect to a non-allowlisted URI).
- *   - Bad protocol parameters (`response_type`, PKCE) → 302 redirect back to
- *     the registered `redirect_uri` with `error=...&state=...`.
+ * The OAuth client (Claude, ChatGPT, etc.) never follows the user's browser
+ * redirect, so the admin URL never reaches a third party. The user briefly
+ * sees the admin URL in their address bar — they're an admin, so that's
+ * expected.
  */
-class Authorize implements HttpGetActionInterface, HttpPostActionInterface, CsrfAwareActionInterface
+class Authorize implements HttpGetActionInterface, CsrfAwareActionInterface
 {
     public function __construct(
         private readonly HttpRequest $request,
         private readonly HttpResponse $response,
-        private readonly PageFactory $pageFactory,
         private readonly ClientRepository $clientRepository,
         private readonly RedirectUriValidator $redirectUriValidator,
-        private readonly AdminSession $adminSession,
-        private readonly AuthCodeIssuer $authCodeIssuer,
-        private readonly FormKeyValidator $formKeyValidator,
+        private readonly AuthorizeHandoffStorage $handoffStorage,
+        private readonly TokenGenerator $tokenGenerator,
+        private readonly BackendUrl $backendUrl,
         private readonly LoggerInterface $logger
     ) {
     }
 
-    public function execute(): ResponseInterface|ResultInterface
+    public function execute(): ResponseInterface
     {
         try {
             $params = $this->validateAndExtractParams();
         } catch (OAuthException $e) {
-            // Errors that MUST NOT redirect (per OAuth 2.1 §4.1.2.1):
-            // invalid_client, invalid_request when redirect_uri itself is bad/missing.
             return $this->renderInlineError($e);
         }
 
@@ -84,15 +81,33 @@ class Authorize implements HttpGetActionInterface, HttpPostActionInterface, Csrf
             );
         }
 
-        if ($this->request->getMethod() === 'POST') {
-            return $this->handleConsentSubmit($params);
-        }
+        $nonce = $this->tokenGenerator->generate();
+        $this->handoffStorage->store($nonce, [
+            'client_id' => $params['client_id'],
+            'redirect_uri' => $params['redirect_uri'],
+            'state' => $params['state'],
+            'code_challenge' => $params['code_challenge'],
+            'code_challenge_method' => $params['code_challenge_method'],
+            'scope' => $params['scope'],
+            'response_type' => $params['response_type'],
+        ]);
 
-        if (!$this->adminSession->isLoggedIn()) {
-            return $this->renderLoginRequired($params);
-        }
+        $this->logger->info('OAuth authorize handoff stored.', [
+            'client_id' => $params['client_id'],
+        ]);
 
-        return $this->renderConsent($params);
+        $adminUrl = $this->backendUrl->getUrl(
+            'magebit_mcp/oauth/authorize',
+            ['h' => $nonce, '_secure' => true]
+        );
+
+        $this->response->setHttpResponseCode(302);
+        $this->response->setHeader('Location', $adminUrl, true);
+        // The handoff nonce is single-use, but be belt-and-suspenders here —
+        // we still don't want intermediate caches retaining the redirect.
+        $this->response->setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate', true);
+        $this->response->setBody('');
+        return $this->response;
     }
 
     /**
@@ -220,137 +235,10 @@ class Authorize implements HttpGetActionInterface, HttpPostActionInterface, Csrf
     }
 
     /**
-     * @phpstan-param array{
-     *     client: Client,
-     *     client_id: string,
-     *     redirect_uri: string,
-     *     state: ?string,
-     *     code_challenge: ?string,
-     *     code_challenge_method: ?string,
-     *     scope: ?string,
-     *     response_type: ?string
-     * } $params
-     */
-    private function renderLoginRequired(array $params): ResultInterface
-    {
-        /** @var Page $page */
-        $page = $this->pageFactory->create();
-        $page->getConfig()->getTitle()->set('OAuth — Login Required');
-        $block = $page->getLayout()->getBlock('mcp.oauth.authorize.login_required');
-        if ($block instanceof AbstractBlock) {
-            $block->setData('oauth_params', $params);
-            $block->setData('current_url', $this->request->getUriString());
-        }
-        return $page;
-    }
-
-    /**
-     * @phpstan-param array{
-     *     client: Client,
-     *     client_id: string,
-     *     redirect_uri: string,
-     *     state: ?string,
-     *     code_challenge: ?string,
-     *     code_challenge_method: ?string,
-     *     scope: ?string,
-     *     response_type: ?string
-     * } $params
-     */
-    private function renderConsent(array $params): ResultInterface
-    {
-        /** @var Page $page */
-        $page = $this->pageFactory->create();
-        $page->getConfig()->getTitle()->set('OAuth — Authorize ' . $params['client']->getName());
-        $block = $page->getLayout()->getBlock('mcp.oauth.authorize.consent');
-        if ($block instanceof AbstractBlock) {
-            $block->setData('oauth_params', $params);
-            $admin = $this->adminSession->getUser();
-            $block->setData('admin_user_id', $admin === null ? 0 : (int) $admin->getId());
-            $block->setData('current_url', $this->request->getUriString());
-        }
-        return $page;
-    }
-
-    /**
-     * @phpstan-param array{
-     *     client: Client,
-     *     client_id: string,
-     *     redirect_uri: string,
-     *     state: ?string,
-     *     code_challenge: ?string,
-     *     code_challenge_method: ?string,
-     *     scope: ?string,
-     *     response_type: ?string
-     * } $params
-     */
-    private function handleConsentSubmit(array $params): ResponseInterface|ResultInterface
-    {
-        if (!$this->formKeyValidator->validate($this->request)) {
-            return $this->redirectWithError(
-                $params['redirect_uri'],
-                $params['state'] ?? null,
-                'invalid_request',
-                'Form key validation failed.'
-            );
-        }
-
-        if (!$this->adminSession->isLoggedIn()) {
-            return $this->renderLoginRequired($params);
-        }
-
-        $rawAction = $this->request->getParam('oauth_action', '');
-        $action = is_string($rawAction) ? $rawAction : '';
-        if ($action === 'deny') {
-            return $this->redirectWithError(
-                $params['redirect_uri'],
-                $params['state'] ?? null,
-                'access_denied',
-                'User denied authorization.'
-            );
-        }
-        // Default: 'approve' OR anything else → treat as approve.
-
-        $admin = $this->adminSession->getUser();
-        $adminUserId = $admin === null ? 0 : (int) $admin->getId();
-        if ($adminUserId === 0) {
-            return $this->redirectWithError(
-                $params['redirect_uri'],
-                $params['state'] ?? null,
-                'server_error',
-                'Admin session lost during approval.'
-            );
-        }
-
-        $code = $this->authCodeIssuer->issue(
-            oauthClientId: (int) $params['client']->getId(),
-            adminUserId: $adminUserId,
-            redirectUri: $params['redirect_uri'],
-            codeChallenge: (string) $params['code_challenge'],
-            codeChallengeMethod: (string) $params['code_challenge_method'],
-            scope: $params['scope']
-        );
-
-        $this->logger->info('OAuth authorization code issued.', [
-            'client_id' => $params['client_id'],
-            'admin_user_id' => $adminUserId,
-        ]);
-
-        $separator = str_contains($params['redirect_uri'], '?') ? '&' : '?';
-        $redirectParams = ['code' => $code];
-        if (($params['state'] ?? null) !== null) {
-            $redirectParams['state'] = $params['state'];
-        }
-        $query = http_build_query($redirectParams);
-        $this->response->setHttpResponseCode(302);
-        $this->response->setHeader('Location', $params['redirect_uri'] . $separator . $query, true);
-        $this->response->setBody('');
-        return $this->response;
-    }
-
-    /**
-     * Opt out of form-key CSRF. The Task 18 POST handler validates the form
-     * key explicitly inside `handleConsentSubmit` so a missing-key request
-     * surfaces as an OAuth `access_denied` rather than a 403 form-key page.
+     * Opt out of form-key CSRF — this endpoint accepts only GET, validates
+     * its query params explicitly, and writes a single-use handoff before
+     * redirecting. The admin-area controller revalidates everything before
+     * issuing the auth code.
      */
     public function createCsrfValidationException(RequestInterface $request): ?InvalidRequestException
     {

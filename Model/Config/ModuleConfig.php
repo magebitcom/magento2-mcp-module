@@ -19,6 +19,7 @@ class ModuleConfig
     public const XML_PATH_SERVER_NAME = 'magebit_mcp/general/server_name';
     public const XML_PATH_SERVER_DESCRIPTION = 'magebit_mcp/general/server_description';
     public const XML_PATH_ALLOW_WRITES = 'magebit_mcp/general/allow_writes';
+    public const XML_PATH_PUBLIC_BASE_URL = 'magebit_mcp/general/public_base_url';
     public const XML_PATH_ALLOWED_ORIGINS = 'magebit_mcp/security/allowed_origins';
     public const XML_PATH_AUDIT_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
     public const XML_PATH_RATE_LIMITING_ENABLED = 'magebit_mcp/rate_limiting/enabled';
@@ -77,6 +78,24 @@ class ModuleConfig
         $value = $this->scopeConfig->getValue(self::XML_PATH_SERVER_DESCRIPTION);
         $value = is_string($value) ? trim($value) : '';
         return $value !== '' ? $value : null;
+    }
+
+    /**
+     * Override for the URL advertised in OAuth discovery documents and the
+     * `WWW-Authenticate` challenge. Intentionally not exposed in system.xml —
+     * operators set it via `app/etc/env.php` (see README) when running behind
+     * a tunnel/proxy that preserves the upstream `Host` (e.g. ngrok keeps
+     * `Host: <internal>` and surfaces the public name only in
+     * `X-Forwarded-Host`). Returns null when unset, in which case callers
+     * fall back to the storefront base URL.
+     *
+     * @return string|null
+     */
+    public function getPublicBaseUrl(): ?string
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_PUBLIC_BASE_URL);
+        $value = is_string($value) ? trim($value) : '';
+        return $value !== '' ? rtrim($value, '/') : null;
     }
 
     /**

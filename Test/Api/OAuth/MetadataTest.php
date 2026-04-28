@@ -112,6 +112,42 @@ class MetadataTest extends McpTestCase
         self::assertStringEndsWith('/mcp/oauth/token', $this->str($payload, 'token_endpoint'));
     }
 
+    public function testAuthorizationServerMetadataReachableAtWellKnownPath(): void
+    {
+        // RFC 8414 §3 mandates the metadata be served at this fixed path. Claude Web /
+        // ChatGPT / any spec-conformant remote-MCP client probes here directly.
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-authorization-server');
+
+        self::assertSame(200, $response['status'], 'Expected HTTP 200 from .well-known authorization-server-metadata.');
+        $payload = $response['payload'];
+        self::assertArrayHasKey('issuer', $payload);
+        self::assertStringEndsWith('/mcp/oauth/authorize', $this->str($payload, 'authorization_endpoint'));
+        self::assertStringEndsWith('/mcp/oauth/token', $this->str($payload, 'token_endpoint'));
+        self::assertSame(['S256'], $this->arr($payload, 'code_challenge_methods_supported'));
+    }
+
+    public function testProtectedResourceMetadataReachableAtWellKnownPath(): void
+    {
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-protected-resource');
+
+        self::assertSame(200, $response['status'], 'Expected HTTP 200 from .well-known protected-resource.');
+        $payload = $response['payload'];
+        self::assertStringEndsWith('/mcp', $this->str($payload, 'resource'));
+        self::assertNotEmpty($this->arr($payload, 'authorization_servers'));
+        self::assertSame(['header'], $this->arr($payload, 'bearer_methods_supported'));
+    }
+
+    public function testProtectedResourceMetadataReachableWithResourceSuffix(): void
+    {
+        // RFC 9728 §3 allows clients to append the resource path component to the .well-known prefix.
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-protected-resource/mcp');
+
+        self::assertSame(200, $response['status'], 'Expected HTTP 200 from .well-known protected-resource with /mcp suffix.');
+        $payload = $response['payload'];
+        self::assertStringEndsWith('/mcp', $this->str($payload, 'resource'));
+        self::assertNotEmpty($this->arr($payload, 'authorization_servers'));
+    }
+
     private function baseUrl(): string
     {
         if (!defined('TESTS_BASE_URL')) {

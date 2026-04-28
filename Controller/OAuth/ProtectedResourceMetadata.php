@@ -8,14 +8,13 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Controller\OAuth;
 
+use Magebit\Mcp\Model\Url\PublicUrlBuilder;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
-use Magento\Framework\UrlInterface;
-use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * RFC 9728 Protected Resource Metadata document for the MCP server.
@@ -28,30 +27,27 @@ class ProtectedResourceMetadata implements HttpGetActionInterface, CsrfAwareActi
 {
     public function __construct(
         private readonly HttpResponse $response,
-        private readonly StoreManagerInterface $storeManager
+        private readonly PublicUrlBuilder $urlBuilder
     ) {
     }
 
     public function execute(): ResponseInterface
     {
-        $storeBaseUrl = rtrim(
-            (string) $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_WEB),
-            '/'
-        );
-        $resourceUrl = $storeBaseUrl . '/mcp';
+        $baseUrl = $this->urlBuilder->getBaseUrl();
+        $resourceUrl = $baseUrl . '/mcp';
 
         $payload = [
             'resource' => $resourceUrl,
-            'authorization_servers' => [$storeBaseUrl],
+            'authorization_servers' => [$baseUrl],
             'bearer_methods_supported' => ['header'],
             'scopes_supported' => ['mcp'],
-            'resource_documentation' => $storeBaseUrl . '/mcp',
+            'resource_documentation' => $resourceUrl,
         ];
 
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES);
         $this->response->setHttpResponseCode(200);
         $this->response->setHeader('Content-Type', 'application/json', true);
-        $this->response->setHeader('Cache-Control', 'public, max-age=300', true);
+        $this->response->setHeader('Cache-Control', 'private, max-age=300', true);
         $this->response->setBody($body !== false ? $body : '{}');
         return $this->response;
     }

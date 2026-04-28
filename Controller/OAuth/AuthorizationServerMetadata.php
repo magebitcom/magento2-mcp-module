@@ -8,14 +8,13 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Controller\OAuth;
 
+use Magebit\Mcp\Model\Url\PublicUrlBuilder;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
-use Magento\Framework\UrlInterface;
-use Magento\Store\Model\StoreManagerInterface;
 
 /**
  * RFC 8414 Authorization Server Metadata document.
@@ -29,16 +28,13 @@ class AuthorizationServerMetadata implements HttpGetActionInterface, CsrfAwareAc
 {
     public function __construct(
         private readonly HttpResponse $response,
-        private readonly StoreManagerInterface $storeManager
+        private readonly PublicUrlBuilder $urlBuilder
     ) {
     }
 
     public function execute(): ResponseInterface
     {
-        $issuer = rtrim(
-            (string) $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_WEB),
-            '/'
-        );
+        $issuer = $this->urlBuilder->getBaseUrl();
 
         $payload = [
             'issuer' => $issuer,
@@ -55,7 +51,7 @@ class AuthorizationServerMetadata implements HttpGetActionInterface, CsrfAwareAc
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES);
         $this->response->setHttpResponseCode(200);
         $this->response->setHeader('Content-Type', 'application/json', true);
-        $this->response->setHeader('Cache-Control', 'public, max-age=300', true);
+        $this->response->setHeader('Cache-Control', 'private, max-age=300', true);
         $this->response->setBody($body !== false ? $body : '{}');
         return $this->response;
     }

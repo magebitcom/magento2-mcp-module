@@ -113,5 +113,21 @@
             "FK_AA2A4F9186CFB3688041DD3686123659": true,
             "FK_2FEB0E12C667080D1EE23BA9E2C0D237": true
         }
+    },
+    "magebit_mcp_oauth_authorize_handoff": {
+        "column": {
+            "id": true,
+            "nonce_hash": true,
+            "params_json": true,
+            "expires_at": true,
+            "created_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_OAUTH_AUTHORIZE_HANDOFF_EXPIRES_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_OAUTH_AUTHORIZE_HANDOFF_NONCE_HASH": true
+        }
     }
 }

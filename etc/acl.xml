@@ -8,6 +8,7 @@
                     <resource id="Magebit_Mcp::mcp" title="MCP" sortOrder="200">
                         <resource id="Magebit_Mcp::mcp_tokens" title="MCP Connections" sortOrder="10"/>
                         <resource id="Magebit_Mcp::mcp_oauth_clients" title="MCP OAuth Clients" sortOrder="15"/>
+                        <resource id="Magebit_Mcp::mcp_oauth_authorize" title="MCP OAuth — Approve Client Access" sortOrder="16"/>
                         <resource id="Magebit_Mcp::mcp_audit" title="MCP Audit Log" sortOrder="20"/>
                         <resource id="Magebit_Mcp::tools" title="MCP Tools" sortOrder="30">
                             <resource id="Magebit_Mcp::tool_system_store_list"

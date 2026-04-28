@@ -20,6 +20,7 @@ use Magebit\Mcp\Model\JsonRpc\Dispatcher;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Request as RpcRequest;
 use Magebit\Mcp\Model\JsonRpc\Response as RpcResponse;
+use Magebit\Mcp\Model\Url\PublicUrlBuilder;
 use Magebit\Mcp\Model\Validator\OriginValidator;
 use Magebit\Mcp\Model\Validator\ProtocolVersionValidator;
 use Magento\Framework\App\Action\HttpPostActionInterface;
@@ -29,7 +30,6 @@ use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
-use Magento\Framework\UrlInterface;
 
 /**
  * Single HTTP endpoint for the Magebit MCP server, reached as `POST /mcp`.
@@ -50,7 +50,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
         private readonly AuditContext $auditContext,
         private readonly AuditLogger $auditLogger,
         private readonly ModuleConfig $config,
-        private readonly UrlInterface $urlBuilder
+        private readonly PublicUrlBuilder $urlBuilder
     ) {
     }
 
@@ -71,11 +71,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             try {
                 $context = $this->authenticator->authenticate($this->header('Authorization'));
             } catch (UnauthorizedException $e) {
-                $metadataUrl = $this->urlBuilder->getUrl(
-                    'mcp/oauth/protected-resource-metadata',
-                    ['_nosid' => true, '_secure' => true]
-                );
-                $metadataUrl = rtrim($metadataUrl, '/');
+                $metadataUrl = $this->urlBuilder->buildUrl('/.well-known/oauth-protected-resource');
                 $this->response->setHeader(
                     'WWW-Authenticate',
                     sprintf('Bearer realm="Magento MCP", resource_metadata="%s"', $metadataUrl),

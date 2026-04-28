@@ -7,16 +7,13 @@
  */
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      layout="1column"
+      layout="admin-empty"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <referenceContainer name="content">
-            <block class="Magebit\Mcp\Block\OAuth\Authorize\Consent"
+            <block class="Magento\Backend\Block\Template"
                    name="mcp.oauth.authorize.consent"
                    template="Magebit_Mcp::oauth/authorize/consent.phtml"/>
-            <block class="Magebit\Mcp\Block\OAuth\Authorize\Consent"
-                   name="mcp.oauth.authorize.login_required"
-                   template="Magebit_Mcp::oauth/authorize/login_required.phtml"/>
         </referenceContainer>
     </body>
 </page>

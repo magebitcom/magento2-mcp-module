@@ -243,4 +243,30 @@
         </index>
     </table>
 
+    <table name="magebit_mcp_oauth_authorize_handoff" resource="default" engine="innodb"
+           comment="Short-lived handoff between the public OAuth authorize endpoint (frontend) and the admin-area consent screen — keeps the admin URL out of the public AS-metadata document">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
+                comment="Handoff ID"/>
+        <column xsi:type="varchar" name="nonce_hash" nullable="false" length="64"
+                comment="HMAC-SHA256 hash of the redirect-binding nonce; plaintext nonce travels only in the redirect URL"/>
+        <column xsi:type="text" name="params_json" nullable="false"
+                comment="JSON-encoded validated OAuth params (client_id, redirect_uri, state, code_challenge*, scope, response_type)"/>
+        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="false"
+                comment="UTC expiry timestamp; expired rows are ignored on consume and purged by cron"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_OAUTH_AUTHORIZE_HANDOFF_NONCE_HASH">
+            <column name="nonce_hash"/>
+        </constraint>
+
+        <index referenceId="MAGEBIT_MCP_OAUTH_AUTHORIZE_HANDOFF_EXPIRES_AT" indexType="btree">
+            <column name="expires_at"/>
+        </index>
+    </table>
+
 </schema>
