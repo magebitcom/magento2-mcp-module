@@ -18,6 +18,7 @@ use Magebit\Mcp\Model\OAuth\ClientRepository;
 use Magebit\Mcp\Model\OAuth\IssuedTokenPair;
 use Magebit\Mcp\Model\OAuth\OAuthErrorResponse;
 use Magebit\Mcp\Model\OAuth\PkceVerifier;
+use Magebit\Mcp\Model\OAuth\RefreshTokenRotator;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
@@ -31,9 +32,10 @@ use Magento\Framework\Exception\NoSuchEntityException;
 /**
  * `POST /mcp/oauth/token` — OAuth 2.1 token endpoint.
  *
- * Implements the `authorization_code` grant in Task 19. The `refresh_token`
- * grant is intentionally stubbed with `unsupported_grant_type` and lands in
- * Task 20 on the same controller.
+ * Implements both the `authorization_code` (Task 19) and `refresh_token`
+ * (Task 20) grants. `refresh_token` rotation is revoke-on-use: presenting
+ * a refresh token mints a fresh access+refresh pair and invalidates the
+ * one used to obtain it (per OAuth 2.1 §6.1).
  *
  * Supports both `client_secret_basic` (HTTP Basic Authorization header) and
  * `client_secret_post` (form-encoded `client_id` / `client_secret` fields)
@@ -52,6 +54,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         private readonly TokenHasher $tokenHasher,
         private readonly PkceVerifier $pkceVerifier,
         private readonly AccessTokenIssuer $accessTokenIssuer,
+        private readonly RefreshTokenRotator $refreshTokenRotator,
         private readonly OAuthErrorResponse $errorResponse,
         private readonly LoggerInterface $logger
     ) {
@@ -72,13 +75,10 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
 
             return match ($grantType) {
                 'authorization_code' => $this->handleAuthCode($client),
-                'refresh_token' => throw new OAuthException(
-                    'unsupported_grant_type',
-                    'refresh_token grant lands in Task 20.'
-                ),
+                'refresh_token' => $this->handleRefresh($client),
                 default => throw new OAuthException(
                     'unsupported_grant_type',
-                    'Only authorization_code is supported.'
+                    'Only authorization_code and refresh_token are supported.'
                 ),
             };
         } catch (OAuthException $e) {
@@ -190,6 +190,25 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         );
 
         return $this->emitTokenResponse($pair, $authCode->getScope());
+    }
+
+    /**
+     * @throws OAuthException
+     */
+    private function handleRefresh(Client $client): ResponseInterface
+    {
+        $refreshTokenPlain = $this->stringParam('refresh_token');
+        if ($refreshTokenPlain === '') {
+            throw new OAuthException('invalid_request', 'refresh_token is required.');
+        }
+
+        $clientId = $client->getId();
+        if ($clientId === null) {
+            throw new OAuthException('server_error', 'Client row missing id.', 500);
+        }
+
+        $pair = $this->refreshTokenRotator->rotate($refreshTokenPlain, (int) $clientId);
+        return $this->emitTokenResponse($pair, null);
     }
 
     private function emitTokenResponse(

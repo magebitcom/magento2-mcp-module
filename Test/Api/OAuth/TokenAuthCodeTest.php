@@ -8,12 +8,6 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Api\OAuth;
 
-use Magebit\Mcp\Model\Auth\AdminUserLookup;
-use Magebit\Mcp\Test\Api\McpTestCase;
-use Magento\Framework\ObjectManagerInterface;
-use Magento\TestFramework\Helper\Bootstrap;
-use RuntimeException;
-
 /**
  * `POST /mcp/oauth/token` — `authorization_code` grant.
  *
@@ -29,15 +23,12 @@ use RuntimeException;
  *
  * The PKCE values use the canonical RFC 7636 vector (verifier + challenge).
  *
- * Token issuance is opt-out (`$issueToken = false`) — these tests mint their
- * own access tokens via the OAuth flow rather than the CLI shortcut.
+ * Shared cURL/header/admin-user helpers live in {@see TokenEndpointTestCase}.
  */
-class TokenAuthCodeTest extends McpTestCase
+class TokenAuthCodeTest extends TokenEndpointTestCase
 {
     private const RFC_VERIFIER  = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
     private const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
-
-    protected ?bool $issueToken = false;
 
     /**
      * @magentoApiDataFixture Magento/User/_files/user_with_role.php
@@ -261,156 +252,5 @@ class TokenAuthCodeTest extends McpTestCase
         self::assertSame(405, $response['status']);
         $allow = $response['headers']['allow'] ?? '';
         self::assertSame('POST', $allow);
-    }
-
-    /**
-     * Issue a form-encoded POST against `/mcp/oauth/token` and capture the
-     * status, decoded JSON body, and lowercase-keyed response headers.
-     *
-     * Mirrors the helpers in {@see MetadataTest} / {@see AuthorizeTest} but
-     * sends `application/x-www-form-urlencoded` and JSON-decodes the body.
-     *
-     * @phpstan-param array<string, string> $body
-     * @phpstan-return array{status: int, payload: array<string, mixed>, headers: array<string, string>}
-     */
-    private function postToken(array $body): array
-    {
-        $url = $this->baseUrl() . '/mcp/oauth/token';
-        $curl = curl_init($url);
-        if ($curl === false) {
-            throw new RuntimeException('Failed to initialize cURL handle.');
-        }
-
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => http_build_query($body),
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/x-www-form-urlencoded',
-                'Accept: application/json',
-                'X-Forwarded-Proto: https',
-                'X-Forwarded-For: 127.0.0.1',
-            ],
-        ]);
-
-        $raw = curl_exec($curl);
-        if ($raw === false) {
-            $error = curl_error($curl);
-            curl_close($curl);
-            throw new RuntimeException('cURL POST failed: ' . $error);
-        }
-        $rawString = (string) $raw;
-        $headerSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
-        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        $headerBlock = substr($rawString, 0, $headerSize);
-        $bodyText = substr($rawString, $headerSize);
-
-        $decoded = $bodyText === '' ? null : json_decode($bodyText, true);
-
-        return [
-            'status' => $status,
-            'payload' => is_array($decoded) ? $decoded : [],
-            'headers' => $this->parseHeaders($headerBlock),
-        ];
-    }
-
-    /**
-     * Plain GET against the token endpoint — the controller must respond with
-     * 405 Method Not Allowed and an `Allow: POST` header.
-     *
-     * @phpstan-return array{status: int, headers: array<string, string>}
-     */
-    private function getToken(): array
-    {
-        $url = $this->baseUrl() . '/mcp/oauth/token';
-        $curl = curl_init($url);
-        if ($curl === false) {
-            throw new RuntimeException('Failed to initialize cURL handle.');
-        }
-
-        curl_setopt_array($curl, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_HEADER => true,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => 0,
-            CURLOPT_TIMEOUT => 10,
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'X-Forwarded-Proto: https',
-                'X-Forwarded-For: 127.0.0.1',
-            ],
-        ]);
-
-        $raw = curl_exec($curl);
-        if ($raw === false) {
-            $error = curl_error($curl);
-            curl_close($curl);
-            throw new RuntimeException('cURL GET failed: ' . $error);
-        }
-        $rawString = (string) $raw;
-        $headerSize = (int) curl_getinfo($curl, CURLINFO_HEADER_SIZE);
-        $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        curl_close($curl);
-
-        $headerBlock = substr($rawString, 0, $headerSize);
-
-        return [
-            'status' => $status,
-            'headers' => $this->parseHeaders($headerBlock),
-        ];
-    }
-
-    /**
-     * @phpstan-return array<string, string>
-     */
-    private function parseHeaders(string $block): array
-    {
-        $headers = [];
-        foreach (preg_split("/\r?\n/", trim($block)) ?: [] as $line) {
-            if (!str_contains($line, ':')) {
-                continue;
-            }
-            [$name, $value] = explode(':', $line, 2);
-            $headers[strtolower(trim($name))] = trim($value);
-        }
-        return $headers;
-    }
-
-    private function loadAdminUserId(string $username): int
-    {
-        $om = $this->objectManager();
-        /** @var AdminUserLookup $lookup */
-        $lookup = $om->get(AdminUserLookup::class);
-        $admin = $lookup->getByUsername($username);
-        $id = $admin->getId();
-        if (!is_scalar($id)) {
-            throw new RuntimeException(sprintf('Admin user "%s" has no id.', $username));
-        }
-        return (int) $id;
-    }
-
-    private function baseUrl(): string
-    {
-        if (!defined('TESTS_BASE_URL')) {
-            throw new RuntimeException('TESTS_BASE_URL is not defined; check phpunit_rest.xml(.dist).');
-        }
-        /** @var string $base */
-        $base = TESTS_BASE_URL;
-        return rtrim($base, '/');
-    }
-
-    private function objectManager(): ObjectManagerInterface
-    {
-        /** @var ObjectManagerInterface $om */
-        $om = Bootstrap::getObjectManager();
-        return $om;
     }
 }
