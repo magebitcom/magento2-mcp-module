@@ -32,4 +32,15 @@ interface ToolRegistryInterface
      * @throws NoSuchEntityException when the tool is not registered.
      */
     public function get(string $name): ToolInterface;
+
+    /**
+     * Resolves any accepted-on-the-wire form (canonical dotted name OR the
+     * dot→underscore wire form Claude.ai accepts) back to the canonical name
+     * `getName()` returns. Used by the JSON-RPC dispatcher so downstream code
+     * (ACL, scopes, audit) only ever sees the canonical identity.
+     *
+     * @param string $name
+     * @return string|null canonical name, or null when neither form resolves.
+     */
+    public function getCanonicalName(string $name): ?string;
 }

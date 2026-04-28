@@ -50,4 +50,26 @@ class HappyPathTest extends McpTestCase
         self::assertArrayHasKey('code', $defaultStore);
         self::assertArrayHasKey('name', $defaultStore);
     }
+
+    /**
+     * Claude.ai's frontend rejects dots in tool names and sends the dot→
+     * underscore wire form on `tools/call`. The dispatcher must accept that
+     * form and route to the same canonical tool the dotted name does.
+     *
+     * @magentoApiDataFixture Magento/User/_files/user_with_role.php
+     */
+    public function testToolsCallAcceptsUnderscoredWireName(): void
+    {
+        $response = $this->toolsCall('system_store_list');
+
+        $this->assertJsonRpcSuccess($response);
+        $body = $response['body'];
+        self::assertIsArray($body);
+        $result = $body['result'] ?? null;
+        self::assertIsArray($result);
+        self::assertSame(false, $result['isError'] ?? null);
+        $content = $result['content'] ?? null;
+        self::assertIsArray($content);
+        self::assertNotEmpty($content);
+    }
 }

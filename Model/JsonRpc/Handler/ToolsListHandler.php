@@ -24,6 +24,12 @@ use Magebit\Mcp\Model\Tool\WriteMode;
  * admin's role grants AND the token's scope permits are returned. Write tools
  * are hidden unless both the site-wide kill-switch and the token's
  * allow_writes flag are on, matching what `tools/call` will actually execute.
+ *
+ * Tool names are emitted in their dot→underscore wire form (e.g.
+ * `system.store.list` → `system_store_list`). Claude.ai's frontend rejects
+ * dots — see `^[a-zA-Z0-9_-]{1,64}$` in their tool-definition validator —
+ * while every other field (scopes, ACL ids, audit log, registry keys) keeps
+ * the canonical dotted identity. ToolsCallHandler reverses the projection.
  */
 class ToolsListHandler implements HandlerInterface
 {
@@ -71,7 +77,7 @@ class ToolsListHandler implements HandlerInterface
                 continue;
             }
             $tools[] = [
-                'name' => $tool->getName(),
+                'name' => str_replace('.', '_', $tool->getName()),
                 'title' => $tool->getTitle(),
                 'description' => $tool->getDescription(),
                 'inputSchema' => $this->schemaSanitizer->sanitize(

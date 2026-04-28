@@ -79,17 +79,37 @@ class ToolsCallHandler implements HandlerInterface
      */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
-        $name = $request->params['name'] ?? null;
-        if (!is_string($name) || $name === '') {
+        $requested = $request->params['name'] ?? null;
+        if (!is_string($requested) || $requested === '') {
             return $this->fail($request, ErrorCode::INVALID_PARAMS, 'Missing or invalid "name" parameter.');
         }
-        $this->auditContext->toolName = $name;
+        // Stamp the audit row with what the client actually sent before
+        // resolving — if the name doesn't map to a tool, operators still see
+        // the verbatim request.
+        $this->auditContext->toolName = $requested;
 
-        try {
-            $tool = $this->toolRegistry->get($name);
-        } catch (NoSuchEntityException) {
-            return $this->fail($request, ErrorCode::TOOL_NOT_FOUND, sprintf('Tool "%s" is not registered.', $name));
+        $canonical = $this->toolRegistry->getCanonicalName($requested);
+        if ($canonical === null) {
+            return $this->fail(
+                $request,
+                ErrorCode::TOOL_NOT_FOUND,
+                sprintf('Tool "%s" is not registered.', $requested)
+            );
         }
+        try {
+            $tool = $this->toolRegistry->get($canonical);
+        } catch (NoSuchEntityException) {
+            return $this->fail(
+                $request,
+                ErrorCode::TOOL_NOT_FOUND,
+                sprintf('Tool "%s" is not registered.', $requested)
+            );
+        }
+        // Downstream — scopes, ACL, rate limiter, events, audit summary — all
+        // operate on the canonical dotted identity, regardless of which form
+        // the client sent.
+        $name = $canonical;
+        $this->auditContext->toolName = $name;
 
         $argsRaw = $request->params['arguments'] ?? [];
         if (!is_array($argsRaw)) {

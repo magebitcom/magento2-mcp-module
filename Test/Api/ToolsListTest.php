@@ -15,11 +15,15 @@ namespace Magebit\Mcp\Test\Api;
  */
 class ToolsListTest extends McpTestCase
 {
-    /** Tools that this module ships and that adminUser's full-perm role grants. */
+    /**
+     * Tools that this module ships and that adminUser's full-perm role grants.
+     * Names are emitted in the dot→underscore wire form because Claude.ai's
+     * frontend rejects dots — the canonical identity stays internal.
+     */
     private const REQUIRED_TOOLS = [
-        'system.store.list',
-        'system.store.info',
-        'system.config.get',
+        'system_store_list',
+        'system_store_info',
+        'system_config_get',
     ];
 
     protected ?bool $allowWrites = true;

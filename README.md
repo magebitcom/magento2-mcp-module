@@ -196,8 +196,23 @@ The MCP module ships an OAuth 2.1 + PKCE authorization server, so Claude Web's "
 
 ### How it works under the hood
 
-- `GET /mcp` with no token → `401 + WWW-Authenticate: Bearer realm=…, resource_metadata=https://yourstore.com/mcp/oauth/protectedresourcemetadata`.
-- That metadata document points at the authorization server (the same Magento host).
+- `POST /mcp` with no token → `401 + WWW-Authenticate: Bearer realm=…, resource_metadata=https://yourstore.com/.well-known/oauth-protected-resource`.
+- That metadata document (RFC 9728) points at the authorization server (the same Magento host); the AS metadata at `/.well-known/oauth-authorization-server` (RFC 8414) lists the authorize / token endpoints and supported grants.
+- Both discovery documents advertise URLs derived from the storefront's `web/secure/base_url`. If you're running behind a tunnel or proxy that preserves the upstream `Host` header (the default for ngrok — the public hostname only appears in `X-Forwarded-Host`), the metadata will point at the internal hostname and remote MCP clients won't be able to follow it. To fix, set the public-base-url override in `app/etc/env.php` (intentionally not exposed in admin Stores → Configuration so it can't be changed accidentally):
+
+  ```php
+  'system' => [
+      'default' => [
+          'magebit_mcp' => [
+              'general' => [
+                  'public_base_url' => 'https://your-tunnel-host.example.com',
+              ],
+          ],
+      ],
+  ],
+  ```
+
+  Trailing slash optional. Run `bin/magento cache:flush` after editing.
 - Claude Web walks the authorization-code + PKCE flow. The user's consent step requires an active Magento admin session — the issued access token is bound to that admin user, so all ACL checks downstream work as if the admin was using the admin UI directly.
 - Access tokens default to 1-hour TTL; refresh tokens to 30 days. Both lifetimes are configurable under **Stores → Configuration → Magebit → MCP Server → OAuth 2.1**.
 - Issued access tokens are stored in the same `magebit_mcp_token` table as CLI/admin-issued tokens — they show up in **System → MCP → Connections** with the label `OAuth: <client name>` and can be revoked the same way.
@@ -206,8 +221,8 @@ The MCP module ships an OAuth 2.1 + PKCE authorization server, so Claude Web's "
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /mcp/oauth/protectedresourcemetadata` | RFC 9728 resource metadata (advertised in `WWW-Authenticate`). |
-| `GET /mcp/oauth/authorizationservermetadata` | RFC 8414 authorization server metadata (lists endpoints, grants, PKCE methods). |
+| `GET /.well-known/oauth-protected-resource` | RFC 9728 resource metadata (advertised in `WWW-Authenticate`). Also reachable at `/.well-known/oauth-protected-resource/mcp` per RFC 9728 §3. |
+| `GET /.well-known/oauth-authorization-server` | RFC 8414 authorization server metadata (lists endpoints, grants, PKCE methods). |
 | `GET\|POST /mcp/oauth/authorize` | Interactive consent UI; renders login-required if no admin session. |
 | `POST /mcp/oauth/token` | Exchanges auth code or refresh token for a new access+refresh pair. |
 
