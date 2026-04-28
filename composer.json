@@ -10,11 +10,13 @@
         "magento/module-user": "^101.2",
         "magento/module-authorization": "^100.4",
         "opis/json-schema": "^2.3",
-        "magebitcom/magento2-core": "*",
-        "magebitcom/module2-mcp-order-tools": "*",
-        "magebitcom/module2-mcp-catalog-tools": "*",
-        "magebitcom/module2-mcp-customer-tools": "*",
-        "magebitcom/module2-mcp-cms-tools": "*"
+        "magebitcom/magento2-core": "*"
+    },
+    "suggest": {
+        "magebitcom/module2-mcp-order-tools": "Sub-module for order-related MCP tools",
+        "magebitcom/module2-mcp-catalog-tools": "Sub-module for catalog-related MCP tools",
+        "magebitcom/module2-mcp-customer-tools": "Sub-module for customer-related MCP tools",
+        "magebitcom/module2-mcp-cms-tools": "Sub-module for CMS-related MCP tools"
     },
     "autoload": {
         "files": [
