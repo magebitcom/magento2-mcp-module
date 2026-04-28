@@ -8,7 +8,9 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Controller\OAuth;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\OAuthException;
+use Magebit\Mcp\Model\OAuth\AuthCodeIssuer;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ClientRepository;
 use Magebit\Mcp\Model\OAuth\PkceVerifier;
@@ -23,6 +25,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\ResultInterface;
+use Magento\Framework\Data\Form\FormKey\Validator as FormKeyValidator;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Element\AbstractBlock;
 use Magento\Framework\View\Result\Page;
@@ -31,9 +34,13 @@ use Magento\Framework\View\Result\PageFactory;
 /**
  * `GET|POST /mcp/oauth/authorize` — OAuth 2.1 authorization endpoint.
  *
- * GET (Task 17, this file): validates query params, then either renders the
- * "log in to admin first" page or the consent screen. POST handling is stubbed
- * here and lands in Task 18.
+ * GET: validates query params, then either renders the "log in to admin first"
+ * page or the consent screen.
+ *
+ * POST: handles the consent form submit. Validates the form key, requires an
+ * admin session, then either mints an auth code (redirecting back with
+ * `code=...&state=...`) or — on `oauth_action=deny` — redirects back with
+ * `error=access_denied`.
  *
  * Per OAuth 2.1 §4.1.2.1 there are two error families:
  *   - Bad `client_id` / `redirect_uri` → render error inline (we MUST NOT
@@ -49,7 +56,10 @@ class Authorize implements HttpGetActionInterface, HttpPostActionInterface, Csrf
         private readonly PageFactory $pageFactory,
         private readonly ClientRepository $clientRepository,
         private readonly RedirectUriValidator $redirectUriValidator,
-        private readonly AdminSession $adminSession
+        private readonly AdminSession $adminSession,
+        private readonly AuthCodeIssuer $authCodeIssuer,
+        private readonly FormKeyValidator $formKeyValidator,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -275,8 +285,66 @@ class Authorize implements HttpGetActionInterface, HttpPostActionInterface, Csrf
      */
     private function handleConsentSubmit(array $params): ResponseInterface|ResultInterface
     {
-        unset($params);
-        throw new \LogicException('Authorize POST handling lands in Task 18.');
+        if (!$this->formKeyValidator->validate($this->request)) {
+            return $this->redirectWithError(
+                $params['redirect_uri'],
+                $params['state'] ?? null,
+                'invalid_request',
+                'Form key validation failed.'
+            );
+        }
+
+        if (!$this->adminSession->isLoggedIn()) {
+            return $this->renderLoginRequired($params);
+        }
+
+        $rawAction = $this->request->getParam('oauth_action', '');
+        $action = is_string($rawAction) ? $rawAction : '';
+        if ($action === 'deny') {
+            return $this->redirectWithError(
+                $params['redirect_uri'],
+                $params['state'] ?? null,
+                'access_denied',
+                'User denied authorization.'
+            );
+        }
+        // Default: 'approve' OR anything else → treat as approve.
+
+        $admin = $this->adminSession->getUser();
+        $adminUserId = $admin === null ? 0 : (int) $admin->getId();
+        if ($adminUserId === 0) {
+            return $this->redirectWithError(
+                $params['redirect_uri'],
+                $params['state'] ?? null,
+                'server_error',
+                'Admin session lost during approval.'
+            );
+        }
+
+        $code = $this->authCodeIssuer->issue(
+            oauthClientId: (int) $params['client']->getId(),
+            adminUserId: $adminUserId,
+            redirectUri: $params['redirect_uri'],
+            codeChallenge: (string) $params['code_challenge'],
+            codeChallengeMethod: (string) $params['code_challenge_method'],
+            scope: $params['scope']
+        );
+
+        $this->logger->info('OAuth authorization code issued.', [
+            'client_id' => $params['client_id'],
+            'admin_user_id' => $adminUserId,
+        ]);
+
+        $separator = str_contains($params['redirect_uri'], '?') ? '&' : '?';
+        $redirectParams = ['code' => $code];
+        if (($params['state'] ?? null) !== null) {
+            $redirectParams['state'] = $params['state'];
+        }
+        $query = http_build_query($redirectParams);
+        $this->response->setHttpResponseCode(302);
+        $this->response->setHeader('Location', $params['redirect_uri'] . $separator . $query, true);
+        $this->response->setBody('');
+        return $this->response;
     }
 
     /**
