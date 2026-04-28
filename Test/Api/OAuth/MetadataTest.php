@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Test\Api\OAuth;
 
 use Magebit\Mcp\Test\Api\McpTestCase;
+use Magento\Framework\App\Cache\TypeListInterface;
 use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\ObjectManagerInterface;
 use Magento\TestFramework\Helper\Bootstrap;
 use RuntimeException;
 
@@ -36,7 +38,7 @@ class MetadataTest extends McpTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $connection = Bootstrap::getObjectManager()->get(ResourceConnection::class)->getConnection();
+        $connection = $this->resourceConnection()->getConnection();
         $table = $connection->getTableName('core_config_data');
         $row = $connection->fetchRow(
             $connection->select()->from($table, 'value')
@@ -54,7 +56,7 @@ class MetadataTest extends McpTestCase
 
     protected function tearDown(): void
     {
-        $connection = Bootstrap::getObjectManager()->get(ResourceConnection::class)->getConnection();
+        $connection = $this->resourceConnection()->getConnection();
         $table = $connection->getTableName('core_config_data');
         if ($this->previousRedirectToBase === null) {
             $connection->delete($table, [
@@ -77,43 +79,93 @@ class MetadataTest extends McpTestCase
         parent::tearDown();
     }
 
-    private function flushConfigCache(): void
-    {
-        Bootstrap::getObjectManager()
-            ->get(\Magento\Framework\App\Cache\TypeListInterface::class)
-            ->cleanType('config');
-    }
-
     public function testProtectedResourceMetadataExposesAuthorizationServer(): void
     {
-        $url = rtrim((string) TESTS_BASE_URL, '/') . '/mcp/oauth/protectedresourcemetadata';
-        $response = $this->getJson($url);
+        $response = $this->getJson($this->baseUrl() . '/mcp/oauth/protectedresourcemetadata');
 
         self::assertSame(200, $response['status'], 'Expected HTTP 200 from protected-resource-metadata.');
         $payload = $response['payload'];
         self::assertArrayHasKey('resource', $payload);
-        self::assertStringEndsWith('/mcp', (string) $payload['resource']);
-        self::assertIsArray($payload['authorization_servers']);
-        self::assertNotEmpty($payload['authorization_servers']);
-        self::assertSame(['header'], $payload['bearer_methods_supported']);
-        self::assertSame(['mcp'], $payload['scopes_supported']);
+        self::assertStringEndsWith('/mcp', $this->str($payload, 'resource'));
+        self::assertNotEmpty($this->arr($payload, 'authorization_servers'));
+        self::assertSame(['header'], $this->arr($payload, 'bearer_methods_supported'));
+        self::assertSame(['mcp'], $this->arr($payload, 'scopes_supported'));
     }
 
     public function testAuthorizationServerMetadataAdvertisesPkceAndGrants(): void
     {
-        $url = rtrim((string) TESTS_BASE_URL, '/') . '/mcp/oauth/authorizationservermetadata';
-        $response = $this->getJson($url);
+        $response = $this->getJson($this->baseUrl() . '/mcp/oauth/authorizationservermetadata');
 
         self::assertSame(200, $response['status'], 'Expected HTTP 200 from authorization-server-metadata.');
         $payload = $response['payload'];
         self::assertArrayHasKey('issuer', $payload);
-        self::assertSame(['code'], $payload['response_types_supported']);
-        self::assertSame(['authorization_code', 'refresh_token'], $payload['grant_types_supported']);
-        self::assertSame(['S256'], $payload['code_challenge_methods_supported']);
-        self::assertContains('client_secret_basic', $payload['token_endpoint_auth_methods_supported']);
-        self::assertContains('client_secret_post', $payload['token_endpoint_auth_methods_supported']);
-        self::assertStringEndsWith('/mcp/oauth/authorize', (string) $payload['authorization_endpoint']);
-        self::assertStringEndsWith('/mcp/oauth/token', (string) $payload['token_endpoint']);
+        self::assertSame(['code'], $this->arr($payload, 'response_types_supported'));
+        self::assertSame(
+            ['authorization_code', 'refresh_token'],
+            $this->arr($payload, 'grant_types_supported')
+        );
+        self::assertSame(['S256'], $this->arr($payload, 'code_challenge_methods_supported'));
+        $authMethods = $this->arr($payload, 'token_endpoint_auth_methods_supported');
+        self::assertContains('client_secret_basic', $authMethods);
+        self::assertContains('client_secret_post', $authMethods);
+        self::assertStringEndsWith('/mcp/oauth/authorize', $this->str($payload, 'authorization_endpoint'));
+        self::assertStringEndsWith('/mcp/oauth/token', $this->str($payload, 'token_endpoint'));
+    }
+
+    private function baseUrl(): string
+    {
+        if (!defined('TESTS_BASE_URL')) {
+            throw new RuntimeException('TESTS_BASE_URL is not defined; check phpunit_rest.xml(.dist).');
+        }
+        /** @var string $base */
+        $base = TESTS_BASE_URL;
+        return rtrim($base, '/');
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function str(array $payload, string $key): string
+    {
+        $value = $payload[$key] ?? null;
+        if (!is_string($value)) {
+            throw new RuntimeException(sprintf('Expected string at "%s".', $key));
+        }
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<int, mixed>
+     */
+    private function arr(array $payload, string $key): array
+    {
+        $value = $payload[$key] ?? null;
+        if (!is_array($value)) {
+            throw new RuntimeException(sprintf('Expected array at "%s".', $key));
+        }
+        return array_values($value);
+    }
+
+    private function objectManager(): ObjectManagerInterface
+    {
+        /** @var ObjectManagerInterface $om */
+        $om = Bootstrap::getObjectManager();
+        return $om;
+    }
+
+    private function resourceConnection(): ResourceConnection
+    {
+        /** @var ResourceConnection $rc */
+        $rc = $this->objectManager()->get(ResourceConnection::class);
+        return $rc;
+    }
+
+    private function flushConfigCache(): void
+    {
+        /** @var TypeListInterface $cache */
+        $cache = $this->objectManager()->get(TypeListInterface::class);
+        $cache->cleanType('config');
     }
 
     /**
@@ -158,11 +210,7 @@ class MetadataTest extends McpTestCase
         $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
         curl_close($curl);
 
-        $headers = substr($rawString, 0, $headerSize);
         $body = substr($rawString, $headerSize);
-        if ($status !== 200) {
-            fwrite(STDERR, "DEBUG headers:\n" . $headers . "\n");
-        }
         $decoded = $body === '' ? null : json_decode($body, true);
         return [
             'status' => $status,
