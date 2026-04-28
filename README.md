@@ -172,6 +172,58 @@ Content-Type: application/json
 
 Use a loopback origin (`http://localhost*`, `http://127.0.0.1*`) — they're in the default allowlist. If Claude Desktop / ChatGPT needs to reach your dev box from outside, expose it with Cloudflare Tunnel / ngrok / Tailscale Funnel and add the tunnel hostname to **Stores → Configuration → Magebit → MCP Server → Allowed Origins**.
 
+## Connecting Claude Web (or any OAuth-capable MCP host)
+
+The MCP module ships an OAuth 2.1 + PKCE authorization server, so Claude Web's "Custom Integration" flow works out of the box — no external IdP, no proxy, no extra services.
+
+### One-time setup
+
+1. In Magento admin: **System → MCP → OAuth Clients → New Client**.
+2. Enter:
+   - **Name** — e.g. `Claude Web`.
+   - **Redirect URIs** — paste the URI Claude Web's connector form requests (one per line). Exact-match: no trailing-slash drift.
+3. Save. Magento shows the **Client ID** and **Client Secret** once — copy both before navigating away.
+
+### In Claude Web
+
+1. Open the Custom Connector form.
+2. Fill in:
+   - **Server URL**: `https://yourstore.com/mcp`
+   - **OAuth Client ID**: paste from step 3 above.
+   - **OAuth Client Secret**: paste from step 3 above.
+3. Connect. Claude Web redirects you to your store. If you're already logged into Magento admin in the same browser, you'll see a one-screen Approve / Deny consent. Otherwise, you'll see a "Log in to admin first" page with a link.
+4. Approve. Claude Web finishes the OAuth dance and the tools list populates.
+
+### How it works under the hood
+
+- `GET /mcp` with no token → `401 + WWW-Authenticate: Bearer realm=…, resource_metadata=https://yourstore.com/mcp/oauth/protectedresourcemetadata`.
+- That metadata document points at the authorization server (the same Magento host).
+- Claude Web walks the authorization-code + PKCE flow. The user's consent step requires an active Magento admin session — the issued access token is bound to that admin user, so all ACL checks downstream work as if the admin was using the admin UI directly.
+- Access tokens default to 1-hour TTL; refresh tokens to 30 days. Both lifetimes are configurable under **Stores → Configuration → Magebit → MCP Server → OAuth 2.1**.
+- Issued access tokens are stored in the same `magebit_mcp_token` table as CLI/admin-issued tokens — they show up in **System → MCP → Connections** with the label `OAuth: <client name>` and can be revoked the same way.
+
+### OAuth endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /mcp/oauth/protectedresourcemetadata` | RFC 9728 resource metadata (advertised in `WWW-Authenticate`). |
+| `GET /mcp/oauth/authorizationservermetadata` | RFC 8414 authorization server metadata (lists endpoints, grants, PKCE methods). |
+| `GET\|POST /mcp/oauth/authorize` | Interactive consent UI; renders login-required if no admin session. |
+| `POST /mcp/oauth/token` | Exchanges auth code or refresh token for a new access+refresh pair. |
+
+### Configuration paths
+
+| Path | Default | Purpose |
+|---|---|---|
+| `magebit_mcp/oauth/access_token_lifetime` | `3600` | Access token TTL (seconds). |
+| `magebit_mcp/oauth/refresh_token_lifetime_days` | `30` | Refresh token TTL (days). |
+| `magebit_mcp/oauth/auth_code_lifetime` | `60` | Authorization code TTL (seconds). Increase only when debugging. |
+
+### Revocation
+
+- **Revoke a single Claude session**: revoke the access token in the Connections grid.
+- **Disconnect a client entirely**: delete the OAuth client. Cascades to its auth codes and refresh tokens. Already-issued access tokens stay (they cap at the access lifetime; revoke individually if urgent).
+
 ## Console commands
 
 | Command | Purpose |

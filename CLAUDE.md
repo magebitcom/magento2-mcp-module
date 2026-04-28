@@ -51,6 +51,21 @@ Every `POST /mcp` runs this fixed sequence. Every stage has an audit row flushed
 
 The controller bypasses layout and writes directly to the HTTP response. It implements `CsrfAwareActionInterface` to opt out of Magento's form-key CSRF — bearer auth is the CSRF gate.
 
+## OAuth 2.1 authorization server
+
+The module also ships an OAuth 2.1 + PKCE authorization server at `/mcp/oauth/*`:
+
+- `GET /mcp/oauth/protectedresourcemetadata` — RFC 9728. Advertised by `WWW-Authenticate` on every 401.
+- `GET /mcp/oauth/authorizationservermetadata` — RFC 8414. Lists endpoints + supported grants.
+- `GET|POST /mcp/oauth/authorize` — interactive consent screen. Requires Magento admin session.
+- `POST /mcp/oauth/token` — `authorization_code` and `refresh_token` grants.
+
+Issued access tokens are written to `magebit_mcp_token` with `oauth_client_id` set, so the bearer pipeline (`TokenAuthenticator`) doesn't change. Refresh tokens live in their own table with revoke-on-use rotation.
+
+Tables: `magebit_mcp_oauth_client`, `magebit_mcp_oauth_auth_code`, `magebit_mcp_oauth_refresh_token`. Cleanup cron: `magebit_mcp_purge_oauth` (daily 04:00).
+
+Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth_clients`).
+
 ## Core extensibility surface
 
 Satellite modules must reuse these five contracts — never duplicate them.
