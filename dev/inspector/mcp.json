@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "magebit-mcp-local": {
+      "type": "streamable-http",
+      "url": "https://magento-demo.docker/mcp",
+      "note": "Replace URL + Authorization header with your dev-instance values. Mint a token via: d/magento magebit:mcp:token:create --admin-user=<you> --name=inspector"
+    }
+  }
+}

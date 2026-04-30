@@ -1,0 +1,103 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+declare(strict_types=1);
+
+namespace Magebit\Mcp\Test\Unit\Model\Validator;
+
+use Magebit\Mcp\Model\Config\ModuleConfig;
+use Magebit\Mcp\Model\Validator\OriginValidator;
+use PHPUnit\Framework\TestCase;
+use RuntimeException;
+
+class OriginValidatorTest extends TestCase
+{
+    /**
+     * @param array<int, string> $allowlist
+     */
+    private function validator(array $allowlist = [
+        'http://localhost*',
+        'https://localhost*',
+        'http://127.0.0.1*',
+        'https://127.0.0.1*',
+    ]): OriginValidator
+    {
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getAllowedOrigins')->willReturn($allowlist);
+        return new OriginValidator($config);
+    }
+
+    public function testAcceptsMissingOrigin(): void
+    {
+        $validator = $this->validator();
+        $this->assertTrue($validator->isAllowed(null));
+        $this->assertTrue($validator->isAllowed(''));
+    }
+
+    public function testRejectsOriginLiteralNull(): void
+    {
+        // Sandboxed iframes/data: URIs send `Origin: null`; DNS-rebinding defense must catch it.
+        $this->assertFalse($this->validator()->isAllowed('null'));
+    }
+
+    public function testAcceptsLoopbackWithoutPort(): void
+    {
+        $this->assertTrue($this->validator()->isAllowed('http://localhost'));
+        $this->assertTrue($this->validator()->isAllowed('http://127.0.0.1'));
+    }
+
+    public function testAcceptsLoopbackWithPort(): void
+    {
+        $this->assertTrue($this->validator()->isAllowed('http://localhost:3000'));
+        $this->assertTrue($this->validator()->isAllowed('https://localhost:8443'));
+        $this->assertTrue($this->validator()->isAllowed('http://127.0.0.1:6277'));
+    }
+
+    public function testAcceptsLoopbackWithPath(): void
+    {
+        $this->assertTrue($this->validator()->isAllowed('http://localhost/mcp'));
+    }
+
+    /**
+     * @return iterable<string, array{0: string}>
+     */
+    public static function dnsRebindingAttemptProvider(): iterable
+    {
+        yield 'loopback subdomain' => ['http://localhost.attacker.com'];
+        yield 'loopback as label' => ['http://localhost.evil.test'];
+        yield 'loopback prefix word' => ['http://localhostess.example.com'];
+        yield 'ip label continuation' => ['http://127.0.0.1.attacker.com'];
+        yield 'ip with extra octet' => ['http://127.0.0.1234'];
+        yield 'schema mismatch' => ['ftp://localhost'];
+    }
+
+    /**
+     * @dataProvider dnsRebindingAttemptProvider
+     */
+    public function testRejectsDnsRebindingShapes(string $origin): void
+    {
+        $this->assertFalse($this->validator()->isAllowed($origin));
+    }
+
+    public function testRejectsNonListedHost(): void
+    {
+        $this->assertFalse($this->validator()->isAllowed('https://evil.example.com'));
+    }
+
+    public function testThrowsOnEmptyAllowlist(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/allowed-origins list is empty/');
+
+        $this->validator([])->isAllowed('http://localhost');
+    }
+
+    public function testEmptyAllowlistStillAcceptsMissingOrigin(): void
+    {
+        // Non-browser clients omit Origin; bearer still gates them.
+        $this->assertTrue($this->validator([])->isAllowed(null));
+    }
+}

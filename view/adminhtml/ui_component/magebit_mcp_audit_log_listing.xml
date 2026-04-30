@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">magebit_mcp_audit_log_listing.magebit_mcp_audit_log_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>magebit_mcp_audit_log_columns</spinner>
+        <deps>
+            <dep>magebit_mcp_audit_log_listing.magebit_mcp_audit_log_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="magebit_mcp_audit_log_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Magebit_Mcp::mcp_audit</aclResource>
+        <dataProvider name="magebit_mcp_audit_log_listing_data_source"
+                      class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <settings>
+            <sticky>true</sticky>
+        </settings>
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="magebit_mcp_audit_log_columns">
+        <settings>
+            <editorConfig>
+                <param name="enabled" xsi:type="boolean">false</param>
+            </editorConfig>
+        </settings>
+        <column name="id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">ID</label>
+                <sorting>desc</sorting>
+            </settings>
+        </column>
+        <column name="created_at"
+                sortOrder="20"
+                class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Created</label>
+            </settings>
+        </column>
+        <column name="method" sortOrder="30" class="Magebit\Mcp\Ui\Component\Listing\Column\Method">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Method</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+            </settings>
+        </column>
+        <column name="tool_name" sortOrder="40">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Tool</label>
+            </settings>
+        </column>
+        <column name="admin_user_id" sortOrder="50" class="Magebit\Mcp\Ui\Component\Listing\Column\AdminUser">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Admin</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="token_id" sortOrder="60" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenName">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Token ID</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="response_status" sortOrder="70" class="Magebit\Mcp\Ui\Component\Listing\Column\ResponseStatus">
+            <settings>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Magebit\Mcp\Ui\Component\Listing\Column\ResponseStatusOptions"/>
+                <label translate="true">Status</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+            </settings>
+        </column>
+        <column name="error_code" sortOrder="80" class="Magebit\Mcp\Ui\Component\Listing\Column\ErrorCodeLabel">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Error</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+            </settings>
+        </column>
+        <column name="duration_ms" sortOrder="90">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Duration (ms)</label>
+            </settings>
+        </column>
+        <column name="ip_address" sortOrder="100">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">IP</label>
+            </settings>
+        </column>
+        <column name="protocol_version" sortOrder="110">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">MCP version</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="request_id" sortOrder="120">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Request ID</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="arguments_json" sortOrder="130">
+            <settings>
+                <label translate="true">Arguments (redacted)</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="result_summary_json" sortOrder="140">
+            <settings>
+                <label translate="true">Result summary</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="user_agent" sortOrder="150">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">User-Agent</label>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <actionsColumn name="actions"
+                       sortOrder="160"
+                       class="Magebit\Mcp\Ui\Component\Listing\Column\AuditViewAction">
+            <settings>
+                <indexField>id</indexField>
+                <resizeEnabled>false</resizeEnabled>
+                <resizeDefaultWidth>80</resizeDefaultWidth>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

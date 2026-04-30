@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="magebit_mcp_audit_purge" instance="Magebit\Mcp\Cron\PurgeAuditLog" method="execute">
+            <schedule>0 3 * * *</schedule>
+        </job>
+        <job name="magebit_mcp_purge_oauth" instance="Magebit\Mcp\Cron\PurgeOAuthCodes" method="execute">
+            <schedule>0 4 * * *</schedule>
+        </job>
+    </group>
+</config>

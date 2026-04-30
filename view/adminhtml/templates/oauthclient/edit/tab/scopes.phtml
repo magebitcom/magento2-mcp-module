@@ -1,0 +1,42 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+declare(strict_types=1);
+
+/** @var \Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Tab\Scopes $block */
+
+$widgetOptions = [
+    'mcpScopesTree' => [
+        'treeUrl' => $block->getResourceTreeUrl(),
+        'editFormSelector' => '#edit_form',
+        'initialTree' => json_decode($block->getInitialTreeJson(), true),
+        'initialSelection' => json_decode($block->getRestoredSelectionJson(), true),
+    ],
+];
+?>
+<fieldset class="admin__fieldset form-inline entry-edit">
+    <div class="message message-warning" data-role="scope-warning" style="margin-bottom: 20px;">
+        <span><?= $block->escapeHtml(__(
+            'These tools are the upper bound any token issued to this client may invoke.'
+            . ' At consent time the approving admin can tighten further; the runtime gate'
+            . ' also enforces the admin\'s own role.'
+        )) ?></span>
+    </div>
+
+    <div class="field">
+        <label class="label">
+            <span><?= $block->escapeHtml(__('Allowed Tools')) ?></span>
+        </label>
+        <div class="control">
+            <div data-role="resource-tree-wrapper">
+                <div class="tree x-tree"
+                     id="magebit-mcp-oauthclient-resource-tree"
+                     data-role="resource-tree"
+                     data-mage-init='<?= $block->escapeHtmlAttr(json_encode($widgetOptions, JSON_UNESCAPED_SLASHES)) ?>'></div>
+            </div>
+        </div>
+    </div>
+</fieldset>

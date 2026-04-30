@@ -1,0 +1,30 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ *
+ * @var \Magebit\Mcp\Block\Adminhtml\OAuthClient\Created $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+declare(strict_types=1);
+?>
+<div class="mcp-credentials">
+    <h1 class="mcp-credentials__title">OAuth client created</h1>
+    <p class="mcp-credentials__lede">
+        <strong><?= $escaper->escapeHtml($block->getName()) ?></strong> is ready.
+        Copy these credentials now — the client secret is not retrievable later.
+    </p>
+
+    <dl class="mcp-credentials__list">
+        <dt class="mcp-credentials__label">Client ID</dt>
+        <dd class="mcp-credentials__value"><?= $escaper->escapeHtml($block->getClientId()) ?></dd>
+
+        <dt class="mcp-credentials__label">Client Secret</dt>
+        <dd class="mcp-credentials__value"><?= $escaper->escapeHtml($block->getClientSecret()) ?></dd>
+    </dl>
+
+    <p class="mcp-credentials__actions">
+        <a class="mcp-credentials__back" href="<?= $escaper->escapeUrl($block->getBackUrl()) ?>">Back to OAuth clients</a>
+    </p>
+</div>

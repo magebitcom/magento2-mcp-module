@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="magebit_mcp" translate="label" type="text" sortOrder="500"
+                 showInDefault="1" showInWebsite="0" showInStore="0">
+            <class>separator-top</class>
+            <label>MCP Server</label>
+            <tab>magebit</tab>
+            <resource>Magebit_Mcp::config</resource>
+            <group id="general" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>General</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Enable MCP Server</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Master kill-switch. When disabled, every <code>POST /mcp</code> request
+                    returns HTTP 503 before authentication runs. Existing tokens remain intact.]]></comment>
+                </field>
+                <field id="server_name" translate="label comment" type="text" sortOrder="15"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Server Name</label>
+                    <comment><![CDATA[Advertised to MCP clients via <code>initialize.serverInfo.name</code>.
+                    Defaults to <code>Magebit MCP</code>; override per deployment so operators and AI clients
+                    can tell staging from production at a glance.]]></comment>
+                </field>
+                <field id="server_description" translate="label comment" type="textarea" sortOrder="16"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Server Description</label>
+                    <comment><![CDATA[Optional free-text hint advertised to MCP clients via
+                    <code>initialize.instructions</code>. Describe what this store sells, its currency/locale,
+                    or any operator-specific guidance the AI should keep in mind when selecting tools.]]></comment>
+                </field>
+                <field id="allow_writes" translate="label comment" type="select" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Allow Write Tools</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Global override. A token's <em>Allow write tools</em> flag is only
+                    honoured when this is <strong>Yes</strong>.]]></comment>
+                </field>
+            </group>
+            <group id="security" translate="label" type="text" sortOrder="20"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Security</label>
+                <field id="allowed_origins" translate="label comment" type="textarea" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Allowed Origins</label>
+                    <comment><![CDATA[<p>DNS-rebinding defense. One origin per line. Supports exact match or a
+                    trailing <code>*</code> wildcard anchored to a host-component boundary, so
+                    <code>http://localhost*</code> matches <code>http://localhost:3000</code> and
+                    <code>http://localhost/mcp</code> but <strong>not</strong>
+                    <code>http://localhost.attacker.com</code>.</p>
+                    <p>Blank lines and <code>#</code> comments are ignored. Requests without an
+                    <code>Origin</code> header (curl, Claude Desktop, ChatGPT Desktop) always pass this
+                    check — bearer auth is still required. The literal <code>Origin: null</code> is
+                    always rejected.</p>
+                    <p>Defaults cover loopback plus the major AI chat surfaces (Claude, ChatGPT, Gemini,
+                    Copilot, Grok, Perplexity). Remove any your operators don't use, or narrow by port
+                    once a specific inspector/host is chosen.</p>]]></comment>
+                </field>
+            </group>
+            <group id="audit" translate="label" type="text" sortOrder="30"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Audit Log</label>
+                <field id="retention_days" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Retention (days)</label>
+                    <validate>validate-zero-or-greater validate-digits</validate>
+                    <comment><![CDATA[Rows older than this are purged by the
+                    <code>magebit_mcp_audit_purge</code> cron job. Set to <code>0</code> to disable
+                    automatic purging.]]></comment>
+                </field>
+            </group>
+            <group id="rate_limiting" translate="label" type="text" sortOrder="40"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Rate Limiting</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Enable Rate Limiting</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Caps how many <code>tools/call</code> requests a single
+                    admin user may issue against a single tool per minute. Leave off for
+                    unlimited traffic. Counters are keyed per
+                    <em>(admin user, tool)</em> — multiple bearer tokens owned by the same admin
+                    share a budget.]]></comment>
+                </field>
+                <field id="requests_per_minute" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Requests Per Minute</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <depends><field id="enabled">1</field></depends>
+                    <comment><![CDATA[Maximum calls per admin per tool per minute. Fixed-window
+                    counter — a short burst at a minute boundary may briefly allow up to 2×
+                    the configured value. Requests over the limit return JSON-RPC error
+                    <code>-32013 Rate limited</code> with <code>data.limit</code> and
+                    <code>data.retry_after_seconds</code> fields. Flush in-flight counters with
+                    <code>bin/magento cache:clean MAGEBIT_MCP_RATE_LIMIT</code>.]]></comment>
+                </field>
+            </group>
+            <group id="oauth" translate="label" type="text" sortOrder="50"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>OAuth 2.1</label>
+                <field id="access_token_lifetime" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Access Token Lifetime (seconds)</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <comment>How long an OAuth-issued bearer token stays valid. Default 3600 (1 hour).</comment>
+                </field>
+                <field id="refresh_token_lifetime_days" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Refresh Token Lifetime (days)</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <comment>How long a refresh token stays valid before the user must re-authorize. Default 30.</comment>
+                </field>
+                <field id="auth_code_lifetime" translate="label comment" type="text" sortOrder="30"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Authorization Code Lifetime (seconds)</label>
+                    <validate>validate-greater-than-zero validate-digits</validate>
+                    <comment>How long an authorization code stays valid before exchange. Default 60. Increase only for debugging.</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

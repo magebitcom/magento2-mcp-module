@@ -1,0 +1,29 @@
+{
+    "name": "magebitcom/module2-mcp-module",
+    "description": "Magento 2 MCP (Model Context Protocol) server module",
+    "type": "magento2-module",
+    "license": "MIT",
+    "require": {
+        "php": "~8.1.0||~8.2.0||~8.3.0||~8.4.0",
+        "magento/framework": "^103.0",
+        "magento/module-backend": "^102.0",
+        "magento/module-user": "^101.2",
+        "magento/module-authorization": "^100.4",
+        "opis/json-schema": "^2.3",
+        "magebitcom/magento2-core": "*"
+    },
+    "suggest": {
+        "magebitcom/module2-mcp-order-tools": "Sub-module for order-related MCP tools",
+        "magebitcom/module2-mcp-catalog-tools": "Sub-module for catalog-related MCP tools",
+        "magebitcom/module2-mcp-customer-tools": "Sub-module for customer-related MCP tools",
+        "magebitcom/module2-mcp-cms-tools": "Sub-module for CMS-related MCP tools"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magebit\\Mcp\\": ""
+        }
+    }
+}

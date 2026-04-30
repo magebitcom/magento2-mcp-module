@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <magebit_mcp>
+            <general>
+                <enabled>1</enabled>
+                <server_name>Magento MCP</server_name>
+                <allow_writes>1</allow_writes>
+            </general>
+            <security>
+                <allowed_origins># Local development — MCP Inspector, Claude Desktop, Claude Code, ChatGPT Desktop
+http://localhost*
+https://localhost*
+http://127.0.0.1*
+https://127.0.0.1*
+# Claude (Anthropic) — web + remote MCP connectors
+https://claude.ai
+https://claude.com
+# ChatGPT (OpenAI) — web
+https://chatgpt.com
+https://chat.openai.com
+# Google Gemini
+https://gemini.google.com
+# Microsoft Copilot
+https://copilot.microsoft.com
+# xAI Grok
+https://grok.com
+# Perplexity
+https://www.perplexity.ai</allowed_origins>
+            </security>
+            <audit>
+                <retention_days>90</retention_days>
+            </audit>
+            <rate_limiting>
+                <enabled>0</enabled>
+                <requests_per_minute>60</requests_per_minute>
+            </rate_limiting>
+            <oauth>
+                <auth_code_lifetime>60</auth_code_lifetime>
+                <access_token_lifetime>3600</access_token_lifetime>
+                <refresh_token_lifetime_days>30</refresh_token_lifetime_days>
+            </oauth>
+        </magebit_mcp>
+    </default>
+</config>

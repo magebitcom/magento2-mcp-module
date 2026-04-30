@@ -1,0 +1,56 @@
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+
+.mcp-oauth-consent {
+    max-width: 720px;
+    margin: 60px auto;
+    font-family: sans-serif;
+    padding: 24px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.mcp-oauth-consent__fieldset {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+}
+
+.mcp-oauth-consent__legend {
+    padding: 0 6px;
+    font-weight: bold;
+}
+
+.mcp-oauth-consent__empty {
+    color: #a00;
+}
+
+.mcp-oauth-consent__note {
+    font-size: 12px;
+    color: #666;
+    margin: 8px 0 16px;
+}
+
+.mcp-oauth-consent__button {
+    display: inline-block;
+    padding: 12px 24px;
+    border: 0;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.mcp-oauth-consent__button--approve {
+    background: #1979c3;
+    color: #fff;
+}
+
+.mcp-oauth-consent__button--deny {
+    background: #eee;
+    color: #000;
+    margin-left: 8px;
+}

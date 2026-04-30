@@ -1,0 +1,285 @@
+# Extending Magebit_Mcp — Adding a tool from another module
+
+Third-party modules expose new MCP tools by implementing `Magebit\Mcp\Api\ToolInterface` and registering the class with the `ToolRegistry` via `etc/di.xml`. The registry is a DI-array — Magento merges contributions at compile time, so conflicts fail at `bin/magento setup:di:compile` rather than at runtime.
+
+For a canonical satellite that ships a full catalog of read + write tools with caller-driven field selection, see `Magebit_McpOrderTools`. It demonstrates:
+
+- The **field-resolver pattern** (`FieldResolverInterface` + `ResolverPipeline` in this module; per-entity sub-interfaces like `OrderFieldResolverInterface` in the satellite) for building tool responses out of DI-injected, 3rd-party-extendable fragments.
+- The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI.
+
+## Step 1 — Implement `ToolInterface`
+
+```php
+<?php
+declare(strict_types=1);
+
+namespace Vendor\Module\Mcp\Tool;
+
+use Magebit\Mcp\Api\Data\ToolResultInterface;
+use Magebit\Mcp\Api\ToolInterface;
+use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
+use Magebit\Mcp\Model\Tool\Schema\Schema;
+use Magebit\Mcp\Model\Tool\ToolResult;
+use Magebit\Mcp\Model\Tool\WriteMode;
+use Magento\Catalog\Api\ProductRepositoryInterface;
+
+class ProductGet implements ToolInterface
+{
+    public const ACL_RESOURCE = 'Vendor_Module::mcp_tool_catalog_product_get';
+
+    public function __construct(
+        private readonly ProductRepositoryInterface $productRepository
+    ) {
+    }
+
+    public function getName(): string
+    {
+        return 'catalog.product.get';
+    }
+
+    public function getTitle(): string
+    {
+        return 'Get Product';
+    }
+
+    public function getDescription(): string
+    {
+        return 'Return a product by SKU: name, price, status, visibility, stock.';
+    }
+
+    public function getInputSchema(): array
+    {
+        return Schema::object()
+            ->string('sku', fn (StringBuilder $s) => $s
+                ->minLength(1)
+                ->maxLength(64)
+                ->description('Product SKU.')
+                ->required()
+            )
+            ->toArray();
+    }
+
+    public function getAclResource(): string
+    {
+        return self::ACL_RESOURCE;
+    }
+
+    public function getWriteMode(): WriteMode
+    {
+        return WriteMode::READ;
+    }
+
+    public function getConfirmationRequired(): bool
+    {
+        return false;
+    }
+
+    public function execute(array $args): ToolResultInterface
+    {
+        $product = $this->productRepository->get((string) $args['sku']);
+        $payload = [
+            'sku' => $product->getSku(),
+            'name' => $product->getName(),
+            'price' => (float) $product->getPrice(),
+            'status' => (int) $product->getStatus(),
+        ];
+
+        return ToolResult::text(json_encode($payload, JSON_PRETTY_PRINT) ?: '{}', [
+            'sku' => $product->getSku(),
+        ]);
+    }
+}
+```
+
+## Declaring input schema
+
+Use `Magebit\Mcp\Model\Tool\Schema\Schema` — a fluent, typed builder — rather than hand-writing JSON-Schema arrays. The builder locks in the invariants every MCP tool must honour (draft-07 `$schema`, `type=object`, `additionalProperties=false`) and refuses the composition keywords the spec forbids (`oneOf` / `anyOf` / `allOf` / `if` / `then` / `else` / `not` / `$ref` / `$defs`).
+
+### Typed property builders
+
+Type-hint the closure parameter (`fn (StringBuilder $s) => …`) — PHPStan level 9 in this module requires it, and it unlocks IDE autocomplete for the type-specific constraint methods inside the closure.
+
+```php
+use Magebit\Mcp\Model\Tool\Schema\Builder\{ArrayBuilder, BooleanBuilder, IntegerBuilder, NumberBuilder, ObjectBuilder, StringBuilder};
+
+Schema::object()
+    ->string('name', fn (StringBuilder $s) => $s
+        ->minLength(1)->maxLength(255)->description('Display name.')->required()
+    )
+    ->integer('website_id', fn (IntegerBuilder $i) => $i->minimum(1)->description('Website scope.'))
+    ->number('price', fn (NumberBuilder $n) => $n->minimum(0)->description('Gross price.'))
+    ->boolean('is_active', fn (BooleanBuilder $b) => $b->description('Whether the entity is live.'))
+    ->array('sku', fn (ArrayBuilder $a) => $a
+        ->ofStrings(fn (StringBuilder $s) => $s->minLength(1))
+        ->minItems(1)
+        ->description('One or more SKUs.')
+    )
+    ->array('items', fn (ArrayBuilder $a) => $a->ofObjects(fn (ObjectBuilder $o) => $o
+        ->string('item_id', fn (StringBuilder $s) => $s->minLength(1)->required())
+        ->integer('qty', fn (IntegerBuilder $i) => $i->minimum(1)->required())
+    ))
+    ->object('comment', fn (ObjectBuilder $o) => $o
+        ->string('text', fn (StringBuilder $s) => $s->minLength(1)->required())
+        ->boolean('is_visible_on_front', fn (BooleanBuilder $b) => $b)
+        ->description('Optional comment payload.')
+    )
+    ->toArray();
+```
+
+`->required()` on a property marks it required on the enclosing object — no separate `required` array to keep in sync. `->description()` is available at every level and belongs on every property: descriptions are what the AI client sees when choosing arguments.
+
+### Presets for list-tool patterns
+
+Four presets bundle the property blocks every list tool repeats. They live in `Magebit\Mcp\Model\Tool\Schema\Preset\`:
+
+```php
+use Magebit\Mcp\Model\Tool\Schema\Preset\{Filters, Sort, Pagination, FieldSelection};
+
+public function getInputSchema(): array
+{
+    return Schema::object()
+        ->with(Filters::describing(
+            'Filter clauses. Built-in keys: status, state, store_id, website_id.'
+        ))
+        ->with(Sort::fields(
+            OrderSearchCriteriaBuilder::SORTABLE_FIELDS,
+            defaultField: 'created_at',
+            defaultDirection: 'desc'
+        ))
+        ->with(Pagination::maxPageSize(OrderSearchCriteriaBuilder::MAX_PAGE_SIZE))
+        ->with(FieldSelection::default())
+        ->string('store_id', fn ($s) => $s->description('Limit to a single store view id.'))
+        ->toArray();
+}
+```
+
+Presets implement `Magebit\Mcp\Model\Tool\Schema\SchemaContribution`. Ship your own with a `Vendor\Module\Mcp\Schema\Preset` namespace if you have cross-tool patterns inside a single domain module.
+
+### Escape hatch
+
+Anything the typed DSL cannot express (an open-bag object whose keys aren't known in advance, an exotic keyword, composition for a genuinely polymorphic argument) can be injected via `ObjectBuilder::rawProperty()`:
+
+```php
+Schema::object()
+    ->rawProperty('filters', [
+        'type' => 'object',
+        'description' => 'Open-ended filter bag.',
+    ])
+    ->toArray();
+```
+
+Raw schemas still flow through `SchemaSanitizer` so stray composition keywords get stripped with a logged warning — prefer fixing the schema to taking the warning.
+
+## Step 2 — Declare the ACL resource
+
+Every tool MUST declare its own ACL resource under a node that's NOT a descendant of `Magento_Backend::admin`'s default wide-allow resources. For clarity, group MCP tool resources under a top-level `mcp` node:
+
+```xml
+<!-- Vendor/Module/etc/acl.xml -->
+<resource id="Magento_Backend::admin">
+    <resource id="Magento_Backend::system">
+        <resource id="Vendor_Module::mcp" title="Vendor MCP" sortOrder="250">
+            <resource id="Vendor_Module::mcp_tool_catalog_product_get"
+                      title="Tool: Get Product"
+                      sortOrder="10"/>
+        </resource>
+    </resource>
+</resource>
+```
+
+Admins granted this resource — and tokens minted for them — see the tool in `tools/list`; admins without it see an empty list (and `tools/call` fails with `-32004`).
+
+> ACL resource IDs follow the XSD's letter-digit-underscore-colon-colon grammar. Dots in the MCP *tool name* (`catalog.product.get`) map to underscores in the ACL resource id (`mcp_tool_catalog_product_get`).
+
+## Step 3 — Register the tool with the MCP registry
+
+```xml
+<!-- Vendor/Module/etc/di.xml -->
+<type name="Magebit\Mcp\Model\Tool\ToolRegistry">
+    <arguments>
+        <argument name="tools" xsi:type="array">
+            <item name="catalog.product.get" xsi:type="object">Vendor\Module\Mcp\Tool\ProductGet</item>
+        </argument>
+    </arguments>
+</type>
+```
+
+The array key is informational — the registry keys by `$tool->getName()` and enforces uniqueness at construction time. A duplicate registration (same `getName()` from two classes) fails at `setup:di:compile`.
+
+## Step 4 — Run `bin/magento magebit:mcp:tools:validate-acl`
+
+This console command walks every registered tool and confirms:
+
+1. Its `getAclResource()` resolves against the loaded ACL tree.
+2. Its `getName()` matches the MCP tool-name regex `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`.
+
+If you see `UNKNOWN ACL RESOURCE`, your `acl.xml` didn't load — re-run `bin/magento setup:upgrade` and `bin/magento cache:clean config`.
+
+## Hooking into the call lifecycle
+
+For cross-cutting behavior (result masking, custom audit sinks, bespoke throttling on top of the shipped limiter) subscribe to the events:
+
+- `magebit_mcp_tool_call_before` — params: `tool`, `arguments`, `admin_user`, `token`
+- `magebit_mcp_tool_call_after` — params: `tool`, `arguments`, `result`, `exception`, `duration_ms`, `admin_user`, `token`
+
+Example:
+
+```xml
+<!-- Vendor/Module/etc/events.xml -->
+<event name="magebit_mcp_tool_call_before">
+    <observer name="vendor_module_audit_sink"
+              instance="Vendor\Module\Observer\StreamMcpToolCallToSiem"/>
+</event>
+```
+
+Observers must treat the event params as read-only. Arguments have already been redacted for audit purposes upstream; mutating them mid-flight causes the audit row to disagree with what the tool actually ran on.
+
+## Swapping the rate limiter
+
+The module ships `Magebit\Mcp\Model\RateLimiter\ConfigurableRateLimiter` — a fixed-window-per-minute limiter that keys counters per `(admin_user_id, tool_name)` via Magento's cache frontend. It is wired through the `Magebit\Mcp\Api\RateLimiterInterface` DI preference and configured from Stores → Configuration → Magebit → MCP Server → **Rate Limiting**. Default: off, so existing deployments retain unlimited throughput until an operator opts in.
+
+To supply a different algorithm (sliding-window log, token bucket, Redis `INCR` with atomic semantics, …), implement `RateLimiterInterface::check()` and override the preference:
+
+```xml
+<!-- Vendor/Module/etc/di.xml -->
+<preference for="Magebit\Mcp\Api\RateLimiterInterface"
+            type="Vendor\Module\Model\RateLimiter\MyRateLimiter"/>
+```
+
+Throw `Magebit\Mcp\Exception\RateLimitedException($message, $limit, $retryAfterSeconds)` from `check()` to surface as a `-32013 RATE_LIMITED` JSON-RPC error with `data.limit` and `data.retry_after_seconds`. To disable the interface entirely (e.g. in a test environment) swap in `Magebit\Mcp\Model\RateLimiter\NoOpRateLimiter`, which is retained as the documented escape hatch.
+
+## Write tools
+
+To ship a write tool, return `WriteMode::WRITE` from `getWriteMode()`. The dispatcher then checks:
+
+- `magebit_mcp/general/allow_writes` is `1` in the Magento config (global kill-switch).
+- The acting token has `allow_writes = 1`.
+
+Both must pass; either fails → `-32012 Write not allowed`.
+
+Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. Read tools return `false`. See `Magebit_McpOrderTools` for a canonical example of both.
+
+## Testing a tool locally
+
+```bash
+# From a token with the right ACL:
+curl -s -X POST http://<host>/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Mcp-Protocol-Version: 2025-06-18' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"catalog.product.get","arguments":{"sku":"24-MB01"}}}'
+```
+
+The response envelope follows [MCP 2025-06-18 §Tools](https://modelcontextprotocol.io/specification/2025-06-18/server/tools):
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{ "type": "text", "text": "{...}" }],
+    "isError": false
+  }
+}
+```

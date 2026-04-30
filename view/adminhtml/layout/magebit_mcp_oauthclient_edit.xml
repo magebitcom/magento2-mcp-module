@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="admin-2columns-left"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <update handle="editor"/>
+    <body>
+        <referenceContainer name="left">
+            <block class="Magebit\Mcp\Block\Adminhtml\AbstractEdit\Tabs"
+                   name="magebit_mcp_oauthclient_edit_tabs">
+                <arguments>
+                    <argument name="tab_id" xsi:type="string">magebit_mcp_oauthclient_edit_tabs</argument>
+                    <argument name="tab_title" xsi:type="string" translate="true">OAuth Client Settings</argument>
+                </arguments>
+                <block class="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Tab\Info"
+                       name="magebit_mcp_oauthclient_edit_tab_info"/>
+                <block class="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Tab\Scopes"
+                       name="magebit_mcp_oauthclient_edit_tab_scopes"
+                       template="Magebit_Mcp::oauthclient/edit/tab/scopes.phtml"/>
+                <action method="addTab">
+                    <argument name="name" xsi:type="string">info_section</argument>
+                    <argument name="block" xsi:type="string">magebit_mcp_oauthclient_edit_tab_info</argument>
+                </action>
+                <action method="addTab">
+                    <argument name="name" xsi:type="string">scopes_section</argument>
+                    <argument name="block" xsi:type="string">magebit_mcp_oauthclient_edit_tab_scopes</argument>
+                </action>
+            </block>
+        </referenceContainer>
+        <referenceContainer name="content">
+            <block class="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit"
+                   name="magebit_mcp_oauthclient_edit"/>
+        </referenceContainer>
+    </body>
+</page>

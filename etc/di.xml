@@ -1,0 +1,322 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <preference for="Magebit\Mcp\Api\ToolRegistryInterface"
+                type="Magebit\Mcp\Model\Tool\ToolRegistry"/>
+    <preference for="Magebit\Mcp\Api\PromptRegistryInterface"
+                type="Magebit\Mcp\Model\Prompt\PromptRegistry"/>
+    <preference for="Magebit\Mcp\Api\RateLimiterInterface"
+                type="Magebit\Mcp\Model\RateLimiter\ConfigurableRateLimiter"/>
+    <preference for="Magebit\Mcp\Api\LoggerInterface"
+                type="Magebit\Mcp\Logger\Logger"/>
+    <preference for="Magebit\Mcp\Api\OAuth\ClientPresetProviderInterface"
+                type="Magebit\Mcp\Model\OAuth\ClientPresetProvider"/>
+
+    <!-- Dedicated MCP log channel → var/log/magebit_mcp.log. Classes inside
+         the module depend on Magebit\Mcp\Api\LoggerInterface and receive
+         this instance via the preference above; PSR-3 injections stay on
+         Magento's default system logger. -->
+    <type name="Magebit\Mcp\Logger\Handler">
+        <arguments>
+            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Logger\Logger">
+        <arguments>
+            <argument name="name" xsi:type="string">magebit_mcp</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="system" xsi:type="object">Magebit\Mcp\Logger\Handler</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Request-scoped audit context — a single shared instance per HTTP request
+         so the controller and the tools/call handler populate the same object. -->
+    <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>
+
+    <!-- Admin grid data source for the audit log listing. -->
+    <virtualType name="Magebit\Mcp\Ui\Component\Listing\AuditLogCollection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">magebit_mcp_audit_log</argument>
+            <argument name="resourceModel" xsi:type="string">
+                Magebit\Mcp\Model\ResourceModel\AuditEntry
+            </argument>
+            <argument name="identifierName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Admin grid data source for the token listing. -->
+    <virtualType name="Magebit\Mcp\Ui\Component\Listing\TokenCollection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">magebit_mcp_token</argument>
+            <argument name="resourceModel" xsi:type="string">
+                Magebit\Mcp\Model\ResourceModel\Token
+            </argument>
+            <argument name="identifierName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Admin grid data source for the OAuth client listing. -->
+    <virtualType name="Magebit\Mcp\Ui\Component\Listing\OAuthClientCollection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">magebit_mcp_oauth_client</argument>
+            <argument name="resourceModel" xsi:type="string">
+                Magebit\Mcp\Model\OAuth\ResourceModel\Client
+            </argument>
+            <argument name="identifierName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="magebit_mcp_audit_log_listing_data_source" xsi:type="string">
+                    Magebit\Mcp\Ui\Component\Listing\AuditLogCollection
+                </item>
+                <item name="magebit_mcp_token_listing_data_source" xsi:type="string">
+                    Magebit\Mcp\Ui\Component\Listing\TokenCollection
+                </item>
+                <item name="magebit_mcp_oauth_client_listing_data_source" xsi:type="string">
+                    Magebit\Mcp\Ui\Component\Listing\OAuthClientCollection
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="magebit_mcp_tools_list" xsi:type="object">
+                    Magebit\Mcp\Console\Command\ListToolsCommand
+                </item>
+                <item name="magebit_mcp_tools_validate_acl" xsi:type="object">
+                    Magebit\Mcp\Console\Command\ValidateAclCommand
+                </item>
+                <item name="magebit_mcp_token_create" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenCreateCommand
+                </item>
+                <item name="magebit_mcp_token_list" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenListCommand
+                </item>
+                <item name="magebit_mcp_token_revoke" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenRevokeCommand
+                </item>
+                <item name="magebit_mcp_token_delete" xsi:type="object">
+                    Magebit\Mcp\Console\Command\TokenDeleteCommand
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Console\Command\ListToolsCommand">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Console\Command\ValidateAclCommand">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\JsonRpc\Dispatcher">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="initialize" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler
+                </item>
+                <item name="ping" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\PingHandler
+                </item>
+                <item name="notifications_initialized" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\InitializedNotificationHandler
+                </item>
+                <item name="tools_list" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler
+                </item>
+                <item name="tools_call" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler
+                </item>
+                <item name="prompts_list" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\PromptsListHandler
+                </item>
+                <item name="prompts_get" xsi:type="object">
+                    Magebit\Mcp\Model\JsonRpc\Handler\PromptsGetHandler
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\JsonRpc\Handler\InitializeHandler">
+        <arguments>
+            <argument name="serverVersion" xsi:type="string">0.1.0</argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
+        <arguments>
+            <argument name="tools" xsi:type="array">
+                <item name="system.store.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\StoreList
+                </item>
+                <item name="system.store.info" xsi:type="object">
+                    Magebit\Mcp\Tool\System\StoreInfo
+                </item>
+                <item name="system.config.get" xsi:type="object">
+                    Magebit\Mcp\Tool\System\ConfigGet
+                </item>
+                <item name="system.cache.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheList
+                </item>
+                <item name="system.cache.clean" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheClean
+                </item>
+                <item name="system.cache.flush" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheFlush
+                </item>
+                <item name="system.cache.enable" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheEnable
+                </item>
+                <item name="system.cache.disable" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cache\CacheDisable
+                </item>
+                <item name="system.index.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\IndexerList
+                </item>
+                <item name="system.index.reindex" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\Reindex
+                </item>
+                <item name="system.index.reset" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\Reset
+                </item>
+                <item name="system.index.set_mode" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Indexer\SetMode
+                </item>
+                <item name="system.notification.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Notification\NotificationList
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Magebit\Mcp\Model\OAuth\Preset\ClaudeWebPreset"
+                 type="Magebit\Mcp\Model\OAuth\ClientPreset">
+        <arguments>
+            <argument name="id" xsi:type="string">claude_web</argument>
+            <argument name="label" xsi:type="string">Claude Web</argument>
+            <argument name="name" xsi:type="string">Claude Web</argument>
+            <argument name="redirectUris" xsi:type="array">
+                <item name="0" xsi:type="string">https://claude.ai/api/mcp/auth_callback</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Magebit\Mcp\Model\OAuth\Preset\ChatGptPreset"
+                 type="Magebit\Mcp\Model\OAuth\ClientPreset">
+        <arguments>
+            <argument name="id" xsi:type="string">chatgpt</argument>
+            <argument name="label" xsi:type="string">ChatGPT</argument>
+            <argument name="name" xsi:type="string">ChatGPT</argument>
+            <argument name="redirectUris" xsi:type="array">
+                <item name="0" xsi:type="string">https://chatgpt.com/connector_platform_oauth_redirect</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magebit\Mcp\Model\OAuth\ClientPresetProvider">
+        <arguments>
+            <argument name="presets" xsi:type="array">
+                <item name="claude_web" xsi:type="object">
+                    Magebit\Mcp\Model\OAuth\Preset\ClaudeWebPreset
+                </item>
+                <item name="chatgpt" xsi:type="object">
+                    Magebit\Mcp\Model\OAuth\Preset\ChatGptPreset
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Per-form FormDataPersistence — one virtualType per form keeps the bounce
+         payloads on independent session keys. Bound to the consumers below. -->
+    <virtualType name="Magebit\Mcp\Model\Adminhtml\OAuthClientFormPersistence"
+                 type="Magebit\Mcp\Model\Adminhtml\FormDataPersistence">
+        <arguments>
+            <argument name="sessionKey" xsi:type="string">magebit_mcp_oauth_client_form_data</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Magebit\Mcp\Model\Adminhtml\TokenFormPersistence"
+                 type="Magebit\Mcp\Model\Adminhtml\FormDataPersistence">
+        <arguments>
+            <argument name="sessionKey" xsi:type="string">magebit_mcp_token_form_data</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Tab\Info">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\OAuthClientFormPersistence
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Tab\Scopes">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\OAuthClientFormPersistence
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Controller\Adminhtml\OAuthClient\Save">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\OAuthClientFormPersistence
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Block\Adminhtml\Token\Edit\Tab\Info">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\TokenFormPersistence
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Block\Adminhtml\Token\Edit\Tab\Scopes">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\TokenFormPersistence
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Controller\Adminhtml\Token\Save">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\TokenFormPersistence
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\Prompt\PromptRegistry">
+        <arguments>
+            <argument name="prompts" xsi:type="array">
+                <item name="system.health_check" xsi:type="object">
+                    Magebit\Mcp\Prompt\System\HealthCheckPrompt
+                </item>
+                <item name="system.refresh_after_edit" xsi:type="object">
+                    Magebit\Mcp\Prompt\System\RefreshAfterEditPrompt
+                </item>
+                <item name="system.list_stores" xsi:type="object">
+                    Magebit\Mcp\Prompt\System\ListStoresPrompt
+                </item>
+                <item name="system.find_setting" xsi:type="object">
+                    Magebit\Mcp\Prompt\System\FindSettingPrompt
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+</config>

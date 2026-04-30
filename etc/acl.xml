@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Magento_Backend::system">
+                    <resource id="Magebit_Mcp::mcp" title="MCP" sortOrder="200">
+                        <resource id="Magebit_Mcp::mcp_tokens" title="MCP Connections" sortOrder="10"/>
+                        <resource id="Magebit_Mcp::mcp_oauth_clients" title="MCP OAuth Clients" sortOrder="15"/>
+                        <resource id="Magebit_Mcp::mcp_oauth_authorize" title="MCP OAuth — Approve Client Access" sortOrder="16"/>
+                        <resource id="Magebit_Mcp::mcp_audit" title="MCP Audit Log" sortOrder="20"/>
+                        <resource id="Magebit_Mcp::tools" title="MCP Tools" sortOrder="30">
+                            <resource id="Magebit_Mcp::tool_system_store_list"
+                                      title="Tool: List Stores &amp; Websites" sortOrder="10"/>
+                            <resource id="Magebit_Mcp::tool_system_store_info"
+                                      title="Tool: Get Store Information" sortOrder="20"/>
+                            <resource id="Magebit_Mcp::tool_system_config_get"
+                                      title="Tool: Get System Configuration Value" sortOrder="30"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_list"
+                                      title="Tool: List Cache Types" sortOrder="40"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_clean"
+                                      title="Tool: Clean Cache" sortOrder="50"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_flush"
+                                      title="Tool: Flush Cache Storage" sortOrder="60"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_enable"
+                                      title="Tool: Enable Cache Types" sortOrder="70"/>
+                            <resource id="Magebit_Mcp::tool_system_cache_disable"
+                                      title="Tool: Disable Cache Types" sortOrder="80"/>
+                            <resource id="Magebit_Mcp::tool_system_index_list"
+                                      title="Tool: List Indexers" sortOrder="90"/>
+                            <resource id="Magebit_Mcp::tool_system_index_reindex"
+                                      title="Tool: Reindex" sortOrder="100"/>
+                            <resource id="Magebit_Mcp::tool_system_index_reset"
+                                      title="Tool: Reset Indexer" sortOrder="110"/>
+                            <resource id="Magebit_Mcp::tool_system_index_set_mode"
+                                      title="Tool: Set Indexer Mode" sortOrder="120"/>
+                            <resource id="Magebit_Mcp::tool_system_notification_list"
+                                      title="Tool: List Admin Notifications" sortOrder="130"/>
+                        </resource>
+                        <resource id="Magebit_Mcp::config" title="MCP Configuration" sortOrder="40"/>
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

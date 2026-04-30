@@ -1,0 +1,27 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ *
+ * @var \Magebit\Mcp\Block\Adminhtml\Token\Created $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+declare(strict_types=1);
+?>
+<div class="mcp-credentials">
+    <h1 class="mcp-credentials__title">Connection created</h1>
+    <p class="mcp-credentials__lede">
+        <strong><?= $escaper->escapeHtml($block->getName()) ?></strong> is ready.
+        Copy this token now — it is not retrievable later.
+    </p>
+
+    <dl class="mcp-credentials__list">
+        <dt class="mcp-credentials__label">Bearer token</dt>
+        <dd class="mcp-credentials__value"><?= $escaper->escapeHtml($block->getPlaintext()) ?></dd>
+    </dl>
+
+    <p class="mcp-credentials__actions">
+        <a class="mcp-credentials__back" href="<?= $escaper->escapeUrl($block->getBackUrl()) ?>">Back to connections</a>
+    </p>
+</div>

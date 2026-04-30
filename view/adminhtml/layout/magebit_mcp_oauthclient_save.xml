@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="admin-1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="Magebit_Mcp::css/oauth-credentials.css"/>
+    </head>
+    <body>
+        <referenceContainer name="content">
+            <block class="Magebit\Mcp\Block\Adminhtml\OAuthClient\Created"
+                   name="mcp.oauthclient.created"
+                   template="Magebit_Mcp::oauthclient/created.phtml"/>
+        </referenceContainer>
+    </body>
+</page>
