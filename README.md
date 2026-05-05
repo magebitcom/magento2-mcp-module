@@ -60,7 +60,7 @@ bin/magento setup:upgrade
 - Cancel, hold or unhold orders
 
 ```bash
-composer require magebitcom/mcp-module-order-tools
+composer require magebitcom/magento2-mcp-order-tools
 ```
 
 ### Catalog module — `Magebit_McpCatalogTools`
@@ -69,7 +69,7 @@ composer require magebitcom/mcp-module-order-tools
 - Create, update or delete categories
 
 ```bash
-composer require magebitcom/mcp-module-catalog-tools
+composer require magebitcom/magento2-mcp-catalog-tools
 ```
 
 ### Customer module — `Magebit_McpCustomerTools`
@@ -79,7 +79,7 @@ composer require magebitcom/mcp-module-catalog-tools
 - Trigger password reset or resend confirmation
 
 ```bash
-composer require magebitcom/mcp-module-customer-tools
+composer require magebitcom/magento2-mcp-customer-tools
 ```
 
 ### CMS module — `Magebit_McpCmsTools`
@@ -87,7 +87,7 @@ composer require magebitcom/mcp-module-customer-tools
 - Create, update or delete CMS pages and blocks
 
 ```bash
-composer require magebitcom/mcp-module-cms-tools
+composer require magebitcom/magento2-mcp-cms-tools
 ```
 
 ### Marketing module — `Magebit_McpMarketingTools`
@@ -96,7 +96,7 @@ composer require magebitcom/mcp-module-cms-tools
 - Generate or delete coupon codes
 
 ```bash
-composer require magebitcom/mcp-module-marketing-tools
+composer require magebitcom/magento2-mcp-marketing-tools
 ```
 
 ### Report module — `Magebit_McpReportTools`
@@ -110,7 +110,7 @@ composer require magebitcom/mcp-module-marketing-tools
 - Refresh sales/customer/review statistics
 
 ```bash
-composer require magebitcom/mcp-module-report-tools
+composer require magebitcom/magento2-mcp-report-tools
 ```
 
 ## Setup
