@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/header.svg" alt="Sample MCP session: an operator asks why a customer's order hasn't arrived; the AI calls three MCP tools and reports the order status, shipment progress, and customer history." width="100%">
+</p>
+
 # Magento 2 MCP module
 
 Extensible [Model Context Protocol](https://modelcontextprotocol.io/specification/2025-06-18) server for Magento 2. Connect your store to any MCP-compatible AI agent — read and mutate customer, product, CMS or sales data, fetch reports, manage configuration, and more.

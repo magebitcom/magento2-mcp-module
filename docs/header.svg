@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" role="img" aria-label="Sample MCP session: an operator asks why a customer's order hasn't arrived; the AI calls four MCP tools and reports the order status, shipment record, customer details, and prior-order history.">
+  <title>Sample MCP session</title>
+
+  <!-- Background -->
+  <rect width="1200" height="440" fill="#001941"/>
+
+  <!-- Left accent stripe -->
+  <rect x="0" y="0" width="6" height="440" fill="#006fee"/>
+
+  <!-- Terminal-window dots -->
+  <rect x="60" y="48" width="10" height="10" fill="#f03c00"/>
+  <rect x="82" y="48" width="10" height="10" fill="#fa9600"/>
+  <rect x="104" y="48" width="10" height="10" fill="#00c864"/>
+
+  <!-- Body -->
+  <g font-family="ui-monospace, 'SF Mono', 'Menlo', 'Consolas', 'Liberation Mono', monospace" font-size="18">
+
+    <!-- User prompt -->
+    <text x="60" y="110">
+      <tspan fill="#78e1ff" font-weight="500">&gt;</tspan>
+      <tspan fill="#FFFFFF" dx="14">Customer says order #100023456 hasn't arrived — what's going on?</tspan>
+    </text>
+
+    <!-- Tool calls -->
+    <text x="60" y="160">
+      <tspan fill="#aaaaff">→ sales.order.get</tspan>
+      <tspan fill="#cccccc" dx="20">{ id: 100023456 }</tspan>
+      <tspan fill="#00c864" dx="20">✓ found</tspan>
+    </text>
+
+    <text x="60" y="190">
+      <tspan fill="#aaaaff">→ sales.order.shipments</tspan>
+      <tspan fill="#cccccc" dx="20">{ order_id: 100023456 }</tspan>
+      <tspan fill="#00c864" dx="20">✓ 1 shipment</tspan>
+    </text>
+
+    <text x="60" y="220">
+      <tspan fill="#aaaaff">→ customer.customer.get</tspan>
+      <tspan fill="#cccccc" dx="20">{ id: 4218 }</tspan>
+      <tspan fill="#00c864" dx="20">✓ Mary Chen</tspan>
+    </text>
+
+    <text x="60" y="250">
+      <tspan fill="#aaaaff">→ sales.order.list</tspan>
+      <tspan fill="#cccccc" dx="20">{ customer_id: 4218 }</tspan>
+      <tspan fill="#00c864" dx="20">✓ 3 prior orders</tspan>
+    </text>
+
+    <!-- Summary -->
+    <text x="60" y="300" fill="#FFFFFF">Order paid May 3 · shipped May 4 via UPS (1Z9X4…8B)</text>
+    <text x="60" y="328" fill="#FFFFFF">Shipment record 2 days old, no further track entries added</text>
+    <text x="60" y="356" fill="#FFFFFF">Mary's 3 prior orders all completed without holds</text>
+
+    <!-- CTA -->
+    <text x="60" y="400" fill="#00c864" font-weight="500">Want me to add an internal order comment and draft an update email for Mary?</text>
+  </g>
+</svg>
