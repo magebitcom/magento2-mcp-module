@@ -54,7 +54,7 @@ bin/magento module:enable Magebit_Mcp<Name>Tools
 bin/magento setup:upgrade
 ```
 
-### Order module — `Magebit_McpOrderTools`
+### Order module — [`Magebit_McpOrderTools`](https://github.com/magebitcom/magento2-mcp-order-tools)
 - Read and search orders, invoices, shipments, payments, order comments and credit memos
 - Create invoices, shipments, shipment tracks, credit memos and order comments
 - Cancel, hold or unhold orders
@@ -63,7 +63,7 @@ bin/magento setup:upgrade
 composer require magebitcom/magento2-mcp-order-tools
 ```
 
-### Catalog module — `Magebit_McpCatalogTools`
+### Catalog module — [`Magebit_McpCatalogTools`](https://github.com/magebitcom/magento2-mcp-catalog-tools)
 - Read and search products and categories
 - Create, update or delete products
 - Create, update or delete categories
@@ -72,7 +72,7 @@ composer require magebitcom/magento2-mcp-order-tools
 composer require magebitcom/magento2-mcp-catalog-tools
 ```
 
-### Customer module — `Magebit_McpCustomerTools`
+### Customer module — [`Magebit_McpCustomerTools`](https://github.com/magebitcom/magento2-mcp-customer-tools)
 - Read or search customers, addresses and customer groups
 - Fetch customer confirmation status
 - Create, update or delete customers and addresses
@@ -82,7 +82,7 @@ composer require magebitcom/magento2-mcp-catalog-tools
 composer require magebitcom/magento2-mcp-customer-tools
 ```
 
-### CMS module — `Magebit_McpCmsTools`
+### CMS module — [`Magebit_McpCmsTools`](https://github.com/magebitcom/magento2-mcp-cms-tools)
 - Read or search CMS pages and blocks
 - Create, update or delete CMS pages and blocks
 
@@ -90,7 +90,7 @@ composer require magebitcom/magento2-mcp-customer-tools
 composer require magebitcom/magento2-mcp-cms-tools
 ```
 
-### Marketing module — `Magebit_McpMarketingTools`
+### Marketing module — [`Magebit_McpMarketingTools`](https://github.com/magebitcom/magento2-mcp-marketing-tools)
 - Read or search catalog rules, cart rules and coupons
 - Delete, toggle and apply catalog and cart rules
 - Generate or delete coupon codes
@@ -99,7 +99,7 @@ composer require magebitcom/magento2-mcp-cms-tools
 composer require magebitcom/magento2-mcp-marketing-tools
 ```
 
-### Report module — `Magebit_McpReportTools`
+### Report module — [`Magebit_McpReportTools`](https://github.com/magebitcom/magento2-mcp-report-tools)
 - Cart reports (products in cart, abandoned carts)
 - Popular search queries and newsletter problems (bounces, send failures)
 - Product reviews, review counts and average ratings
