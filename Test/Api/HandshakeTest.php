@@ -32,6 +32,83 @@ class HandshakeTest extends McpTestCase
         self::assertArrayHasKey('tools', $result['capabilities']);
     }
 
+    /**
+     * Fresh install — no per-field overrides — still ships sensible
+     * defaults: a description and instructions string (from `etc/config.xml`)
+     * and a websiteUrl falling back to the store's base URL. `icons` stays
+     * absent because there is no shipped default icon URL.
+     */
+    public function testInitializeServerInfoCarriesShippedDefaults(): void
+    {
+        $response = $this->initialize();
+
+        $this->assertJsonRpcSuccess($response);
+        $result = $response['body']['result'] ?? null;
+        self::assertIsArray($result);
+        $serverInfo = $result['serverInfo'] ?? null;
+        self::assertIsArray($serverInfo);
+        self::assertArrayHasKey('name', $serverInfo);
+        self::assertArrayHasKey('version', $serverInfo);
+        self::assertArrayHasKey('description', $serverInfo);
+        self::assertNotEmpty($serverInfo['description']);
+        self::assertArrayHasKey('websiteUrl', $serverInfo);
+        self::assertNotEmpty($serverInfo['websiteUrl']);
+        self::assertArrayNotHasKey('icons', $serverInfo);
+        self::assertArrayHasKey('instructions', $result);
+        self::assertNotEmpty($result['instructions']);
+    }
+
+    /**
+     * Every Server Info field populated → response surfaces them all
+     * verbatim, on the right key, in the right place (`icons` is an array
+     * of one entry; `instructions` is top-level, not nested).
+     *
+     * @magentoConfigFixture default/magebit_mcp/server_info/title Acme Storefront
+     * @magentoConfigFixture default/magebit_mcp/server_info/description Magento store for Acme Inc.
+     * @magentoConfigFixture default/magebit_mcp/server_info/website_url https://acme.example.com
+     * @magentoConfigFixture default/magebit_mcp/server_info/icon_url https://acme.example.com/icon.svg
+     * @magentoConfigFixture default/magebit_mcp/server_info/icon_mime_type image/svg+xml
+     * @magentoConfigFixture default/magebit_mcp/server_info/icon_sizes any
+     * @magentoConfigFixture default/magebit_mcp/server_info/instructions Use product SKUs not IDs.
+     */
+    public function testInitializeServerInfoSurfacesAllConfiguredFields(): void
+    {
+        $response = $this->initialize();
+
+        $this->assertJsonRpcSuccess($response);
+        $result = $response['body']['result'] ?? null;
+        self::assertIsArray($result);
+        $serverInfo = $result['serverInfo'] ?? null;
+        self::assertIsArray($serverInfo);
+        self::assertSame('Acme Storefront', $serverInfo['title'] ?? null);
+        self::assertSame('Magento store for Acme Inc.', $serverInfo['description'] ?? null);
+        self::assertSame('https://acme.example.com', $serverInfo['websiteUrl'] ?? null);
+        self::assertSame(
+            [['src' => 'https://acme.example.com/icon.svg', 'mimeType' => 'image/svg+xml', 'sizes' => ['any']]],
+            $serverInfo['icons'] ?? null
+        );
+        self::assertSame('Use product SKUs not IDs.', $result['instructions'] ?? null);
+    }
+
+    /**
+     * URL without a MIME type drops the `icons` entry entirely — a URL
+     * alone isn't enough metadata to publish, and guessing a MIME type
+     * would mis-advertise the icon to clients.
+     *
+     * @magentoConfigFixture default/magebit_mcp/server_info/icon_url https://acme.example.com/icon.svg
+     */
+    public function testInitializeOmitsIconsWhenMimeTypeUnset(): void
+    {
+        $response = $this->initialize();
+
+        $this->assertJsonRpcSuccess($response);
+        $result = $response['body']['result'] ?? null;
+        self::assertIsArray($result);
+        $serverInfo = $result['serverInfo'] ?? null;
+        self::assertIsArray($serverInfo);
+        self::assertArrayNotHasKey('icons', $serverInfo);
+    }
+
     public function testPingSucceeds(): void
     {
         $response = $this->ping();

@@ -25,19 +25,80 @@
                     Defaults to <code>Magebit MCP</code>; override per deployment so operators and AI clients
                     can tell staging from production at a glance.]]></comment>
                 </field>
-                <field id="server_description" translate="label comment" type="textarea" sortOrder="16"
-                       showInDefault="1" showInWebsite="0" showInStore="0">
-                    <label>Server Description</label>
-                    <comment><![CDATA[Optional free-text hint advertised to MCP clients via
-                    <code>initialize.instructions</code>. Describe what this store sells, its currency/locale,
-                    or any operator-specific guidance the AI should keep in mind when selecting tools.]]></comment>
-                </field>
                 <field id="allow_writes" translate="label comment" type="select" sortOrder="20"
                        showInDefault="1" showInWebsite="0" showInStore="0">
                     <label>Allow Write Tools</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                     <comment><![CDATA[Global override. A token's <em>Allow write tools</em> flag is only
                     honoured when this is <strong>Yes</strong>.]]></comment>
+                </field>
+            </group>
+            <group id="server_info" translate="label" type="text" sortOrder="15"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Server Info</label>
+                <comment><![CDATA[Optional fields advertised to MCP clients via
+                <code>initialize.serverInfo</code> (and <code>initialize.instructions</code>).
+                Lets clients like Claude Desktop, MCP Inspector, or ChatGPT show a richer,
+                more recognizable identity for this store. All fields are optional.]]></comment>
+                <field id="title" translate="label comment" type="text" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Display Title</label>
+                    <comment><![CDATA[Human-friendly display name shown in MCP clients
+                    (<code>serverInfo.title</code>). Use this for a marketing-friendly name —
+                    e.g. <em>Acme Storefront</em> — while keeping <strong>Server Name</strong>
+                    short and machine-friendly. Leave blank to fall back to the storefront's
+                    <em>Store Information → Store Name</em>.]]></comment>
+                </field>
+                <field id="description" translate="label comment" type="text" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Description</label>
+                    <comment><![CDATA[Short one-line description of what this server is
+                    (<code>serverInfo.description</code>) — e.g.
+                    <em>Magento store for Acme Inc.</em>. For "how the AI should use this server"
+                    guidance, use <strong>AI Usage Instructions</strong> below instead.]]></comment>
+                </field>
+                <field id="website_url" translate="label comment" type="text" sortOrder="30"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Website URL</label>
+                    <validate>validate-url</validate>
+                    <comment><![CDATA[Optional homepage or info page URL
+                    (<code>serverInfo.websiteUrl</code>). Some MCP clients render this as a link
+                    in their server-picker UI. Leave blank to fall back to the storefront's
+                    base URL.]]></comment>
+                </field>
+                <field id="icon_url" translate="label comment" type="text" sortOrder="40"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Icon URL</label>
+                    <validate>validate-url</validate>
+                    <comment><![CDATA[Public URL of an icon shown by MCP clients in their
+                    server picker (<code>serverInfo.icons[].src</code>). Must be reachable from
+                    the MCP client. Leave blank to omit the icon entirely.]]></comment>
+                </field>
+                <field id="icon_mime_type" translate="label comment" type="select" sortOrder="50"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Icon MIME Type</label>
+                    <source_model>Magebit\Mcp\Model\Config\Source\IconMimeType</source_model>
+                    <depends><field id="icon_url">1</field></depends>
+                    <comment><![CDATA[MIME type of the icon at the URL above
+                    (<code>serverInfo.icons[].mimeType</code>). Required when an icon URL is set —
+                    if left blank, the icon entry is dropped from the response.]]></comment>
+                </field>
+                <field id="icon_sizes" translate="label comment" type="text" sortOrder="60"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Icon Sizes</label>
+                    <depends><field id="icon_url">1</field></depends>
+                    <comment><![CDATA[Comma-separated list of pixel sizes the icon ships in —
+                    e.g. <code>48x48,96x96</code>, or <code>any</code> for vector. Becomes
+                    <code>serverInfo.icons[].sizes</code>. Defaults to <code>any</code>.]]></comment>
+                </field>
+                <field id="instructions" translate="label comment" type="textarea" sortOrder="70"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>AI Usage Instructions</label>
+                    <comment><![CDATA[Free-text guidance for the LLM about how to use this server
+                    (<code>initialize.instructions</code>). Describe what this store sells, its
+                    currency/locale, or any operator-specific tips the AI should keep in mind when
+                    selecting tools. Distinct from <strong>Description</strong>, which describes
+                    what the server <em>is</em>.]]></comment>
                 </field>
             </group>
             <group id="security" translate="label" type="text" sortOrder="20"

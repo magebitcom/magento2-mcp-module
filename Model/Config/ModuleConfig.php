@@ -17,8 +17,14 @@ class ModuleConfig
 {
     public const XML_PATH_ENABLED = 'magebit_mcp/general/enabled';
     public const XML_PATH_SERVER_NAME = 'magebit_mcp/general/server_name';
-    public const XML_PATH_SERVER_DESCRIPTION = 'magebit_mcp/general/server_description';
     public const XML_PATH_ALLOW_WRITES = 'magebit_mcp/general/allow_writes';
+    public const XML_PATH_SERVER_TITLE = 'magebit_mcp/server_info/title';
+    public const XML_PATH_SERVER_DESCRIPTION = 'magebit_mcp/server_info/description';
+    public const XML_PATH_SERVER_WEBSITE_URL = 'magebit_mcp/server_info/website_url';
+    public const XML_PATH_SERVER_ICON_URL = 'magebit_mcp/server_info/icon_url';
+    public const XML_PATH_SERVER_ICON_MIME_TYPE = 'magebit_mcp/server_info/icon_mime_type';
+    public const XML_PATH_SERVER_ICON_SIZES = 'magebit_mcp/server_info/icon_sizes';
+    public const XML_PATH_SERVER_INSTRUCTIONS = 'magebit_mcp/server_info/instructions';
     public const XML_PATH_ALLOWED_ORIGINS = 'magebit_mcp/security/allowed_origins';
     public const XML_PATH_AUDIT_RETENTION_DAYS = 'magebit_mcp/audit/retention_days';
     public const XML_PATH_RATE_LIMITING_ENABLED = 'magebit_mcp/rate_limiting/enabled';
@@ -69,11 +75,91 @@ class ModuleConfig
     }
 
     /**
+     * Display title advertised via `initialize.serverInfo.title`. Falls back
+     * to the storefront's `Store Information → Store Name` so a fresh install
+     * carries the operator's brand without manual setup.
+     *
+     * @return ?string
+     */
+    public function getServerTitle(): ?string
+    {
+        return $this->readNonEmptyString(self::XML_PATH_SERVER_TITLE)
+            ?? $this->readNonEmptyString('general/store_information/name');
+    }
+
+    /**
+     * Short description advertised via `initialize.serverInfo.description`.
      * @return ?string
      */
     public function getServerDescription(): ?string
     {
-        $value = $this->scopeConfig->getValue(self::XML_PATH_SERVER_DESCRIPTION);
+        return $this->readNonEmptyString(self::XML_PATH_SERVER_DESCRIPTION);
+    }
+
+    /**
+     * Website URL advertised via `initialize.serverInfo.websiteUrl`. Falls
+     * back to the store's secure base URL so the field points somewhere
+     * useful out of the box; admins can override with a marketing page.
+     *
+     * @return ?string
+     */
+    public function getServerWebsiteUrl(): ?string
+    {
+        $value = $this->readNonEmptyString(self::XML_PATH_SERVER_WEBSITE_URL);
+        if ($value !== null) {
+            return $value;
+        }
+        $baseUrl = $this->readNonEmptyString('web/secure/base_url')
+            ?? $this->readNonEmptyString('web/unsecure/base_url');
+        return $baseUrl !== null ? rtrim($baseUrl, '/') : null;
+    }
+
+    /**
+     * Free-text guidance advertised via top-level `initialize.instructions`.
+     * @return ?string
+     */
+    public function getServerInstructions(): ?string
+    {
+        return $this->readNonEmptyString(self::XML_PATH_SERVER_INSTRUCTIONS);
+    }
+
+    /**
+     * Single icon entry for `initialize.serverInfo.icons[]`. Returns null
+     * unless both URL and MIME type are configured — a URL without a
+     * declared MIME type is dropped rather than guessed.
+     *
+     * @return ?array{src: string, mimeType: string, sizes: list<string>}
+     */
+    public function getServerIcon(): ?array
+    {
+        $src = $this->readNonEmptyString(self::XML_PATH_SERVER_ICON_URL);
+        $mimeType = $this->readNonEmptyString(self::XML_PATH_SERVER_ICON_MIME_TYPE);
+        if ($src === null || $mimeType === null) {
+            return null;
+        }
+
+        $rawSizes = $this->readNonEmptyString(self::XML_PATH_SERVER_ICON_SIZES) ?? 'any';
+        $sizes = [];
+        foreach (explode(',', $rawSizes) as $size) {
+            $size = trim($size);
+            if ($size !== '') {
+                $sizes[] = $size;
+            }
+        }
+        if ($sizes === []) {
+            $sizes = ['any'];
+        }
+
+        return ['src' => $src, 'mimeType' => $mimeType, 'sizes' => $sizes];
+    }
+
+    /**
+     * @param string $path
+     * @return ?string
+     */
+    private function readNonEmptyString(string $path): ?string
+    {
+        $value = $this->scopeConfig->getValue($path);
         $value = is_string($value) ? trim($value) : '';
         return $value !== '' ? $value : null;
     }

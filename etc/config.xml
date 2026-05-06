@@ -8,6 +8,11 @@
                 <server_name>Magento MCP</server_name>
                 <allow_writes>1</allow_writes>
             </general>
+            <server_info>
+                <description>MCP Server for this Magento store. Exposes catalog, sales, customer, CMS, marketing, and reporting operations as tools.</description>
+                <instructions>You are connected to a Magento 2 commerce backend via MCP. Prefer the most specific tool for each task — for example, fetch a single product by SKU rather than searching when you already know the SKU. Some tools perform writes; use those only when the user has explicitly asked to change store data.</instructions>
+                <icon_sizes>any</icon_sizes>
+            </server_info>
             <security>
                 <allowed_origins># Local development — MCP Inspector, Claude Desktop, Claude Code, ChatGPT Desktop
 http://localhost*

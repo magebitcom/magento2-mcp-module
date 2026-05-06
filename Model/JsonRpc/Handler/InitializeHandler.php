@@ -51,21 +51,43 @@ class InitializeHandler implements HandlerInterface
     {
         unset($context);
 
+        $serverInfo = [
+            'name' => $this->moduleConfig->getServerName(),
+            'version' => $this->serverVersion,
+        ];
+
+        $title = $this->moduleConfig->getServerTitle();
+        if ($title !== null) {
+            $serverInfo['title'] = $title;
+        }
+
+        $description = $this->moduleConfig->getServerDescription();
+        if ($description !== null) {
+            $serverInfo['description'] = $description;
+        }
+
+        $websiteUrl = $this->moduleConfig->getServerWebsiteUrl();
+        if ($websiteUrl !== null) {
+            $serverInfo['websiteUrl'] = $websiteUrl;
+        }
+
+        $icon = $this->moduleConfig->getServerIcon();
+        if ($icon !== null) {
+            $serverInfo['icons'] = [$icon];
+        }
+
         $payload = [
             'protocolVersion' => $this->protocolVersionValidator->getLatest(),
             'capabilities' => [
                 'tools' => new stdClass(),
                 'prompts' => ['listChanged' => false],
             ],
-            'serverInfo' => [
-                'name' => $this->moduleConfig->getServerName(),
-                'version' => $this->serverVersion,
-            ],
+            'serverInfo' => $serverInfo,
         ];
 
-        $description = $this->moduleConfig->getServerDescription();
-        if ($description !== null) {
-            $payload['instructions'] = $description;
+        $instructions = $this->moduleConfig->getServerInstructions();
+        if ($instructions !== null) {
+            $payload['instructions'] = $instructions;
         }
 
         return Response::success($request->id, $payload);
