@@ -81,7 +81,7 @@ class ConsentViewModel implements ArgumentInterface
     public function getWidgetOptionsJson(?Client $client, array $preTickedTools): string
     {
         $options = [
-            'mcpClientScopesTree' => [
+            'mcpScopesTree' => [
                 'treeUrl' => '',
                 'editFormSelector' => '#mcp-oauth-consent-form',
                 'initialTree' => $this->getTreeForRender($client),
