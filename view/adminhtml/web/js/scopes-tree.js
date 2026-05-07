@@ -18,6 +18,8 @@
  *     (only if `allResourcesSelector` is set).
  *  4. Public `applySelection(ids)` re-renders the tree with a fresh selection
  *     — used by the OAuth client preset dropdown.
+ *  5. Optional `allowAllSelector` — clicks tick every non-disabled node and
+ *     resync the hidden form inputs. Used by the OAuth client form.
  */
 define([
     'jquery',
@@ -35,6 +37,7 @@ define([
             treeContainerSelector: '',
             noAdminPlaceholderSelector: '',
             treeWrapperSelector: '',
+            allowAllSelector: '',
             resourceFieldName: 'resource[]',
             initialTree: [],
             initialSelection: []
@@ -42,6 +45,7 @@ define([
 
         _create: function () {
             this._bindToggleAllResources();
+            this._bindAllowAllButton();
             this._bindAdminUserChange();
             this._bindFormSubmitGuard();
             this._renderTree(this.options.initialTree || [], this.options.initialSelection || []);
@@ -175,6 +179,23 @@ define([
             $(document).on('change.mcpScopesTree', this.options.allResourcesSelector, function () {
                 var allSelected = $(this).val() === '1';
                 $(widget.options.treeContainerSelector).toggleClass('no-display', allSelected);
+                widget._syncSelections();
+            });
+        },
+
+        _bindAllowAllButton: function () {
+            var widget = this;
+            if (!this.options.allowAllSelector) {
+                return;
+            }
+            $(document).on('click.mcpScopesTree', this.options.allowAllSelector, function (e) {
+                e.preventDefault();
+                if (!widget.element.data('jstree')) {
+                    return;
+                }
+                // jstree's select_all honours our check_callback so disabled
+                // nodes (role-blocked) stay unticked even on a bulk select.
+                widget.element.jstree('select_all');
                 widget._syncSelections();
             });
         },

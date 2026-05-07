@@ -12,6 +12,7 @@ $widgetOptions = [
     'mcpScopesTree' => [
         'treeUrl' => $block->getResourceTreeUrl(),
         'editFormSelector' => '#edit_form',
+        'allowAllSelector' => '[data-role="allow-all-tools"]',
         'initialTree' => json_decode($block->getInitialTreeJson(), true),
         'initialSelection' => json_decode($block->getRestoredSelectionJson(), true),
     ],
@@ -31,6 +32,13 @@ $widgetOptions = [
             <span><?= $block->escapeHtml(__('Allowed Tools')) ?></span>
         </label>
         <div class="control">
+            <div class="actions" style="margin-bottom: 12px;">
+                <button type="button"
+                        class="action-secondary"
+                        data-role="allow-all-tools">
+                    <span><?= $block->escapeHtml(__('Allow All')) ?></span>
+                </button>
+            </div>
             <div data-role="resource-tree-wrapper">
                 <div class="tree x-tree"
                      id="magebit-mcp-oauthclient-resource-tree"

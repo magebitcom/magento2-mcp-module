@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Block\Adminhtml\OAuthClient;
 
 use Magebit\Mcp\Api\Data\OAuth\ClientInterface;
+use Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Form;
 use Magebit\Mcp\Controller\Adminhtml\OAuthClient\Edit as EditController;
 use Magento\Backend\Block\Widget\Context;
 use Magento\Backend\Block\Widget\Form\Container;
@@ -67,5 +68,19 @@ class Edit extends Container
     public function getFormActionUrl(): string
     {
         return $this->getUrl('magebit_mcp/oauthclient/save');
+    }
+
+    /**
+     * @return string
+     */
+    protected function _buildFormClassName()
+    {
+        // NameBuilder lowercases all but the first char of each part,
+        // so _controller='adminhtml_oauthclient' would resolve to
+        // Adminhtml\Oauthclient — which doesn't match this module's
+        // OAuthClient directory on case-sensitive filesystems. Without
+        // this override the form child silently fails to resolve,
+        // leaving tab panels stranded in the sidebar.
+        return Form::class;
     }
 }
