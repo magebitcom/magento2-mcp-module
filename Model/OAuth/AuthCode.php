@@ -33,7 +33,7 @@ class AuthCode extends AbstractModel implements AuthCodeInterface
      */
     public function getId(): ?int
     {
-        return $this->getDataIntOrNull(self::ID);
+        return $this->getDataIntOrNull(self::ID, cast: true);
     }
 
     /**
@@ -59,7 +59,7 @@ class AuthCode extends AbstractModel implements AuthCodeInterface
      */
     public function getOAuthClientId(): int
     {
-        return $this->getDataInt(self::OAUTH_CLIENT_ID);
+        return $this->getDataInt(self::OAUTH_CLIENT_ID, cast: true);
     }
 
     /**
@@ -77,7 +77,7 @@ class AuthCode extends AbstractModel implements AuthCodeInterface
      */
     public function getAdminUserId(): int
     {
-        return $this->getDataInt(self::ADMIN_USER_ID);
+        return $this->getDataInt(self::ADMIN_USER_ID, cast: true);
     }
 
     /**

@@ -33,7 +33,7 @@ class Client extends AbstractModel implements ClientInterface
      */
     public function getId(): ?int
     {
-        return $this->getDataIntOrNull(self::ID);
+        return $this->getDataIntOrNull(self::ID, cast: true);
     }
 
     /**

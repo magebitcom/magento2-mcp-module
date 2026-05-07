@@ -47,28 +47,52 @@ trait ReturnsStrictTypedData
 
     /**
      * @param string $key
+     * @param bool $cast
      * @return int
      * @throws InvalidArgumentException
      */
-    public function getDataInt(string $key): int
+    public function getDataInt(string $key, bool $cast = false): int
     {
         $value = $this->getData($key);
+        $coerced = $cast ? $this->coerceInt($value) : (is_int($value) ? $value : null);
 
-        if (!is_int($value)) {
+        if ($coerced === null) {
             throw new InvalidArgumentException(sprintf('Data for key %s is not an int', $key));
         }
 
-        return $value;
+        return $coerced;
     }
 
     /**
      * @param string $key
+     * @param bool $cast See {@see self::getDataInt()} for the cast semantics.
      * @return int|null
      */
-    public function getDataIntOrNull(string $key): ?int
+    public function getDataIntOrNull(string $key, bool $cast = false): ?int
     {
         $value = $this->getData($key);
+        if ($cast) {
+            return $this->coerceInt($value);
+        }
         return is_int($value) ? $value : null;
+    }
+
+    /**
+     * @param mixed $value
+     * @return int|null
+     */
+    private function coerceInt(mixed $value): ?int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+        if (is_string($value) || is_float($value)) {
+            $validated = filter_var($value, FILTER_VALIDATE_INT);
+            if ($validated !== false) {
+                return $validated;
+            }
+        }
+        return null;
     }
 
     /**

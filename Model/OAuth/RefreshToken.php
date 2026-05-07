@@ -33,7 +33,7 @@ class RefreshToken extends AbstractModel implements RefreshTokenInterface
      */
     public function getId(): ?int
     {
-        return $this->getDataIntOrNull(self::ID);
+        return $this->getDataIntOrNull(self::ID, cast: true);
     }
 
     /**
@@ -58,7 +58,7 @@ class RefreshToken extends AbstractModel implements RefreshTokenInterface
      */
     public function getOAuthClientId(): int
     {
-        return $this->getDataInt(self::OAUTH_CLIENT_ID);
+        return $this->getDataInt(self::OAUTH_CLIENT_ID, cast: true);
     }
 
     /**
@@ -75,7 +75,7 @@ class RefreshToken extends AbstractModel implements RefreshTokenInterface
      */
     public function getAccessTokenId(): int
     {
-        return $this->getDataInt(self::ACCESS_TOKEN_ID);
+        return $this->getDataInt(self::ACCESS_TOKEN_ID, cast: true);
     }
 
     /**
@@ -92,7 +92,7 @@ class RefreshToken extends AbstractModel implements RefreshTokenInterface
      */
     public function getParentRefreshTokenId(): ?int
     {
-        return $this->getDataIntOrNull(self::PARENT_REFRESH_TOKEN_ID);
+        return $this->getDataIntOrNull(self::PARENT_REFRESH_TOKEN_ID, cast: true);
     }
 
     /**
