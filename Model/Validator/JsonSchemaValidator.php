@@ -34,7 +34,7 @@ class JsonSchemaValidator
      */
     public function validate(array $schema, array $data): void
     {
-        $schemaJson = json_encode($schema, JSON_UNESCAPED_SLASHES);
+        $schemaJson = json_encode($this->normaliseEmptyPropertyObjects($schema), JSON_UNESCAPED_SLASHES);
         $dataJson = json_encode((object) $data, JSON_UNESCAPED_SLASHES);
         if ($schemaJson === false || $dataJson === false) {
             throw new SchemaValidationException('Unable to encode schema or data as JSON.');
@@ -69,5 +69,29 @@ class JsonSchemaValidator
             'Schema validation failed.',
             $errors
         );
+    }
+
+    /**
+     * Empty PHP arrays at `properties` keys encode to `[]` (JSON array),
+     * which Opis rejects. Convert to stdClass so they encode as `{}`.
+     *
+     * @param array<string, mixed> $schema
+     * @return array<string, mixed>
+     */
+    private function normaliseEmptyPropertyObjects(array $schema): array
+    {
+        $out = [];
+        foreach ($schema as $key => $value) {
+            if ($key === 'properties' && is_array($value) && $value === []) {
+                $out[$key] = new \stdClass();
+                continue;
+            }
+            if (is_array($value)) {
+                $out[$key] = $this->normaliseEmptyPropertyObjects($value);
+                continue;
+            }
+            $out[$key] = $value;
+        }
+        return $out;
     }
 }

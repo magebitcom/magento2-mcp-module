@@ -87,6 +87,35 @@ class JsonSchemaValidatorTest extends TestCase
         ]);
     }
 
+    public function testAcceptsSchemaWithEmptyPropertiesObject(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [],
+        ];
+
+        $this->validator->validate($schema, []);
+
+        $this->assertTrue(true);
+    }
+
+    public function testAcceptsNestedSchemaWithEmptyPropertiesObject(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'filters' => [
+                    'type' => 'object',
+                    'properties' => [],
+                ],
+            ],
+        ];
+
+        $this->validator->validate($schema, ['filters' => (object) []]);
+
+        $this->assertTrue(true);
+    }
+
     public function testErrorsExposeStructuredDetails(): void
     {
         $schema = [
