@@ -72,6 +72,14 @@ class ToolsListHandler implements HandlerInterface
                     $tool->getName(),
                     $tool->getInputSchema()
                 ),
+                // MCP spec 2025-06-18 §6.5 — clients (Claude Desktop, etc.)
+                // use destructiveHint to prompt the operator before firing
+                // tools that may delete or overwrite data.
+                'annotations' => [
+                    'title' => $tool->getTitle(),
+                    'readOnlyHint' => $tool->getWriteMode() === WriteMode::READ,
+                    'destructiveHint' => $tool->getConfirmationRequired(),
+                ],
             ];
         }
 
