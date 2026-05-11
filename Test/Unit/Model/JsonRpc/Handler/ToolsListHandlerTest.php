@@ -63,6 +63,71 @@ class ToolsListHandlerTest extends TestCase
         self::assertSame(['marketing_catalog_rule_set_active'], $names);
     }
 
+    /**
+     * MCP spec 2025-06-18 §6.5 lets servers attach an `annotations` object to
+     * each tool — `title`, `readOnlyHint`, `destructiveHint`, `idempotentHint`,
+     * `openWorldHint`. Clients (Claude Desktop, Anthropic SDK callers) use
+     * `destructiveHint` to decide whether to prompt the operator before firing
+     * the tool. The README's safety story rests on these annotations being
+     * advertised, so a read-only tool must emit `readOnlyHint:true` /
+     * `destructiveHint:false`.
+     */
+    public function testReadToolAdvertisesReadOnlyAnnotations(): void
+    {
+        $tool = $this->makeTool('system.store.list', 'Magebit_Mcp::tool_system_store_list');
+        $handler = $this->makeHandler([$tool], allowWrites: true, scopes: null, aclAllow: true);
+
+        $annotations = $this->extractToolAnnotations($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertCount(1, $annotations);
+        self::assertSame('System.store.list', $annotations[0]['title']);
+        self::assertTrue($annotations[0]['readOnlyHint']);
+        self::assertFalse($annotations[0]['destructiveHint']);
+    }
+
+    public function testWriteToolWithoutConfirmationAdvertisesNonDestructiveAnnotations(): void
+    {
+        $tool = $this->makeTool(
+            'catalog.product.create',
+            'Magebit_McpCatalogTools::tool_catalog_product_create',
+            WriteMode::WRITE,
+            confirmationRequired: false
+        );
+        $handler = $this->makeHandler([$tool], allowWrites: true, scopes: null, aclAllow: true);
+
+        $annotations = $this->extractToolAnnotations($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertCount(1, $annotations);
+        self::assertFalse($annotations[0]['readOnlyHint']);
+        self::assertFalse($annotations[0]['destructiveHint']);
+    }
+
+    public function testDestructiveWriteToolAdvertisesDestructiveHint(): void
+    {
+        $tool = $this->makeTool(
+            'catalog.product.delete',
+            'Magebit_McpCatalogTools::tool_catalog_product_delete',
+            WriteMode::WRITE,
+            confirmationRequired: true
+        );
+        $handler = $this->makeHandler([$tool], allowWrites: true, scopes: null, aclAllow: true);
+
+        $annotations = $this->extractToolAnnotations($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertCount(1, $annotations);
+        self::assertFalse($annotations[0]['readOnlyHint']);
+        self::assertTrue($annotations[0]['destructiveHint']);
+    }
+
     public function testTokenScopeStillCheckedAgainstCanonicalName(): void
     {
         // Scopes are stored as canonical (dotted) names on tokens. Wire-form
@@ -130,16 +195,39 @@ class ToolsListHandlerTest extends TestCase
         return new ToolsListHandler($registry, $aclChecker, $config, $sanitizer, $logger);
     }
 
-    private function makeTool(string $name, string $aclResource): ToolInterface
-    {
+    private function makeTool(
+        string $name,
+        string $aclResource,
+        WriteMode $writeMode = WriteMode::READ,
+        bool $confirmationRequired = false
+    ): ToolInterface {
         $tool = $this->createMock(ToolInterface::class);
         $tool->method('getName')->willReturn($name);
         $tool->method('getTitle')->willReturn(ucfirst($name));
         $tool->method('getDescription')->willReturn('desc');
         $tool->method('getInputSchema')->willReturn(['type' => 'object']);
         $tool->method('getAclResource')->willReturn($aclResource);
-        $tool->method('getWriteMode')->willReturn(WriteMode::READ);
+        $tool->method('getWriteMode')->willReturn($writeMode);
+        $tool->method('getConfirmationRequired')->willReturn($confirmationRequired);
         return $tool;
+    }
+
+    /**
+     * @phpstan-return list<array<string, mixed>>
+     */
+    private function extractToolAnnotations(\Magebit\Mcp\Model\JsonRpc\Response $response): array
+    {
+        self::assertNotNull($response->result);
+        $tools = $response->result['tools'] ?? null;
+        self::assertIsArray($tools);
+        $annotations = [];
+        foreach ($tools as $tool) {
+            self::assertIsArray($tool);
+            self::assertArrayHasKey('annotations', $tool);
+            self::assertIsArray($tool['annotations']);
+            $annotations[] = $tool['annotations'];
+        }
+        return $annotations;
     }
 
     /**
