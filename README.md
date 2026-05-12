@@ -37,6 +37,10 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - Core tools for cache types, indexers, store views, system configuration values and admin notifications
 - MCP prompt support (see examples in [Prompt/System](Prompt/System/) directory)
 
+## Wiki
+
+For detailed information about installation, setup and available tools, check out the [Wiki page](https://github.com/magebitcom/magento2-mcp-module/wiki).
+
 ## Installation
 
 ```bash
