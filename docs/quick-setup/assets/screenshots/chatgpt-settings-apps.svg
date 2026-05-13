@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" font-family="Inter, system-ui, sans-serif" role="img" aria-label="ChatGPT Settings Apps page showing Enabled apps with the Magento MCP entry, Advanced settings with Create app button, and Drafts section">
+  <!-- Modal backdrop -->
+  <rect width="880" height="520" fill="#0a0a0a" opacity="0.6"/>
+
+  <!-- Settings dialog -->
+  <g transform="translate(120, 30)">
+    <rect width="640" height="460" rx="14" fill="#1c1c1c" stroke="#2e2e2e"/>
+
+    <!-- Close X -->
+    <g transform="translate(20, 20)">
+      <rect width="28" height="28" rx="6" fill="#2a2a2a"/>
+      <g transform="translate(8, 8)" stroke="#cccccc" stroke-width="2" stroke-linecap="square">
+        <line x1="0" y1="0" x2="12" y2="12"/>
+        <line x1="12" y1="0" x2="0" y2="12"/>
+      </g>
+    </g>
+
+    <!-- Left nav -->
+    <g transform="translate(20, 64)" font-size="12" fill="#bdbdbd">
+      <text x="14" y="14">General</text>
+      <text x="14" y="40">Notifications</text>
+      <text x="14" y="66">Personalization</text>
+      <!-- Apps (active) -->
+      <rect x="0" y="78" width="160" height="26" rx="6" fill="#2a2a2a"/>
+      <text x="14" y="96" fill="#ffffff" font-weight="500">Apps</text>
+      <text x="14" y="124">Schedules</text>
+      <text x="14" y="150">Data controls</text>
+      <text x="14" y="176">Security</text>
+      <text x="14" y="202">Parental controls</text>
+      <text x="14" y="228">Account</text>
+    </g>
+
+    <!-- Right pane -->
+    <g transform="translate(200, 64)">
+      <!-- Page header row -->
+      <text x="0" y="16" font-size="14" font-weight="500" fill="#ffffff">Enabled apps</text>
+      <g transform="translate(316, 0)">
+        <rect width="100" height="28" rx="14" fill="#2a2a2a" stroke="#3a3a3a"/>
+        <g transform="translate(14, 9)" stroke="#cccccc" stroke-width="1.4" fill="none">
+          <rect x="0" y="0" width="4" height="4"/>
+          <rect x="6" y="0" width="4" height="4"/>
+          <rect x="0" y="6" width="4" height="4"/>
+          <rect x="6" y="6" width="4" height="4"/>
+        </g>
+        <text x="56" y="19" text-anchor="middle" font-size="12" fill="#e0e0e0">Add more</text>
+      </g>
+      <text x="0" y="36" font-size="11" fill="#9a9a9a">Manage enabled apps ChatGPT can use in your chats.</text>
+
+      <!-- Magento MCP enabled app -->
+      <g transform="translate(0, 56)">
+        <rect width="416" height="44" rx="8" fill="#222222" stroke="#3a3a3a"/>
+        <g transform="translate(14, 10)">
+          <rect width="24" height="24" rx="4" fill="#eb4242"/>
+          <text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">M</text>
+        </g>
+        <text x="48" y="27" font-size="13" fill="#e0e0e0">Magento MCP</text>
+        <g transform="translate(132, 17)">
+          <rect width="32" height="14" rx="3" fill="#1a1a1a"/>
+          <text x="16" y="11" text-anchor="middle" font-size="9" fill="#cccccc" font-weight="700">DEV</text>
+        </g>
+        <text x="398" y="27" text-anchor="end" font-size="14" fill="#9a9a9a">›</text>
+      </g>
+
+      <!-- Advanced settings row -->
+      <g transform="translate(0, 110)">
+        <rect width="416" height="44" rx="8" fill="#222222" stroke="#3a3a3a"/>
+        <g transform="translate(14, 10)" stroke="#cccccc" stroke-width="1.4" fill="none">
+          <circle cx="12" cy="12" r="10"/>
+          <circle cx="12" cy="12" r="3" fill="#cccccc"/>
+          <line x1="12" y1="2" x2="12" y2="4"/>
+          <line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4" y2="12"/>
+          <line x1="20" y1="12" x2="22" y2="12"/>
+        </g>
+        <text x="48" y="27" font-size="13" fill="#e0e0e0">Advanced settings</text>
+        <g transform="translate(296, 12)">
+          <rect width="76" height="20" rx="10" fill="#ffffff"/>
+          <text x="38" y="14" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="500">Create app</text>
+        </g>
+        <text x="398" y="27" text-anchor="end" font-size="14" fill="#9a9a9a">›</text>
+      </g>
+
+      <!-- Looking for Connectors info card -->
+      <g transform="translate(0, 168)">
+        <rect width="416" height="56" rx="8" fill="#1a1a1a" stroke="#2e2e2e"/>
+        <g transform="translate(14, 14)" stroke="#7aa8ff" stroke-width="1.4" fill="none">
+          <circle cx="9" cy="9" r="8"/>
+          <line x1="9" y1="6" x2="9" y2="10"/>
+          <circle cx="9" cy="13" r="0.5" fill="#7aa8ff"/>
+        </g>
+        <text x="40" y="22" font-size="12" fill="#e0e0e0" font-weight="500">Looking for Connectors?</text>
+        <text x="40" y="38" font-size="11" fill="#9a9a9a">Connectors are now called Apps. You can still manage</text>
+        <text x="40" y="50" font-size="11" fill="#9a9a9a">enabled ones here. <tspan fill="#7aa8ff" text-decoration="underline">Explore all apps</tspan></text>
+        <text x="396" y="22" font-size="14" fill="#7a7a7a">×</text>
+      </g>
+
+      <!-- Drafts header -->
+      <text x="0" y="248" font-size="14" font-weight="500" fill="#ffffff">Drafts</text>
+      <text x="0" y="266" font-size="11" fill="#9a9a9a">Private apps you've created in developer mode.</text>
+
+      <!-- Draft app entry -->
+      <g transform="translate(0, 280)">
+        <rect width="416" height="44" rx="8" fill="#222222" stroke="#3a3a3a"/>
+        <g transform="translate(14, 10)">
+          <rect width="24" height="24" rx="4" fill="#eb4242"/>
+          <text x="12" y="17" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">M</text>
+        </g>
+        <text x="48" y="27" font-size="13" fill="#e0e0e0">Magento MCP</text>
+        <g transform="translate(132, 17)">
+          <rect width="32" height="14" rx="3" fill="#1a1a1a"/>
+          <text x="16" y="11" text-anchor="middle" font-size="9" fill="#cccccc" font-weight="700">DEV</text>
+        </g>
+        <text x="398" y="27" text-anchor="end" font-size="14" fill="#9a9a9a">›</text>
+      </g>
+    </g>
+  </g>
+</svg>

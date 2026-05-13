@@ -663,15 +663,15 @@
         <li>
           <h3>Open Settings → Apps</h3>
           <p>Go to <a href="https://chatgpt.com">chatgpt.com</a> and sign in. Open <strong>Settings</strong> → <strong>Apps</strong>. On a workspace plan (Business / Enterprise / Edu), an admin may need to enable Developer mode for the workspace first.</p>
-          <figure class="placeholder">
-            <span>Screenshot placeholder — ChatGPT Settings → Apps.</span>
+          <figure>
+            <img src="assets/screenshots/chatgpt-settings-apps.svg" alt="ChatGPT Settings Apps page showing Enabled apps with the Magento MCP entry and an Advanced settings row with a Create app button.">
           </figure>
         </li>
         <li>
           <h3>Click Advanced settings → toggle Developer mode on</h3>
-          <p>Under <strong>Advanced settings</strong>, switch on <strong>Developer mode</strong>. (It's marked <em>Elevated risk</em> because dev-mode apps aren't reviewed by OpenAI — that's expected.) A <strong>Create app</strong> button appears alongside Advanced settings once it's on.</p>
-          <figure class="placeholder">
-            <span>Screenshot placeholder — ChatGPT Apps → Advanced settings with Developer mode toggle.</span>
+          <p>Under <strong>Advanced settings</strong>, switch on <strong>Developer mode</strong>. (It's marked <em>Elevated risk</em> because dev-mode apps aren't reviewed by OpenAI — that's expected.) A <strong>Create app</strong> button appears at the top of the Advanced settings panel once it's on.</p>
+          <figure>
+            <img src="assets/screenshots/chatgpt-developer-mode.svg" alt="ChatGPT Apps Advanced settings page with the Developer mode toggle switched on and the Enforce CSP in developer mode toggle off.">
           </figure>
         </li>
       </ol>
@@ -693,9 +693,9 @@
         </li>
         <li>
           <h3>Open Advanced OAuth settings and copy the Callback URL</h3>
-          <p>Expand <strong>Advanced OAuth settings</strong>. ChatGPT shows a <strong>Callback URL</strong> like <code>https://chatgpt.com/connector/oauth/&lt;random-id&gt;</code> — the random ID is unique to <em>this app</em>. Click the copy icon to grab it. Keep this dialog open; you'll need it in Part 4.</p>
-          <figure class="placeholder">
-            <span>Screenshot placeholder — ChatGPT New App dialog → Advanced OAuth settings → Callback URL.</span>
+          <p>Expand <strong>Advanced OAuth settings</strong>. Under <strong>Client registration</strong>, the Registration method defaults to <em>User-Defined OAuth Client</em> — leave it there (DCR and CIMD show as unavailable, which is expected). ChatGPT displays a <strong>Callback URL</strong> like <code>https://chatgpt.com/connector/oauth/&lt;random-id&gt;</code> — the random ID is unique to <em>this app</em>. Click <strong>Click to copy</strong> to grab it. Keep this dialog open; you'll need it in Part 4.</p>
+          <figure>
+            <img src="assets/screenshots/chatgpt-new-app-oauth.svg" alt="ChatGPT New App dialog with Advanced OAuth settings expanded, showing the per-app Callback URL and User-Defined OAuth Client registration method.">
           </figure>
         </li>
       </ol>

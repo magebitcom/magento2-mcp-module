@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 740" font-family="Inter, system-ui, sans-serif" role="img" aria-label="ChatGPT New App dialog with Advanced OAuth settings expanded, showing the per-app Callback URL and OAuth Client ID and Secret fields">
+  <!-- Modal backdrop -->
+  <rect width="1180" height="740" fill="#0a0a0a" opacity="0.6"/>
+
+  <!-- Dialog -->
+  <g transform="translate(90, 30)">
+    <rect width="1000" height="680" rx="14" fill="#1c1c1c" stroke="#2e2e2e"/>
+
+    <!-- Title -->
+    <text x="32" y="48" font-size="20" font-weight="500" fill="#ffffff">New App</text>
+
+    <!-- Close X -->
+    <g transform="translate(956, 32)" stroke="#9a9a9a" stroke-width="2" stroke-linecap="square">
+      <line x1="0" y1="0" x2="12" y2="12"/>
+      <line x1="12" y1="0" x2="0" y2="12"/>
+    </g>
+
+    <!-- ============ Left column ============ -->
+    <g transform="translate(32, 76)">
+      <!-- Icon block -->
+      <g transform="translate(0, 0)">
+        <rect width="60" height="60" rx="8" fill="none" stroke="#3a3a3a" stroke-dasharray="3 3"/>
+        <g transform="translate(22, 22)" stroke="#9a9a9a" stroke-width="2" stroke-linecap="round">
+          <line x1="0" y1="8" x2="16" y2="8"/>
+          <line x1="8" y1="0" x2="8" y2="16"/>
+        </g>
+        <text x="74" y="22" font-size="13" font-weight="500" fill="#e0e0e0">Icon <tspan fill="#9a9a9a" font-weight="400">(optional)</tspan></text>
+        <text x="74" y="40" font-size="11" fill="#9a9a9a">PNG only. Minimum size: 128 × 128 px. Max file size: 10 KB</text>
+      </g>
+
+      <!-- Name -->
+      <text x="0" y="106" font-size="12" font-weight="500" fill="#e0e0e0">Name</text>
+      <rect x="0" y="116" width="436" height="36" rx="8" fill="#2a2a2a" stroke="#3a3a3a"/>
+      <text x="14" y="139" font-size="13" fill="#e0e0e0">Magento MCP</text>
+
+      <!-- Description -->
+      <text x="0" y="180" font-size="12" font-weight="500" fill="#e0e0e0">Description <tspan font-weight="400" fill="#9a9a9a">(optional)</tspan></text>
+      <rect x="0" y="190" width="436" height="36" rx="8" fill="#2a2a2a" stroke="#3a3a3a"/>
+      <text x="14" y="213" font-size="13" fill="#7a7a7a">Explain what it does in a few words</text>
+
+      <!-- MCP Server URL -->
+      <text x="0" y="254" font-size="12" font-weight="500" fill="#e0e0e0">MCP Server URL</text>
+      <rect x="0" y="264" width="436" height="36" rx="8" fill="#2a2a2a" stroke="#3a3a3a"/>
+      <text x="14" y="287" font-size="13" fill="#e0e0e0">https://&lt;your-store&gt;/mcp</text>
+
+      <!-- Authentication -->
+      <text x="0" y="328" font-size="12" font-weight="500" fill="#e0e0e0">Authentication</text>
+      <rect x="0" y="338" width="436" height="36" rx="8" fill="#2a2a2a" stroke="#3a3a3a"/>
+      <text x="14" y="361" font-size="13" fill="#e0e0e0">OAuth</text>
+      <text x="416" y="361" text-anchor="end" font-size="12" fill="#9a9a9a">▾</text>
+
+      <!-- Advanced OAuth settings (expanded indicator) -->
+      <g transform="translate(0, 392)">
+        <rect width="436" height="56" rx="8" fill="#2a2a2a" stroke="#3a3a3a"/>
+        <text x="14" y="20" font-size="12" font-weight="500" fill="#e0e0e0">Advanced OAuth settings</text>
+        <text x="14" y="38" font-size="10" fill="#9a9a9a">Review discovered OAuth settings, or enter them manually, then</text>
+        <text x="14" y="50" font-size="10" fill="#9a9a9a">choose a client setup method and configure default scopes</text>
+        <text x="416" y="32" text-anchor="end" font-size="14" fill="#9a9a9a">›</text>
+      </g>
+
+      <!-- Risk callout -->
+      <g transform="translate(0, 468)">
+        <rect width="436" height="100" rx="8" fill="#2a1c14" stroke="#5c3a20"/>
+        <g transform="translate(14, 14)" fill="#fa9600">
+          <polygon points="0,16 8,0 16,16"/>
+          <text x="8" y="13" text-anchor="middle" font-size="11" fill="#1a1a1a" font-weight="700">!</text>
+        </g>
+        <text x="36" y="22" font-size="11" font-weight="500" fill="#fa9600">Custom MCP servers introduce risk. <tspan fill="#fa9600" text-decoration="underline">Learn more</tspan></text>
+        <!-- Checkbox -->
+        <rect x="14" y="40" width="14" height="14" rx="3" fill="#3ec9ff"/>
+        <g transform="translate(17, 44)" stroke="#1a1a1a" stroke-width="1.6" fill="none" stroke-linecap="round">
+          <polyline points="0,4 3,7 8,1"/>
+        </g>
+        <text x="36" y="50" font-size="11" font-weight="500" fill="#e0e0e0">I understand and want to continue</text>
+        <text x="36" y="66" font-size="10" fill="#9a9a9a">OpenAI hasn't reviewed this MCP server. Attackers may</text>
+        <text x="36" y="78" font-size="10" fill="#9a9a9a">attempt to steal your data or trick the model into taking</text>
+        <text x="36" y="90" font-size="10" fill="#9a9a9a">unintended actions, including destroying data.</text>
+      </g>
+
+      <!-- Create button -->
+      <g transform="translate(0, 590)">
+        <text x="14" y="14" font-size="11" fill="#cccccc">📖 <tspan text-decoration="underline">Read the guide</tspan></text>
+        <g transform="translate(348, 0)">
+          <rect width="88" height="28" rx="14" fill="#ffffff"/>
+          <text x="44" y="19" text-anchor="middle" font-size="12" fill="#1a1a1a" font-weight="500">Create</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- ============ Right column — OAuth advanced settings ============ -->
+    <g transform="translate(500, 76)">
+      <!-- Outer container -->
+      <rect width="468" height="580" rx="8" fill="#1a1a1a" stroke="#2e2e2e"/>
+
+      <!-- Section heading -->
+      <text x="20" y="28" font-size="13" font-weight="500" fill="#ffffff">OAuth advanced settings</text>
+      <text x="20" y="46" font-size="10" fill="#9a9a9a">Review the discovered OAuth settings, choose how ChatGPT should</text>
+      <text x="20" y="58" font-size="10" fill="#9a9a9a">obtain an OAuth client, and configure default scopes before you create</text>
+      <text x="20" y="70" font-size="10" fill="#9a9a9a">the connector.</text>
+
+      <!-- Client registration card -->
+      <g transform="translate(16, 88)">
+        <rect width="436" height="280" rx="6" fill="#222222" stroke="#2e2e2e"/>
+
+        <text x="14" y="22" font-size="12" font-weight="500" fill="#ffffff">Client registration</text>
+        <text x="14" y="42" font-size="11" font-weight="500" fill="#e0e0e0">Registration method</text>
+        <text x="14" y="58" font-size="10" fill="#9a9a9a">Choose whether ChatGPT should use your client credentials,</text>
+        <text x="14" y="70" font-size="10" fill="#9a9a9a">Dynamic Client Registration (DCR), or Client Identifier Metadata</text>
+        <text x="14" y="82" font-size="10" fill="#9a9a9a">Document (CIMD). See the <tspan fill="#7aa8ff" text-decoration="underline">MCP client registration approaches</tspan>.</text>
+
+        <!-- Dropdown -->
+        <rect x="14" y="94" width="408" height="32" rx="6" fill="#2a2a2a" stroke="#3a3a3a"/>
+        <text x="26" y="114" font-size="12" fill="#e0e0e0">User-Defined OAuth Client</text>
+        <text x="410" y="114" text-anchor="end" font-size="12" fill="#9a9a9a">▾</text>
+        <text x="14" y="142" font-size="10" fill="#9a9a9a">Use your own OAuth client ID and optional client secret for this connector.</text>
+
+        <!-- DCR warning -->
+        <g transform="translate(14, 154)">
+          <rect width="408" height="36" rx="6" fill="#2a1c14" stroke="#5c3a20"/>
+          <g transform="translate(10, 12)" fill="#fa9600">
+            <polygon points="0,12 6,0 12,12"/>
+            <text x="6" y="10" text-anchor="middle" font-size="9" fill="#1a1a1a" font-weight="700">!</text>
+          </g>
+          <text x="28" y="16" font-size="10" fill="#fa9600">DCR is unavailable until a Registration URL is present in</text>
+          <text x="28" y="28" font-size="10" fill="#fa9600">the OAuth endpoints section below.</text>
+        </g>
+
+        <!-- CIMD warning -->
+        <g transform="translate(14, 198)">
+          <rect width="408" height="22" rx="6" fill="#2a1c14" stroke="#5c3a20"/>
+          <g transform="translate(10, 6)" fill="#fa9600">
+            <polygon points="0,10 5,0 10,10"/>
+            <text x="5" y="8" text-anchor="middle" font-size="8" fill="#1a1a1a" font-weight="700">!</text>
+          </g>
+          <text x="26" y="14" font-size="10" fill="#fa9600">CIMD is unavailable because the server did not advertise CIMD support.</text>
+        </g>
+
+        <!-- Callback URL section -->
+        <text x="14" y="244" font-size="11" font-weight="500" fill="#e0e0e0">Callback URL</text>
+        <text x="422" y="244" text-anchor="end" font-size="10" fill="#7aa8ff" text-decoration="underline">Click to copy</text>
+        <g transform="translate(14, 250)">
+          <rect width="408" height="22" rx="6" fill="#0f0f0f" stroke="#2e2e2e"/>
+          <text x="10" y="15" font-size="10" font-family="ui-monospace, SF Mono, Menlo" fill="#7aa8ff">https://chatgpt.com/connector/oauth/ckPGk_6Lw0zi</text>
+          <g transform="translate(384, 6)" stroke="#cccccc" stroke-width="1.2" fill="none">
+            <rect x="0" y="0" width="8" height="10"/>
+            <rect x="3" y="-2" width="8" height="10"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- OAuth Client ID + Secret cards -->
+      <g transform="translate(16, 388)">
+        <rect width="436" height="36" rx="6" fill="#222222" stroke="#3a3a3a"/>
+        <text x="14" y="22" font-size="12" fill="#7a7a7a">OAuth Client ID</text>
+      </g>
+      <g transform="translate(16, 436)">
+        <rect width="436" height="36" rx="6" fill="#222222" stroke="#3a3a3a"/>
+        <text x="14" y="22" font-size="12" fill="#7a7a7a">OAuth Client Secret (Optional)</text>
+      </g>
+
+      <!-- Token endpoint auth method -->
+      <text x="20" y="498" font-size="11" font-weight="500" fill="#e0e0e0">Token endpoint auth method</text>
+      <g transform="translate(16, 508)">
+        <rect width="436" height="32" rx="6" fill="#222222" stroke="#3a3a3a"/>
+        <text x="14" y="20" font-size="12" fill="#e0e0e0">none</text>
+        <text x="424" y="20" text-anchor="end" font-size="12" fill="#9a9a9a">▾</text>
+      </g>
+    </g>
+  </g>
+</svg>

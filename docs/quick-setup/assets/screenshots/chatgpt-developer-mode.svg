@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" font-family="Inter, system-ui, sans-serif" role="img" aria-label="ChatGPT Settings Apps Advanced settings page with the Developer mode toggle switched on and Enforce CSP in developer mode toggle off">
+  <!-- Modal backdrop -->
+  <rect width="880" height="520" fill="#0a0a0a" opacity="0.6"/>
+
+  <!-- Settings dialog -->
+  <g transform="translate(120, 30)">
+    <rect width="640" height="460" rx="14" fill="#1c1c1c" stroke="#2e2e2e"/>
+
+    <!-- Close X -->
+    <g transform="translate(20, 20)">
+      <rect width="28" height="28" rx="6" fill="#2a2a2a"/>
+      <g transform="translate(8, 8)" stroke="#cccccc" stroke-width="2" stroke-linecap="square">
+        <line x1="0" y1="0" x2="12" y2="12"/>
+        <line x1="12" y1="0" x2="0" y2="12"/>
+      </g>
+    </g>
+
+    <!-- Left nav -->
+    <g transform="translate(20, 64)" font-size="12" fill="#bdbdbd">
+      <text x="14" y="14">General</text>
+      <text x="14" y="40">Notifications</text>
+      <text x="14" y="66">Personalization</text>
+      <rect x="0" y="78" width="160" height="26" rx="6" fill="#2a2a2a"/>
+      <text x="14" y="96" fill="#ffffff" font-weight="500">Apps</text>
+      <text x="14" y="124">Schedules</text>
+      <text x="14" y="150">Data controls</text>
+      <text x="14" y="176">Security</text>
+      <text x="14" y="202">Parental controls</text>
+      <text x="14" y="228">Account</text>
+    </g>
+
+    <!-- Right pane -->
+    <g transform="translate(200, 64)">
+      <!-- Back + Create app row -->
+      <g transform="translate(0, 0)">
+        <g transform="translate(0, 0)">
+          <text x="0" y="18" font-size="14" fill="#9a9a9a">‹</text>
+          <text x="14" y="18" font-size="13" fill="#e0e0e0">Back</text>
+        </g>
+        <g transform="translate(60, 0)">
+          <rect width="80" height="24" rx="12" fill="#2a2a2a" stroke="#3a3a3a"/>
+          <text x="40" y="16" text-anchor="middle" font-size="12" fill="#e0e0e0">Create app</text>
+        </g>
+      </g>
+
+      <!-- Divider -->
+      <line x1="0" y1="40" x2="416" y2="40" stroke="#2e2e2e"/>
+
+      <!-- Developer mode -->
+      <g transform="translate(0, 60)">
+        <text x="0" y="14" font-size="13" font-weight="500" fill="#ffffff">Developer mode</text>
+        <g transform="translate(124, 2)">
+          <rect width="92" height="16" rx="4" fill="#3a1a1a"/>
+          <circle cx="10" cy="8" r="3" fill="#eb4242"/>
+          <text x="50" y="11" text-anchor="middle" font-size="9" font-weight="700" fill="#eb6666" letter-spacing="0.04em">ELEVATED RISK</text>
+        </g>
+        <text x="0" y="36" font-size="11" fill="#9a9a9a">Allows you to add unverified connectors that</text>
+        <text x="0" y="50" font-size="11" fill="#9a9a9a">could modify or erase data permanently. Memory</text>
+        <text x="0" y="64" font-size="11" fill="#9a9a9a">is disabled. Use at your own risk. <tspan fill="#7aa8ff" text-decoration="underline">Learn more</tspan></text>
+
+        <!-- Toggle ON -->
+        <g transform="translate(370, 0)">
+          <rect width="36" height="20" rx="10" fill="#3ec9ff"/>
+          <circle cx="26" cy="10" r="8" fill="#ffffff"/>
+        </g>
+      </g>
+
+      <!-- Enforce CSP -->
+      <g transform="translate(0, 152)">
+        <text x="0" y="14" font-size="13" font-weight="500" fill="#ffffff">Enforce CSP in developer mode</text>
+        <text x="0" y="36" font-size="11" fill="#9a9a9a">When enabled, dev mode apps without a declared CSP get</text>
+        <text x="0" y="50" font-size="11" fill="#9a9a9a">the same restricted default CSP they would in production</text>
+        <text x="0" y="64" font-size="11" fill="#9a9a9a">instead of unrestricted network access. <tspan fill="#7aa8ff" text-decoration="underline">Learn more</tspan></text>
+
+        <!-- Toggle OFF -->
+        <g transform="translate(370, 0)">
+          <rect width="36" height="20" rx="10" fill="#2a2a2a" stroke="#3a3a3a"/>
+          <circle cx="10" cy="10" r="8" fill="#9a9a9a"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
