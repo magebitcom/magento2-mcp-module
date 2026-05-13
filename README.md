@@ -11,6 +11,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 ## Contents
 
 - [What the base module gives you](#what-the-base-module-gives-you)
+- [Quick start](#quick-start)
 - [Installation](#installation)
 - [Sub-modules](#sub-modules)
   - [Order module — `Magebit_McpOrderTools`](#order-module--magebit_mcpordertools)
@@ -37,9 +38,11 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - Core tools for cache types, indexers, store views, system configuration values and admin notifications
 - MCP prompt support (see examples in [Prompt/System](Prompt/System/) directory)
 
-## Wiki
+## Quick start
 
-For detailed information about installation, setup and available tools, check out the [Wiki page](https://github.com/magebitcom/magento2-mcp-module/wiki).
+The fastest path from `composer require` to a connected AI is the interactive **[Quick Setup guide](https://magebitcom.github.io/magento2-mcp-module/quick-setup/)** — pick which AI you're using (Claude, ChatGPT, Cursor, Claude Code, or anything else MCP-compatible) and follow the per-client steps with copy-paste snippets and admin-screen screenshots.
+
+For the long-form reference — every admin setting, the OAuth and bearer-token flows in detail, and the full tool catalog — see the [Wiki](https://github.com/magebitcom/magento2-mcp-module/wiki).
 
 ## Installation
 

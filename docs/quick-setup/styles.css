@@ -136,14 +136,9 @@ code {
 }
 
 .hero__logo {
-  width: 48px;
-  height: 48px;
-}
-
-.hero__wordmark {
-  font-weight: 500;
-  font-size: 1.25rem;
-  letter-spacing: -0.01em;
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .hero__eyebrow {
