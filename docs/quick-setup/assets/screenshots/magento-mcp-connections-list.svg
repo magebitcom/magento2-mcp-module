@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 420" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Magento admin MCP Connections page with a New Connection button">
+  <rect width="1060" height="420" fill="#f4f4f4"/>
+
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="80" height="420" fill="#41362f"/>
+  <rect x="20" y="14" width="40" height="40" fill="#eb5202"/>
+  <text x="40" y="42" text-anchor="middle" font-size="22" font-weight="500" fill="#ffffff">M</text>
+  <g text-anchor="middle" font-size="9" fill="#a09a96" letter-spacing="0.04em">
+    <text x="40" y="92">DASHBOARD</text>
+    <text x="40" y="124">SALES</text>
+    <text x="40" y="156">CATALOG</text>
+    <text x="40" y="188">CUSTOMERS</text>
+    <text x="40" y="220">MARKETING</text>
+    <text x="40" y="252">CONTENT</text>
+    <text x="40" y="284">REPORTS</text>
+    <text x="40" y="316">STORES</text>
+  </g>
+  <rect x="0" y="336" width="80" height="40" fill="#2c2522"/>
+  <text x="40" y="362" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="500" letter-spacing="0.04em">SYSTEM</text>
+
+  <!-- Page heading + top-right icons -->
+  <text x="100" y="60" fill="#1a1a1a" font-size="28" font-weight="400">MCP Connections</text>
+
+  <g transform="translate(880, 36)">
+    <g stroke="#41362f" stroke-width="1.6" fill="none">
+      <circle cx="6" cy="20" r="6"/>
+      <line x1="11" y1="25" x2="18" y2="32"/>
+    </g>
+    <path d="M40 14 q-8 0 -8 8 v6 l-3 3 h22 l-3 -3 v-6 q0 -8 -8 -8 z" fill="none" stroke="#41362f" stroke-width="1.6"/>
+    <circle cx="48" cy="14" r="9" fill="#e02b27"/>
+    <text x="48" y="18" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">30</text>
+    <circle cx="90" cy="20" r="9" fill="#a09a96"/>
+    <text x="106" y="24" font-size="13" fill="#41362f">magebit ▾</text>
+  </g>
+
+  <!-- Sub-header with New Connection button (the focus of this screenshot) -->
+  <rect x="100" y="96" width="940" height="60" fill="#e8e8e8"/>
+  <g transform="translate(890, 110)">
+    <rect width="140" height="32" fill="#eb5202"/>
+    <text x="70" y="22" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="500">New Connection</text>
+  </g>
+
+  <!-- Toolbar shimmer -->
+  <g transform="translate(100, 176)" fill="#dadada">
+    <rect x="0" y="6" width="120" height="20" rx="2"/>
+    <rect x="600" y="6" width="86" height="20" rx="2"/>
+    <rect x="710" y="6" width="120" height="20" rx="2"/>
+    <rect x="860" y="6" width="80" height="20" rx="2"/>
+  </g>
+
+  <!-- Table header shimmer (dark) -->
+  <g transform="translate(100, 224)">
+    <rect width="940" height="40" fill="#41362f"/>
+    <g fill="#6b5f56">
+      <rect x="20" y="14" width="32" height="12" rx="2"/>
+      <rect x="80" y="14" width="60" height="12" rx="2"/>
+      <rect x="180" y="14" width="56" height="12" rx="2"/>
+      <rect x="280" y="14" width="56" height="12" rx="2"/>
+      <rect x="380" y="14" width="48" height="12" rx="2"/>
+      <rect x="460" y="14" width="56" height="12" rx="2"/>
+      <rect x="560" y="14" width="70" height="12" rx="2"/>
+      <rect x="660" y="14" width="56" height="12" rx="2"/>
+      <rect x="750" y="14" width="60" height="12" rx="2"/>
+      <rect x="850" y="14" width="56" height="12" rx="2"/>
+    </g>
+  </g>
+
+  <!-- Table row shimmer (light) -->
+  <g transform="translate(100, 264)">
+    <rect width="940" height="56" fill="#ffffff" stroke="#cccccc"/>
+    <g fill="#e3e3e3">
+      <rect x="20" y="22" width="20" height="12" rx="2"/>
+      <rect x="80" y="14" width="80" height="10" rx="2"/>
+      <rect x="80" y="32" width="100" height="10" rx="2"/>
+      <rect x="180" y="14" width="60" height="10" rx="2"/>
+      <rect x="180" y="32" width="84" height="10" rx="2"/>
+      <rect x="280" y="18" width="60" height="20" rx="3" fill="#dbeedf"/>
+      <rect x="380" y="18" width="40" height="20" rx="3" fill="#e0edf7"/>
+      <rect x="460" y="22" width="32" height="12" rx="2"/>
+      <rect x="560" y="14" width="80" height="10" rx="2"/>
+      <rect x="560" y="32" width="64" height="10" rx="2"/>
+      <rect x="660" y="14" width="80" height="10" rx="2"/>
+      <rect x="660" y="32" width="64" height="10" rx="2"/>
+      <rect x="750" y="14" width="80" height="10" rx="2"/>
+      <rect x="750" y="32" width="64" height="10" rx="2"/>
+      <rect x="850" y="22" width="48" height="12" rx="2" fill="#cfe0f6"/>
+    </g>
+  </g>
+</svg>

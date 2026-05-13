@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 605 280" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Claude Connectors panel with the plus menu open showing Browse connectors and Add custom connector">
+  <rect width="605" height="280" fill="#1c1c1c"/>
+
+  <!-- Sidebar panel -->
+  <g>
+    <text x="24" y="40" fill="#ffffff" font-size="18" font-weight="500">Connectors</text>
+
+    <!-- Search icon (outlined) -->
+    <g stroke="#a0a0a0" stroke-width="1.5" fill="none">
+      <circle cx="278" cy="32" r="6"/>
+      <line x1="283" y1="37" x2="288" y2="42"/>
+    </g>
+
+    <!-- Plus icon (highlighted, opened) -->
+    <rect x="303" y="20" width="24" height="24" rx="4" fill="#2a2a2a"/>
+    <g stroke="#7adba0" stroke-width="2" stroke-linecap="square">
+      <line x1="315" y1="26" x2="315" y2="38"/>
+      <line x1="309" y1="32" x2="321" y2="32"/>
+    </g>
+
+    <!-- Section header "Not connected" with caret -->
+    <g transform="translate(24, 70)">
+      <path d="M0 4 L8 0 L8 8 Z" fill="#9a9a9a"/>
+      <text x="16" y="8" fill="#bdbdbd" font-size="13">Not connected</text>
+    </g>
+  </g>
+
+  <!-- Dropdown menu -->
+  <g transform="translate(330, 56)">
+    <rect width="200" height="84" rx="10" fill="#2a2a2a" stroke="#3a3a3a"/>
+
+    <!-- Browse connectors -->
+    <g transform="translate(12, 14)">
+      <rect x="0" y="2" width="18" height="14" rx="2" fill="none" stroke="#bdbdbd" stroke-width="1.5"/>
+      <line x1="3" y1="6" x2="15" y2="6" stroke="#bdbdbd" stroke-width="1.5"/>
+      <text x="28" y="14" fill="#e0e0e0" font-size="14">Browse connectors</text>
+    </g>
+
+    <!-- Add custom connector (hovered/focused) -->
+    <rect x="6" y="46" width="188" height="32" rx="6" fill="#383838"/>
+    <g transform="translate(12, 53)">
+      <circle cx="3" cy="9" r="1.5" fill="#bdbdbd"/>
+      <circle cx="10" cy="9" r="1.5" fill="#bdbdbd"/>
+      <circle cx="17" cy="9" r="1.5" fill="#bdbdbd"/>
+      <text x="28" y="14" fill="#ffffff" font-size="14" font-weight="500">Add custom connector</text>
+    </g>
+  </g>
+</svg>

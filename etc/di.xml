@@ -215,26 +215,11 @@
         </arguments>
     </virtualType>
 
-    <virtualType name="Magebit\Mcp\Model\OAuth\Preset\ChatGptPreset"
-                 type="Magebit\Mcp\Model\OAuth\ClientPreset">
-        <arguments>
-            <argument name="id" xsi:type="string">chatgpt</argument>
-            <argument name="label" xsi:type="string">ChatGPT</argument>
-            <argument name="name" xsi:type="string">ChatGPT</argument>
-            <argument name="redirectUris" xsi:type="array">
-                <item name="0" xsi:type="string">https://chatgpt.com/connector_platform_oauth_redirect</item>
-            </argument>
-        </arguments>
-    </virtualType>
-
     <type name="Magebit\Mcp\Model\OAuth\ClientPresetProvider">
         <arguments>
             <argument name="presets" xsi:type="array">
                 <item name="claude_web" xsi:type="object">
                     Magebit\Mcp\Model\OAuth\Preset\ClaudeWebPreset
-                </item>
-                <item name="chatgpt" xsi:type="object">
-                    Magebit\Mcp\Model\OAuth\Preset\ChatGptPreset
                 </item>
             </argument>
         </arguments>

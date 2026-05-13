@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 720" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Magento admin New OAuth Client form Allowed Tools tab showing a tree of tools grouped by Catalog, Cms, Customer, Marketing, Reports, Sales and System with an Allow All button">
+  <rect width="1060" height="720" fill="#f4f4f4"/>
+
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="80" height="720" fill="#41362f"/>
+  <rect x="20" y="14" width="40" height="40" fill="#eb5202"/>
+  <text x="40" y="42" text-anchor="middle" font-size="22" font-weight="500" fill="#ffffff">M</text>
+  <g text-anchor="middle" font-size="9" fill="#a09a96" letter-spacing="0.04em">
+    <text x="40" y="92">DASHBOARD</text>
+    <text x="40" y="124">SALES</text>
+    <text x="40" y="156">CATALOG</text>
+    <text x="40" y="188">CUSTOMERS</text>
+    <text x="40" y="220">MARKETING</text>
+    <text x="40" y="252">CONTENT</text>
+    <text x="40" y="284">REPORTS</text>
+    <text x="40" y="316">STORES</text>
+  </g>
+  <rect x="0" y="336" width="80" height="40" fill="#2c2522"/>
+  <text x="40" y="362" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="500" letter-spacing="0.04em">SYSTEM</text>
+
+  <!-- Page heading -->
+  <text x="100" y="84" fill="#1a1a1a" font-size="28" font-weight="400">New OAuth Client</text>
+
+  <!-- Sub-header with Back + Save Client -->
+  <rect x="100" y="120" width="940" height="60" fill="#e8e8e8"/>
+  <text x="800" y="156" text-anchor="end" font-size="14" fill="#1a1a1a" font-weight="500">← Back</text>
+  <g transform="translate(890, 134)">
+    <rect width="140" height="32" fill="#eb5202"/>
+    <text x="70" y="22" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="500">Save Client</text>
+  </g>
+
+  <!-- Left tabs sidebar -->
+  <g transform="translate(100, 208)">
+    <rect width="200" height="120" fill="#ffffff" stroke="#cccccc"/>
+    <rect x="0" y="0" width="200" height="40" fill="#e8e8e8"/>
+    <text x="14" y="26" font-size="12" font-weight="700" fill="#1a1a1a" letter-spacing="0.05em">OAUTH CLIENT SETTINGS</text>
+
+    <!-- Client Info -->
+    <text x="20" y="66" font-size="13" fill="#1a1a1a">Client Info</text>
+
+    <!-- Allowed Tools (active) -->
+    <rect x="0" y="80" width="200" height="40" fill="#ffffff"/>
+    <rect x="0" y="80" width="4" height="40" fill="#eb5202"/>
+    <text x="20" y="106" font-size="13" font-weight="500" fill="#1a1a1a">Allowed Tools</text>
+  </g>
+
+  <!-- Right panel -->
+  <g transform="translate(330, 208)">
+    <rect width="710" height="490" fill="#ffffff" stroke="#cccccc"/>
+
+    <!-- Allowed Tools label + Allow All button -->
+    <text x="200" y="46" font-size="13" fill="#1a1a1a">Allowed Tools</text>
+    <g transform="translate(294, 28)">
+      <rect width="84" height="28" fill="#41362f"/>
+      <text x="42" y="19" text-anchor="middle" font-size="12" fill="#ffffff" font-weight="500">Allow All</text>
+    </g>
+
+    <!-- Tree -->
+    <g font-size="12" fill="#1976d2">
+      <!-- Catalog -->
+      <g transform="translate(300, 80)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">Catalog</text>
+      </g>
+      <g transform="translate(330, 100)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="160" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="140" height="8" rx="2"/>
+        </g>
+      </g>
+
+      <!-- Cms -->
+      <g transform="translate(300, 138)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">Cms</text>
+      </g>
+      <g transform="translate(330, 158)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="170" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="130" height="8" rx="2"/>
+        </g>
+      </g>
+
+      <!-- Customer -->
+      <g transform="translate(300, 196)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">Customer</text>
+      </g>
+      <g transform="translate(330, 216)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="150" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="180" height="8" rx="2"/>
+        </g>
+      </g>
+
+      <!-- Marketing -->
+      <g transform="translate(300, 254)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">Marketing</text>
+      </g>
+      <g transform="translate(330, 274)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="140" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="160" height="8" rx="2"/>
+        </g>
+      </g>
+
+      <!-- Reports -->
+      <g transform="translate(300, 312)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">Reports</text>
+      </g>
+      <g transform="translate(330, 332)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="120" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="170" height="8" rx="2"/>
+        </g>
+      </g>
+
+      <!-- Sales -->
+      <g transform="translate(300, 370)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">Sales</text>
+      </g>
+      <g transform="translate(330, 390)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="155" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="135" height="8" rx="2"/>
+        </g>
+      </g>
+
+      <!-- System -->
+      <g transform="translate(300, 428)">
+        <text x="-10" y="9" font-size="9" fill="#1a1a1a">▼</text>
+        <rect x="6" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="26" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <text x="50" y="9" font-weight="500">System</text>
+      </g>
+      <g transform="translate(330, 448)" fill="#e3e3e3">
+        <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+        <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+        <rect x="44" y="2" width="125" height="8" rx="2"/>
+        <g transform="translate(0, 16)">
+          <rect x="0" y="0" width="14" height="12" fill="#ffffff" stroke="#cccccc"/>
+          <rect x="20" y="-2" width="16" height="14" fill="#f5b942" stroke="#b97e1c"/>
+          <rect x="44" y="2" width="145" height="8" rx="2"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

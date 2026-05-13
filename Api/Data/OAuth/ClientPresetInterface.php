@@ -12,7 +12,7 @@ namespace Magebit\Mcp\Api\Data\OAuth;
  * Immutable bootstrap preset for the OAuth client edit form's "Preset"
  * dropdown. Selecting an entry pre-fills Name + Redirect URIs so admins
  * don't need to look up the right callback URL for known clients
- * (Claude Web, ChatGPT, …).
+ * (e.g. Claude Web).
  */
 interface ClientPresetInterface
 {

@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 520" font-family="Inter, system-ui, sans-serif" role="img" aria-label="ChatGPT message composer with the plus menu open, showing More submenu with Magento MCP highlighted">
+  <!-- Page background -->
+  <rect width="880" height="520" fill="#0a0a0a"/>
+
+  <!-- Header -->
+  <text x="440" y="60" text-anchor="middle" font-size="22" fill="#ffffff" font-weight="500">Developer mode</text>
+  <text x="440" y="86" text-anchor="middle" font-size="13" fill="#9a9a9a">Memory is not used for this chat. <tspan fill="#cccccc" text-decoration="underline">Settings</tspan></text>
+
+  <!-- Composer input -->
+  <g transform="translate(180, 116)">
+    <rect width="520" height="56" rx="28" fill="#1c1c1c" stroke="#ff8c42" stroke-width="1.5"/>
+    <!-- + icon -->
+    <g transform="translate(20, 18)" stroke="#cccccc" stroke-width="1.6" stroke-linecap="round">
+      <line x1="0" y1="10" x2="20" y2="10"/>
+      <line x1="10" y1="0" x2="10" y2="20"/>
+    </g>
+    <text x="60" y="34" font-size="14" fill="#7a7a7a">Ask anything</text>
+    <!-- Right-side controls -->
+    <text x="420" y="34" font-size="13" fill="#bdbdbd">Thinking ▾</text>
+    <circle cx="494" cy="28" r="18" fill="#f0f0f0"/>
+    <g transform="translate(484, 22)" stroke="#1a1a1a" stroke-width="1.4" stroke-linecap="round">
+      <line x1="0" y1="6" x2="0" y2="6"/>
+      <line x1="4" y1="3" x2="4" y2="9"/>
+      <line x1="8" y1="0" x2="8" y2="12"/>
+      <line x1="12" y1="3" x2="12" y2="9"/>
+      <line x1="16" y1="6" x2="16" y2="6"/>
+    </g>
+  </g>
+
+  <!-- + menu popup -->
+  <g transform="translate(180, 198)">
+    <rect width="220" height="232" rx="12" fill="#262626" stroke="#3a3a3a"/>
+
+    <!-- Add photos & files -->
+    <g transform="translate(14, 14)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <path d="M2 4 q-2 0 -2 2 v6 q0 2 2 2 h12 q2 0 2 -2 v-6 q0 -2 -2 -2 z"/>
+        <path d="M5 5 v6"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Add photos &amp; files</text>
+    </g>
+
+    <!-- Create image -->
+    <g transform="translate(14, 50)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <rect x="0" y="2" width="18" height="14" rx="2"/>
+        <circle cx="6" cy="7" r="1.5"/>
+        <path d="M2 14 l4 -4 l4 4 l6 -6"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Create image</text>
+    </g>
+
+    <!-- Deep research -->
+    <g transform="translate(14, 86)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <circle cx="9" cy="9" r="8"/>
+        <path d="M6 9 l3 -3 l3 3 l-3 3 z" fill="#cccccc"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Deep research</text>
+    </g>
+
+    <!-- Web search -->
+    <g transform="translate(14, 122)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <circle cx="9" cy="9" r="8"/>
+        <line x1="1" y1="9" x2="17" y2="9"/>
+        <path d="M9 1 q5 4 0 16 q-5 -12 0 -16"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Web search</text>
+    </g>
+
+    <!-- More (highlighted, submenu indicator) -->
+    <g transform="translate(0, 152)">
+      <rect width="220" height="32" fill="#3a3a3a"/>
+      <g transform="translate(18, 19)" fill="#cccccc">
+        <circle cx="0" cy="0" r="1.5"/>
+        <circle cx="6" cy="0" r="1.5"/>
+        <circle cx="12" cy="0" r="1.5"/>
+      </g>
+      <text x="44" y="22" font-size="13" fill="#ffffff" font-weight="500">More</text>
+      <text x="200" y="22" font-size="14" fill="#9a9a9a">›</text>
+    </g>
+
+    <!-- Projects -->
+    <g transform="translate(14, 198)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <path d="M0 4 v10 q0 2 2 2 h14 q2 0 2 -2 v-8 q0 -2 -2 -2 h-7 l-2 -2 h-5 q-2 0 -2 2 z"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Projects</text>
+      <text x="186" y="14" font-size="14" fill="#9a9a9a">›</text>
+    </g>
+  </g>
+
+  <!-- More submenu (anchored to the right of "More") -->
+  <g transform="translate(410, 318)">
+    <rect width="220" height="190" rx="12" fill="#262626" stroke="#3a3a3a"/>
+
+    <!-- Agent mode -->
+    <g transform="translate(14, 14)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <path d="M2 2 h14 q2 0 2 2 v8 q0 2 -2 2 h-10 l-4 4 v-4 q-2 0 -2 -2 v-8 q0 -2 2 -2 z"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Agent mode</text>
+    </g>
+
+    <!-- Add sources -->
+    <g transform="translate(14, 50)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <path d="M2 9 a4 4 0 0 1 0 -6 l3 -3 a4 4 0 0 1 6 6 l-1 1"/>
+        <path d="M16 9 a4 4 0 0 1 0 6 l-3 3 a4 4 0 0 1 -6 -6 l1 -1"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Add sources</text>
+    </g>
+
+    <!-- Canvas -->
+    <g transform="translate(14, 86)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <rect x="0" y="2" width="18" height="14" rx="2"/>
+        <line x1="0" y1="6" x2="18" y2="6"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">Canvas</text>
+    </g>
+
+    <!-- Magento MCP (highlighted) -->
+    <g transform="translate(0, 116)">
+      <rect width="220" height="32" fill="#3a3a3a"/>
+      <g transform="translate(14, 7)">
+        <rect width="18" height="18" rx="3" fill="#eb4242"/>
+        <text x="9" y="13" text-anchor="middle" font-size="11" font-weight="700" fill="#ffffff">M</text>
+      </g>
+      <text x="40" y="21" font-size="13" fill="#ffffff" font-weight="500">Magento MCP</text>
+      <g transform="translate(140, 10)">
+        <rect width="30" height="14" rx="3" fill="#1a1a1a"/>
+        <text x="15" y="11" text-anchor="middle" font-size="9" fill="#cccccc" font-weight="700">DEV</text>
+      </g>
+    </g>
+
+    <!-- OpenAI Platform -->
+    <g transform="translate(14, 162)">
+      <g stroke="#cccccc" stroke-width="1.4" fill="none">
+        <circle cx="9" cy="9" r="8"/>
+        <path d="M5 7 l4 -2 l4 2 l0 4 l-4 2 l-4 -2 z"/>
+      </g>
+      <text x="30" y="14" font-size="13" fill="#e0e0e0">OpenAI Platform</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 420" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Magento admin New MCP Connection form Resource Access tab with a Resource Access dropdown set to All">
+  <rect width="1060" height="420" fill="#f4f4f4"/>
+
+  <!-- Sidebar -->
+  <rect x="0" y="0" width="80" height="420" fill="#41362f"/>
+  <rect x="20" y="14" width="40" height="40" fill="#eb5202"/>
+  <text x="40" y="42" text-anchor="middle" font-size="22" font-weight="500" fill="#ffffff">M</text>
+  <g text-anchor="middle" font-size="9" fill="#a09a96" letter-spacing="0.04em">
+    <text x="40" y="92">DASHBOARD</text>
+    <text x="40" y="124">SALES</text>
+    <text x="40" y="156">CATALOG</text>
+    <text x="40" y="188">CUSTOMERS</text>
+    <text x="40" y="220">MARKETING</text>
+    <text x="40" y="252">CONTENT</text>
+    <text x="40" y="284">REPORTS</text>
+    <text x="40" y="316">STORES</text>
+  </g>
+  <rect x="0" y="336" width="80" height="40" fill="#2c2522"/>
+  <text x="40" y="362" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="500" letter-spacing="0.04em">SYSTEM</text>
+
+  <!-- Page heading -->
+  <text x="100" y="60" fill="#1a1a1a" font-size="28" font-weight="400">New MCP Connection</text>
+
+  <!-- Sub-header with Back + Save -->
+  <rect x="100" y="96" width="940" height="60" fill="#e8e8e8"/>
+  <text x="800" y="132" text-anchor="end" font-size="14" fill="#1a1a1a" font-weight="500">← Back</text>
+  <g transform="translate(890, 110)">
+    <rect width="140" height="32" fill="#eb5202"/>
+    <text x="70" y="22" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="500">Save</text>
+  </g>
+
+  <!-- Left tabs sidebar -->
+  <g transform="translate(100, 184)">
+    <rect width="200" height="170" fill="#ffffff" stroke="#cccccc"/>
+    <rect x="0" y="0" width="200" height="40" fill="#e8e8e8"/>
+    <text x="14" y="26" font-size="12" font-weight="700" fill="#1a1a1a" letter-spacing="0.05em">TOKEN SETTINGS</text>
+
+    <!-- Token Info -->
+    <text x="20" y="86" font-size="13" fill="#1a1a1a">Token Info</text>
+    <text x="100" y="86" font-size="13" fill="#a0a0a0">✎</text>
+
+    <!-- Resource Access (active) -->
+    <rect x="0" y="120" width="200" height="40" fill="#ffffff"/>
+    <rect x="0" y="120" width="4" height="40" fill="#eb5202"/>
+    <text x="20" y="146" font-size="13" font-weight="500" fill="#1a1a1a">Resource Access</text>
+  </g>
+
+  <!-- Right panel -->
+  <g transform="translate(330, 184)">
+    <rect width="710" height="210" fill="#ffffff" stroke="#cccccc"/>
+
+    <!-- Warning banner -->
+    <g transform="translate(30, 24)">
+      <rect width="650" height="70" fill="#fdf0d5"/>
+      <g transform="translate(20, 22)">
+        <polygon points="0,28 14,0 28,28" fill="#eb5202"/>
+        <text x="14" y="24" text-anchor="middle" font-size="18" fill="#ffffff" font-weight="700">!</text>
+      </g>
+      <text x="64" y="28" font-size="12" fill="#1a1a1a">This token can only use tools that the selected admin user is also allowed</text>
+      <text x="64" y="44" font-size="12" fill="#1a1a1a">to use. Greyed-out tools are blocked by the admin user's role — change</text>
+      <text x="64" y="60" font-size="12" fill="#1a1a1a">their role to unlock them.</text>
+    </g>
+
+    <!-- Resource Access row -->
+    <text x="200" y="140" text-anchor="end" font-size="13" fill="#1a1a1a" font-weight="500">Resource Access</text>
+    <rect x="220" y="120" width="80" height="32" fill="#ffffff" stroke="#cccccc"/>
+    <text x="236" y="140" font-size="13" fill="#1a1a1a">All</text>
+    <rect x="274" y="120" width="26" height="32" fill="#e8e8e8" stroke="#cccccc"/>
+    <text x="287" y="140" text-anchor="middle" font-size="12" fill="#1a1a1a">▾</text>
+  </g>
+</svg>

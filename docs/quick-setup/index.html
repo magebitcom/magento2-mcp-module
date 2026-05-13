@@ -1,0 +1,936 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magento MCP — Quick Setup</title>
+  <meta name="description" content="Connect your Magento 2 store to Claude, ChatGPT, Cursor and other AI agents. A three-step setup guide.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="../magebit.svg">
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero__inner">
+    <div class="hero__brand">
+      <img class="hero__logo" src="../magebit.svg" alt="Magebit">
+      <span class="hero__wordmark">Magebit</span>
+    </div>
+    <p class="hero__eyebrow">Magento MCP — Quick Setup</p>
+    <h1>Connect your store to an AI in three steps.</h1>
+    <p class="hero__lede">Install the module, pick which AI you'll use, follow the steps. Most people are connected in under ten minutes.</p>
+  </div>
+</header>
+
+<ol class="steps" aria-label="Setup progress">
+  <li class="steps__item" data-step-item="install"><span class="steps__dot"></span><span class="steps__label">1. Install</span></li>
+  <li class="steps__item" data-step-item="agent"><span class="steps__dot"></span><span class="steps__label">2. Pick your AI</span></li>
+  <li class="steps__item" data-step-item="configure"><span class="steps__dot"></span><span class="steps__label">3. Connect</span></li>
+</ol>
+
+<main>
+
+  <!-- ============================== STEP 1 ============================== -->
+  <section class="section" data-section="install" aria-labelledby="install-title">
+    <div class="section__intro">
+      <h2 id="install-title">Install the module on your store</h2>
+      <p>This is the only step that needs your Magento developer or hosting admin — the rest you can do yourself. If you don't run the server, copy the commands below and send them to the person who does.</p>
+    </div>
+
+    <h3>What should the AI be able to do?</h3>
+    <p>Tick what applies. The install commands below update to match.</p>
+
+    <ul class="featurelist" id="featurelist">
+      <li>
+        <label>
+          <input type="checkbox" data-module="order" data-package="magebitcom/magento2-mcp-order-tools" data-name="Magebit_McpOrderTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Orders</span>
+            <span class="featurelist__desc">Look up orders. Create invoices, shipments, refunds.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" data-module="catalog" data-package="magebitcom/magento2-mcp-catalog-tools" data-name="Magebit_McpCatalogTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Products &amp; categories</span>
+            <span class="featurelist__desc">Read products, change prices, edit categories.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" data-module="customer" data-package="magebitcom/magento2-mcp-customer-tools" data-name="Magebit_McpCustomerTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Customers</span>
+            <span class="featurelist__desc">Look up customer accounts, addresses and groups.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" data-module="cms" data-package="magebitcom/magento2-mcp-cms-tools" data-name="Magebit_McpCmsTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">CMS pages</span>
+            <span class="featurelist__desc">Edit storefront pages and content blocks.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" data-module="marketing" data-package="magebitcom/magento2-mcp-marketing-tools" data-name="Magebit_McpMarketingTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Discounts</span>
+            <span class="featurelist__desc">Manage discount rules and coupon codes.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
+          <input type="checkbox" data-module="report" data-package="magebitcom/magento2-mcp-report-tools" data-name="Magebit_McpReportTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Reports &amp; statistics</span>
+            <span class="featurelist__desc">Pull sales, customer and product reports.</span>
+          </span>
+        </label>
+      </li>
+    </ul>
+
+    <h3>Run these commands</h3>
+    <p>From the Magento installation folder. If you don't run the server, copy this and send it to whoever does.</p>
+
+    <div class="codeblock">
+      <button class="codeblock__copy" data-copy="cmd-install" aria-label="Copy install commands">Copy</button>
+      <pre><code id="cmd-install"></code></pre>
+    </div>
+
+    <div class="callout callout--tip">
+      <p><strong>You'll need your store address.</strong> That's the URL you visit when you log into your Magento admin — e.g. <code>https://shop.example.com</code>. Keep it handy for the next step.</p>
+    </div>
+
+    <div class="section__actions">
+      <button class="btn" type="button" data-goto="agent">The module is installed &rarr;</button>
+    </div>
+  </section>
+
+  <!-- ============================== STEP 2 ============================== -->
+  <section class="section" data-section="agent" aria-labelledby="agent-title">
+    <div class="section__intro">
+      <h2 id="agent-title">Pick the AI you'll connect</h2>
+      <p>Choose the one you use. Each option has its own step-by-step setup on the next screen.</p>
+    </div>
+
+    <ul class="agents">
+      <!-- Claude Desktop card commented out — pending Linux verification.
+      <li class="agents__item">
+        <button class="agents__card" type="button" data-agent-pick="claude-desktop" aria-label="Claude Desktop">
+          <span class="agents__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span>
+          <p class="agents__name">Claude Desktop</p>
+          <p class="agents__blurb">Anthropic's desktop app for Mac and Windows.</p>
+        </button>
+      </li>
+      -->
+      <li class="agents__item">
+        <button class="agents__card" type="button" data-agent-pick="claude-web" aria-label="Claude on the web">
+          <span class="agents__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span>
+          <p class="agents__name">Claude (web)</p>
+          <p class="agents__blurb">claude.ai in your browser. No installs needed.</p>
+        </button>
+      </li>
+      <li class="agents__item">
+        <button class="agents__card" type="button" data-agent-pick="claude-code" aria-label="Claude Code">
+          <span class="agents__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg></span>
+          <p class="agents__name">Claude Code</p>
+          <p class="agents__blurb">Anthropic's command-line tool for developers.</p>
+        </button>
+      </li>
+      <li class="agents__item">
+        <button class="agents__card" type="button" data-agent-pick="cursor" aria-label="Cursor">
+          <span class="agents__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg></span>
+          <p class="agents__name">Cursor</p>
+          <p class="agents__blurb">AI code editor for developers.</p>
+        </button>
+      </li>
+      <li class="agents__item">
+        <button class="agents__card" type="button" data-agent-pick="chatgpt" aria-label="ChatGPT">
+          <span class="agents__icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg></span>
+          <p class="agents__name">ChatGPT</p>
+          <p class="agents__blurb">OpenAI's chat app. Plus, Team or Enterprise plan.</p>
+        </button>
+      </li>
+      <li class="agents__item">
+        <button class="agents__card" type="button" data-agent-pick="other" aria-label="None of these — generic setup">
+          <span class="agents__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+          <p class="agents__name">None of these</p>
+          <p class="agents__blurb">Generic setup for any other MCP-compatible client.</p>
+        </button>
+      </li>
+    </ul>
+
+    <div class="section__actions">
+      <button class="btn btn--ghost" type="button" data-goto="install">&larr; Back</button>
+    </div>
+  </section>
+
+  <!-- ============================== STEP 3 ============================== -->
+  <section class="section" data-section="configure" aria-labelledby="configure-title">
+    <div class="section__intro">
+      <h2 id="configure-title">Connect your AI</h2>
+      <p>Follow the steps for the AI you picked. Wherever you see <mark>&lt;your-store&gt;</mark>, replace it with your real store address (e.g. <code>shop.example.com</code>).</p>
+    </div>
+
+    <!-- ============= Claude Desktop (commented out — pending Linux verification) =============
+    <article class="agent-detail" data-agent="claude-desktop">
+      <header class="agent-detail__header">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
+        <h2>Claude Desktop</h2>
+      </header>
+
+      <p>Claude Desktop runs on your machine, so the simplest setup is a <strong>connection token</strong> — works for both publicly-reachable stores and local development stores (<code>mystore.docker</code>, <code>mystore.local</code>). Make sure Claude Desktop is up to date first. You'll also need <a href="https://nodejs.org">Node.js</a> installed (it provides the <code>npx</code> command).</p>
+
+      <h3>Part 1 — Create a connection token</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open MCP Connections in your Magento admin</h3>
+          <p>Sign in to your Magento admin. In the top menu, go to <strong>System &rarr; MCP &rarr; Connections</strong>. Click <strong>New Connection</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connections-list.svg" alt="Magento admin MCP Connections page with a New Connection button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Fill in the Token Info tab</h3>
+          <p>Pick your <strong>Admin User</strong>, give the token a <strong>Name</strong> (e.g. <em>Claude Desktop, laptop</em>), and set <strong>Allow Write Tools</strong> to <em>Yes</em> if you want Claude Desktop to make changes. Save.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connection-token-info.svg" alt="New MCP Connection form Token Info tab with Admin User, Name, Expires At and Allow Write Tools fields.">
+          </figure>
+        </li>
+        <li>
+          <h3>Copy the token</h3>
+          <p>The next screen shows the token <em>once</em>. Copy it now.</p>
+        </li>
+      </ol>
+
+      <h3>Part 2 — Edit Claude Desktop's config file</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open <code>claude_desktop_config.json</code></h3>
+          <p>Open (or create) the config file:</p>
+          <ul>
+            <li><strong>Mac:</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code></li>
+            <li><strong>Windows:</strong> <code>%APPDATA%\Claude\claude_desktop_config.json</code></li>
+          </ul>
+        </li>
+        <li>
+          <h3>Paste this in (replacing the angle brackets)</h3>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-cd-json" aria-label="Copy Claude Desktop JSON">Copy</button>
+            <pre><code id="cmd-cd-json">{
+  "mcpServers": {
+    "magento": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://&lt;your-store&gt;/mcp",
+        "--header", "Authorization: Bearer &lt;your-token&gt;"
+      ]
+    }
+  }
+}</code></pre>
+          </div>
+          <p>This uses the community-standard <a href="https://www.npmjs.com/package/mcp-remote"><code>mcp-remote</code></a> package as a bridge between Claude Desktop and your store. It runs locally — Anthropic's servers never see your token or your store address.</p>
+        </li>
+        <li>
+          <h3>Restart Claude Desktop</h3>
+          <p>Fully quit and reopen the app. Open <strong>Settings &rarr; Connectors</strong> — the <code>magento</code> server should appear in the list. Tools become available in new chats.</p>
+        </li>
+      </ol>
+
+      <h3>Try it out</h3>
+      <p>Open a new chat in Claude Desktop and ask:</p>
+      <div class="codeblock">
+        <button class="codeblock__copy" data-copy="cmd-test-cd" aria-label="Copy example prompt">Copy</button>
+        <pre><code id="cmd-test-cd">Show me my store's recent orders.</code></pre>
+      </div>
+
+      <details class="collapsible">
+        <summary>Want to use Claude Desktop's Custom Connectors (OAuth) instead?</summary>
+        <div>
+          <div class="callout">
+            <p><strong>Public store only.</strong> Claude Desktop's <em>Custom Connectors</em> feature routes traffic through Anthropic's servers (<a href="https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp">Anthropic confirms this in their docs</a>), so it can't reach private addresses like <code>mystore.docker</code>. Your store must be on a public HTTPS URL.</p>
+          </div>
+
+          <p>The flow mirrors the <a href="#configure-claude-web">Claude (web) setup</a>: register an OAuth client in Magento admin (<strong>System &rarr; MCP &rarr; OAuth Clients</strong>), then in Claude Desktop go to <strong>Settings &rarr; Connectors &rarr; Add custom connector</strong>, paste in <strong>https://&lt;your-store&gt;/mcp</strong>, expand <strong>Advanced settings</strong>, and paste your <strong>OAuth Client ID</strong> + <strong>Client Secret</strong>.</p>
+
+          <p><strong>Caveat — Redirect URI:</strong> Anthropic doesn't publish Claude Desktop's OAuth callback URL, and we don't ship a Magento preset for it yet. Pick the <em>Custom</em> preset in Magento and enter a placeholder URL in <strong>Redirect URIs</strong> (e.g. <code>https://example.com/placeholder</code>) — when you click <em>Connect</em> in Claude Desktop, the OAuth error will reveal the actual callback URL Claude Desktop is using. Edit the Magento OAuth client and replace the placeholder with that real URL, then try connecting again.</p>
+        </div>
+      </details>
+
+      <div class="troubleshoot">
+        <h3>If something goes wrong</h3>
+        <dl>
+          <dt>The <code>magento</code> server doesn't appear after restart</dt>
+          <dd>There's a typo in the JSON. Paste it into <a href="https://jsonlint.com">jsonlint.com</a> to find missing commas or quotes. Also check Claude Desktop's log: <strong>Settings &rarr; Developer &rarr; Open Logs Folder</strong> (Mac).</dd>
+          <dt><code>npx</code> not found</dt>
+          <dd>Install <a href="https://nodejs.org">Node.js</a> — it provides <code>npx</code>. On Windows, restart Claude Desktop after installing so it picks up the new PATH.</dd>
+          <dt>"401 Unauthorized" in the log</dt>
+          <dd>The token is wrong or revoked. Create a fresh one and replace it in the JSON.</dd>
+          <dt>"Server unavailable" or 503</dt>
+          <dd>Ask your developer to check <strong>Stores &rarr; Configuration &rarr; Magebit &rarr; MCP Server</strong> in the admin and confirm <em>Enable MCP Server</em> is set to Yes.</dd>
+        </dl>
+      </div>
+
+      <div class="section__actions">
+        <button class="btn btn--ghost" type="button" data-goto="agent">&larr; Pick a different AI</button>
+      </div>
+    </article>
+    -->
+
+    <!-- ============= Claude web ============= -->
+    <article class="agent-detail" data-agent="claude-web">
+      <header class="agent-detail__header">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
+        <h2>Claude (web)</h2>
+      </header>
+
+      <p>Two parts: first you'll register Claude as an OAuth client in your Magento admin and copy two values, then you'll paste them into Claude's connector setup. After that, signing in works through your normal Magento login.</p>
+
+      <div class="callout">
+        <p><strong>Local development stores aren't supported here.</strong> claude.ai runs on Anthropic's servers, so it can't reach addresses like <code>mystore.docker</code> or <code>mystore.local</code>. If your store isn't publicly reachable over HTTPS, use <strong>Claude Code</strong> or <strong>Cursor</strong> instead — they run on your machine and can talk to local hostnames.</p>
+      </div>
+
+      <h3>Part 1 — Register Claude in your Magento admin</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open OAuth Clients</h3>
+          <p>Sign in to your Magento admin. In the top menu, go to <strong>System &rarr; MCP &rarr; OAuth Clients</strong>. Click <strong>Add New Client</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-oauth-clients-list.svg" alt="Magento admin OAuth Clients page with an Add New Client button and a table of existing clients.">
+          </figure>
+        </li>
+        <li>
+          <h3>Pick "Claude Web" from the Preset dropdown</h3>
+          <p>On the new client form, open the <strong>Preset</strong> dropdown and select <em>Claude Web</em>. This autofills the <strong>Name</strong> and <strong>Redirect URIs</strong> with the right values — you can leave them as-is.</p>
+          <figure>
+            <img src="assets/screenshots/magento-oauth-client-info.svg" alt="New OAuth Client form with the Preset dropdown set to Claude Web, Name autofilled to Claude Web, and Redirect URIs autofilled to https://claude.ai/api/mcp/auth_callback.">
+          </figure>
+        </li>
+        <li>
+          <h3>Choose which tools Claude can use</h3>
+          <p>Click the <strong>Allowed Tools</strong> tab. Nothing is ticked by default — either click <strong>Allow All</strong> to grant Claude access to every tool, or tick the categories and individual tools you want. You'll also get a second chance to narrow this when you click Connect later.</p>
+          <figure>
+            <img src="assets/screenshots/magento-oauth-allowed-tools.svg" alt="Allowed Tools tab showing a tree of tool categories (Catalog, Cms, Customer) with empty checkboxes and an Allow All button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Save and copy the Client ID + Secret</h3>
+          <p>Click <strong>Save Client</strong> (top right). You'll be taken to a confirmation page that shows the <strong>Client ID</strong> and <strong>Client Secret</strong>. Copy both — the secret is only shown once.</p>
+          <div class="callout">
+            <p><strong>Lost the secret?</strong> There's no in-place regenerate — delete the OAuth client and create a new one. The old credentials stop working immediately.</p>
+          </div>
+        </li>
+      </ol>
+
+      <h3>Part 2 — Add the connector in Claude</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open Claude's connectors page</h3>
+          <p>Go to <a href="https://claude.ai/customize/connectors">claude.ai/customize/connectors</a> and sign in if you haven't already. (Same page is reachable from the Claude menu → <strong>Customize</strong> → <strong>Connectors</strong>.)</p>
+        </li>
+        <li>
+          <h3>Click the + icon, then "Add custom connector"</h3>
+          <figure>
+            <img src="assets/screenshots/claude-web-connectors-menu.svg" alt="Claude Connectors panel with the + menu open, showing Browse connectors and Add custom connector.">
+          </figure>
+        </li>
+        <li>
+          <h3>Fill in the connector details</h3>
+          <p><strong>Name:</strong> anything you'll recognise (e.g. <em>My Store</em>).</p>
+          <p><strong>Remote MCP server URL:</strong> <mark>https://&lt;your-store&gt;/mcp</mark></p>
+          <p>Expand <strong>Advanced settings</strong> and paste the two values you copied from Magento:</p>
+          <ul>
+            <li><strong>OAuth Client ID</strong> — paste from Part 1.</li>
+            <li><strong>OAuth Client Secret</strong> — paste from Part 1.</li>
+          </ul>
+          <p>Click <strong>Add</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/claude-web-add-connector.svg" alt="The Add custom connector dialog in Claude, with fields for Name, Remote MCP server URL, and Advanced settings containing OAuth Client ID and OAuth Client Secret.">
+          </figure>
+        </li>
+        <li>
+          <h3>Click Connect</h3>
+          <p>You'll land on a page that says <em>You are not connected to Magento MCP yet</em>. Click <strong>Connect</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/claude-web-connect.svg" alt="Claude's connector detail page showing 'You are not connected to Magento MCP yet' with a Connect button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Approve access in your Magento store</h3>
+          <p>You'll be sent to your Magento store. If you're not already signed in to the admin, sign in. The <strong>Authorize MCP access</strong> page shows the categories of tools Claude is asking for — untick anything you don't want Claude to have, then click <strong>Approve selected</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-authorize-consent.svg" alt="Magento Authorize MCP access page listing Catalog, Cms, Customer, Marketing, Reports, Sales and System tool categories, with Approve selected and Deny buttons.">
+          </figure>
+        </li>
+        <li>
+          <h3>You're done</h3>
+          <p>You'll be sent back to Claude and the connector appears in your list. Start a new chat and try the example below.</p>
+        </li>
+      </ol>
+
+      <h3>Try it out</h3>
+      <p>Open a new chat and ask:</p>
+      <div class="codeblock">
+        <button class="codeblock__copy" data-copy="cmd-test-cw" aria-label="Copy example prompt">Copy</button>
+        <pre><code id="cmd-test-cw">Show me my store's recent orders.</code></pre>
+      </div>
+
+      <div class="troubleshoot">
+        <h3>If something goes wrong</h3>
+        <dl>
+          <dt>"Couldn't connect" right after clicking Add</dt>
+          <dd>Your store needs to be reachable from the internet over HTTPS — Claude can't see a local <code>.local</code> or <code>.docker</code> address.</dd>
+          <dt>"Invalid client" on the Magento authorize page</dt>
+          <dd>The Client ID or Secret was pasted with extra whitespace or doesn't match the one stored in Magento. Open the OAuth client in Magento admin, copy the values again, edit the connector in Claude and re-paste them.</dd>
+          <dt>"You don't have permission to do that" after approving</dt>
+          <dd>The admin user who signed in is restricted. Sign in to Magento admin as a different user when you click Connect again, or ask your developer to widen that user's role.</dd>
+        </dl>
+      </div>
+
+      <div class="section__actions">
+        <button class="btn btn--ghost" type="button" data-goto="agent">&larr; Pick a different AI</button>
+      </div>
+    </article>
+
+    <!-- ============= Claude Code ============= -->
+    <article class="agent-detail" data-agent="claude-code">
+      <header class="agent-detail__header">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>
+        <h2>Claude Code</h2>
+      </header>
+
+      <p>Claude Code runs on your machine, so it can talk to your store directly — including local development stores (<code>mystore.docker</code>, <code>mystore.local</code>). The simplest setup is a <strong>connection token</strong>.</p>
+
+      <div class="callout callout--tip">
+        <p><strong>Two parts:</strong> first you mint a token in your Magento admin, then you point Claude Code at your store with that token.</p>
+      </div>
+
+      <h3>Part 1 — Create a connection token</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open MCP Connections in your Magento admin</h3>
+          <p>Sign in to your Magento admin. In the top menu, go to <strong>System &rarr; MCP &rarr; Connections</strong>. Click <strong>New Connection</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connections-list.svg" alt="Magento admin MCP Connections page with a New Connection button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Fill in the Token Info tab</h3>
+          <p>Pick your <strong>Admin User</strong>, give the token a <strong>Name</strong> (e.g. <em>Claude Code, laptop</em>), and set <strong>Allow Write Tools</strong> to <em>Yes</em> if you want Claude Code to make changes. Save.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connection-token-info.svg" alt="New MCP Connection form Token Info tab with Admin User, Name, Expires At and Allow Write Tools fields.">
+          </figure>
+        </li>
+        <li>
+          <h3>Copy the token</h3>
+          <p>The next screen shows the token <em>once</em>. Copy it now.</p>
+        </li>
+      </ol>
+
+      <h3>Part 2 — Add the connection in Claude Code</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Register the server with the token</h3>
+          <p>In any terminal, run:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-cc-token" aria-label="Copy claude mcp add command">Copy</button>
+            <pre><code id="cmd-cc-token">claude mcp add --transport http magento \
+  https://&lt;your-store&gt;/mcp \
+  --header "Authorization: Bearer &lt;your-token&gt;"</code></pre>
+          </div>
+          <p>By default this stores the server in <em>local</em> scope (current folder, just you). Add <code>--scope user</code> if you want the server available in every folder on your machine, or <code>--scope project</code> if you want it committed to <code>.mcp.json</code> and shared with everyone on the project.</p>
+        </li>
+        <li>
+          <h3>Check it's connected</h3>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-cc-list" aria-label="Copy claude mcp list command">Copy</button>
+            <pre><code id="cmd-cc-list">claude mcp list</code></pre>
+          </div>
+          <p>You should see <code>magento</code> with a connected status. Inside a Claude Code session you can also run <code>/mcp</code> to inspect server details and tool counts.</p>
+        </li>
+      </ol>
+
+      <h3>Try it out</h3>
+      <p>Start a Claude Code session and ask:</p>
+      <div class="codeblock">
+        <button class="codeblock__copy" data-copy="cmd-test-cc" aria-label="Copy example prompt">Copy</button>
+        <pre><code id="cmd-test-cc">Use the magento server to show me my store's recent orders.</code></pre>
+      </div>
+
+      <details class="collapsible">
+        <summary>Prefer the command line for token creation?</summary>
+        <div>
+          <p>If you have terminal access to your Magento server, you can mint the token there instead of using the admin panel:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-cc-cli-token" aria-label="Copy CLI token creation command">Copy</button>
+            <pre><code id="cmd-cc-cli-token">bin/magento magebit:mcp:token:create \
+  --admin-user &lt;username&gt; \
+  --name "Claude Code, laptop" \
+  [--allow-writes]</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <details class="collapsible">
+        <summary>Want to use OAuth instead of a token?</summary>
+        <div>
+          <p>Claude Code does support OAuth 2.1 + PKCE, but this server doesn't support automatic OAuth client registration. You'll need to pre-register Claude Code as an OAuth client in your Magento admin (<strong>System &rarr; MCP &rarr; OAuth Clients</strong>) using the <em>Custom</em> preset, set <strong>Redirect URIs</strong> to <code>http://localhost:&lt;port&gt;/callback</code> (Claude Code defaults to <code>33418</code>; whichever port you pick must match the <code>--callback-port</code> flag below), and then pass the credentials when adding the server:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-cc-oauth" aria-label="Copy Claude Code OAuth command">Copy</button>
+            <pre><code id="cmd-cc-oauth">claude mcp add --transport http magento \
+  https://&lt;your-store&gt;/mcp \
+  --client-id &lt;client-id&gt; \
+  --client-secret &lt;client-secret&gt; \
+  --callback-port 33418</code></pre>
+          </div>
+          <p>The token approach above is simpler and more reliable for a CLI tool — only reach for OAuth if you have a specific reason to.</p>
+        </div>
+      </details>
+
+      <div class="troubleshoot">
+        <h3>If something goes wrong</h3>
+        <dl>
+          <dt>"401 Unauthorized"</dt>
+          <dd>The token is wrong, revoked, or the <code>Authorization</code> header is malformed. Re-run <code>claude mcp remove magento</code> then add it again with a fresh token.</dd>
+          <dt>"failed to connect" right after <code>claude mcp add</code></dt>
+          <dd>The store address has to be HTTPS. For local development stores, make sure your shell can reach the URL — try <code>curl -I https://&lt;your-store&gt;/mcp</code> first.</dd>
+          <dt>No tools show up in chat</dt>
+          <dd>Run <code>claude mcp list</code> and confirm the connection is green. If it's red, remove it and add it again.</dd>
+        </dl>
+      </div>
+
+      <div class="section__actions">
+        <button class="btn btn--ghost" type="button" data-goto="agent">&larr; Pick a different AI</button>
+      </div>
+    </article>
+
+    <!-- ============= Cursor ============= -->
+    <article class="agent-detail" data-agent="cursor">
+      <header class="agent-detail__header">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.503.131 1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>
+        <h2>Cursor</h2>
+      </header>
+
+      <p>Cursor doesn't have a browser sign-in flow, so you'll create a small <em>connection token</em> in your Magento admin and paste it into Cursor's settings.</p>
+
+      <h3>Part 1 — Create a connection token</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open MCP Connections in your Magento admin</h3>
+          <p>Sign in to your Magento admin. In the top menu, go to <strong>System &rarr; MCP &rarr; Connections</strong>. Click <strong>New Connection</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connections-list.svg" alt="Magento admin MCP Connections page with a New Connection button and a table of existing connections.">
+          </figure>
+        </li>
+        <li>
+          <h3>Fill in the Token Info tab</h3>
+          <p>On the new connection form, the <strong>Token Info</strong> tab is open by default. Fill it in:</p>
+          <ul>
+            <li><strong>Admin User</strong> — pick your own admin account (the token inherits its permissions).</li>
+            <li><strong>Name</strong> — something you'll recognise (e.g. <em>Cursor on my laptop</em>).</li>
+            <li><strong>Expires At (UTC)</strong> — leave blank for a token that doesn't expire, or pick a date.</li>
+            <li><strong>Allow Write Tools</strong> — set to <em>Yes</em> if you want Cursor to make changes (create products, edit pages, etc.).</li>
+          </ul>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connection-token-info.svg" alt="New MCP Connection form with the Token Info tab active, showing Admin User, Name, Expires At and Allow Write Tools fields.">
+          </figure>
+        </li>
+        <li>
+          <h3>(Optional) Narrow the Resource Access</h3>
+          <p>Click the <strong>Resource Access</strong> tab. Leave it on <em>All</em> for full access, or switch to <em>Custom</em> to tick only the specific tools you want Cursor to use.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connection-resource-access.svg" alt="New MCP Connection form with the Resource Access tab active, showing a Resource Access dropdown set to All.">
+          </figure>
+        </li>
+        <li>
+          <h3>Save and copy the token</h3>
+          <p>Click <strong>Save</strong> (top right). The next screen shows the token <em>once</em>. Copy it now — it can't be shown again.</p>
+          <div class="callout">
+            <p><strong>Lost it?</strong> No problem — just delete that connection and create a new one. The old token stops working immediately.</p>
+          </div>
+        </li>
+      </ol>
+
+      <details class="collapsible">
+        <summary>Prefer the command line?</summary>
+        <div>
+          <p>If you have terminal access to your Magento server, you can create the token there instead:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-token-cli" aria-label="Copy token CLI command">Copy</button>
+            <pre><code id="cmd-token-cli">bin/magento magebit:mcp:token:create \
+  --admin-user &lt;username&gt; \
+  --name "Cursor on my laptop" \
+  [--allow-writes]</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <h3>Part 2 — Tell Cursor about your store</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open Cursor's MCP settings</h3>
+          <p>In Cursor, open <strong>Settings</strong> → <strong>Tools &amp; MCPs</strong>. Click <strong>+ New MCP Server</strong> — Cursor opens <code>~/.cursor/mcp.json</code> in an editor tab (or creates it if it doesn't exist yet). For a per-project connection instead, create <code>.cursor/mcp.json</code> in the project root.</p>
+          <figure>
+            <img src="assets/screenshots/cursor-tools-mcps.svg" alt="Cursor Settings → Tools & MCPs page with an Installed MCP Servers list and a New MCP Server button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Paste this in (replacing the angle brackets)</h3>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-cursor-json" aria-label="Copy Cursor mcp.json">Copy</button>
+            <pre><code id="cmd-cursor-json">{
+  "mcpServers": {
+    "magento": {
+      "name": "magento",
+      "url": "https://&lt;your-store&gt;/mcp",
+      "headers": {
+        "Authorization": "Bearer &lt;your-token&gt;"
+      }
+    }
+  }
+}</code></pre>
+          </div>
+          <p>Save the file. Cursor picks up the change immediately — no reload needed.</p>
+        </li>
+        <li>
+          <h3>Check the server's connected</h3>
+          <p>Back on <strong>Settings &rarr; Tools &amp; MCPs</strong>, your <code>magento</code> server appears under <em>Installed MCP Servers</em> with a green status dot and a tool count. Toggle it on if it isn't already.</p>
+        </li>
+      </ol>
+
+      <h3>Try it out</h3>
+      <p>Open Cursor's chat sidepanel (<kbd>Cmd</kbd>+<kbd>L</kbd> on Mac, <kbd>Ctrl</kbd>+<kbd>L</kbd> on Windows/Linux), switch to <strong>Agent</strong> mode at the bottom of the chat (MCP tools only work in Agent mode, not Ask), and ask:</p>
+      <div class="codeblock">
+        <button class="codeblock__copy" data-copy="cmd-test-cursor" aria-label="Copy example prompt">Copy</button>
+        <pre><code id="cmd-test-cursor">Show me my store's recent orders.</code></pre>
+      </div>
+
+      <details class="collapsible">
+        <summary>Prefer OAuth over a bearer token?</summary>
+        <div>
+          <p>Cursor also supports OAuth for MCP servers. Register an OAuth client in your Magento admin (<strong>System &rarr; MCP &rarr; OAuth Clients</strong>, <em>Custom</em> preset, Redirect URIs set to whatever your Cursor build expects — check Cursor's docs or its first-connect error message for the exact URL), then point Cursor's <code>mcp.json</code> at the URL alone (no <code>headers</code> block). Cursor triggers OAuth automatically when it can't find auth credentials.</p>
+        </div>
+      </details>
+
+      <div class="troubleshoot">
+        <h3>If something goes wrong</h3>
+        <dl>
+          <dt>Server stuck on "starting"</dt>
+          <dd>There's a typo in <code>mcp.json</code>. Even one missing quote or extra comma will break it. Paste it into a JSON validator like <a href="https://jsonlint.com">jsonlint.com</a> to check.</dd>
+          <dt>Cursor ignores your store's tools</dt>
+          <dd>Cursor only uses MCP servers in <strong>Agent</strong> mode — not in <strong>Ask</strong> mode. Switch at the bottom of the chat panel.</dd>
+          <dt>"Unauthorized"</dt>
+          <dd>The token is wrong, or you mistyped it when pasting. Create a fresh one and try again.</dd>
+        </dl>
+      </div>
+
+      <div class="section__actions">
+        <button class="btn btn--ghost" type="button" data-goto="agent">&larr; Pick a different AI</button>
+      </div>
+    </article>
+
+    <!-- ============= ChatGPT ============= -->
+    <article class="agent-detail" data-agent="chatgpt">
+      <header class="agent-detail__header">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>
+        <h2>ChatGPT</h2>
+      </header>
+
+      <div class="callout">
+        <p><strong>You need a paid plan with Developer mode.</strong> Custom MCP apps are only available on ChatGPT <strong>Plus, Pro, Business, Enterprise</strong> and <strong>Edu</strong> — not the Free tier. You'll also need to switch on <em>Developer mode</em> in Settings before you can create one.</p>
+      </div>
+
+      <p>ChatGPT generates a unique <strong>Callback URL</strong> for each app, so the order matters: you'll start in ChatGPT to grab that URL, then create the matching OAuth client in your Magento admin, then come back to ChatGPT to finish. OAuth is the only auth ChatGPT accepts for custom apps — no API keys.</p>
+
+      <div class="callout">
+        <p><strong>Public store only.</strong> ChatGPT's OAuth flow runs through OpenAI's servers, so it can't reach private addresses like <code>mystore.docker</code> or <code>mystore.local</code>. If your store isn't publicly reachable over HTTPS, use <strong>Claude Code</strong> or <strong>Cursor</strong> instead — they run on your machine.</p>
+      </div>
+
+      <h3>Part 1 — Enable Developer mode in ChatGPT</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open Settings → Apps</h3>
+          <p>Go to <a href="https://chatgpt.com">chatgpt.com</a> and sign in. Open <strong>Settings</strong> → <strong>Apps</strong>. On a workspace plan (Business / Enterprise / Edu), an admin may need to enable Developer mode for the workspace first.</p>
+          <figure class="placeholder">
+            <span>Screenshot placeholder — ChatGPT Settings → Apps.</span>
+          </figure>
+        </li>
+        <li>
+          <h3>Click Advanced settings → toggle Developer mode on</h3>
+          <p>Under <strong>Advanced settings</strong>, switch on <strong>Developer mode</strong>. (It's marked <em>Elevated risk</em> because dev-mode apps aren't reviewed by OpenAI — that's expected.) A <strong>Create app</strong> button appears alongside Advanced settings once it's on.</p>
+          <figure class="placeholder">
+            <span>Screenshot placeholder — ChatGPT Apps → Advanced settings with Developer mode toggle.</span>
+          </figure>
+        </li>
+      </ol>
+
+      <h3>Part 2 — Grab ChatGPT's Callback URL</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Click Create app</h3>
+          <p>From the Apps page, click <strong>Create app</strong>. The <em>New App</em> dialog opens.</p>
+        </li>
+        <li>
+          <h3>Fill in the basics</h3>
+          <p>In the dialog:</p>
+          <ul>
+            <li><strong>Name:</strong> anything you'll recognise (e.g. <em>Magento MCP</em>).</li>
+            <li><strong>MCP Server URL:</strong> <mark>https://&lt;your-store&gt;/mcp</mark></li>
+            <li><strong>Authentication:</strong> <strong>OAuth</strong>.</li>
+          </ul>
+        </li>
+        <li>
+          <h3>Open Advanced OAuth settings and copy the Callback URL</h3>
+          <p>Expand <strong>Advanced OAuth settings</strong>. ChatGPT shows a <strong>Callback URL</strong> like <code>https://chatgpt.com/connector/oauth/&lt;random-id&gt;</code> — the random ID is unique to <em>this app</em>. Click the copy icon to grab it. Keep this dialog open; you'll need it in Part 4.</p>
+          <figure class="placeholder">
+            <span>Screenshot placeholder — ChatGPT New App dialog → Advanced OAuth settings → Callback URL.</span>
+          </figure>
+        </li>
+      </ol>
+
+      <h3>Part 3 — Register the OAuth client in your Magento admin</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Open OAuth Clients</h3>
+          <p>In a new tab, sign in to your Magento admin. In the top menu, go to <strong>System &rarr; MCP &rarr; OAuth Clients</strong>. Click <strong>Add New Client</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-oauth-clients-list.svg" alt="Magento admin OAuth Clients page with an Add New Client button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Fill in the form with the Custom preset</h3>
+          <p>On the new client form, open the <strong>Preset</strong> dropdown and select <em>Custom</em>. ChatGPT generates a different Callback URL for every app, so a static preset wouldn't help anyway — you'll paste the per-app URL by hand.</p>
+          <ul>
+            <li><strong>Name:</strong> e.g. <em>ChatGPT</em>.</li>
+            <li><strong>Redirect URIs:</strong> paste the <strong>Callback URL</strong> you copied from ChatGPT in Part 2 (e.g. <code>https://chatgpt.com/connector/oauth/&lt;random-id&gt;</code>).</li>
+          </ul>
+        </li>
+        <li>
+          <h3>Choose which tools ChatGPT can use</h3>
+          <p>Click the <strong>Allowed Tools</strong> tab. Nothing is ticked by default — click <strong>Allow All</strong> for full access, or tick the categories and tools you want.</p>
+          <figure>
+            <img src="assets/screenshots/magento-oauth-allowed-tools.svg" alt="Allowed Tools tab showing a tree of tool categories with empty checkboxes and an Allow All button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Save and copy the Client ID + Secret</h3>
+          <p>Click <strong>Save Client</strong>. You'll see the <strong>Client ID</strong> and <strong>Client Secret</strong>. Copy both — the secret is only shown once.</p>
+        </li>
+      </ol>
+
+      <h3>Part 4 — Finish creating the app in ChatGPT</h3>
+      <ol class="steps-list">
+        <li>
+          <h3>Paste the Client ID (and Secret if you want it)</h3>
+          <p>Back in the ChatGPT <em>New App</em> dialog, paste your Magento <strong>OAuth Client ID</strong>. The <strong>OAuth Client Secret</strong> field is optional — leave it blank to use PKCE without a secret, or paste the Magento secret in for client-secret auth.</p>
+        </li>
+        <li>
+          <h3>Acknowledge the risk and click Create</h3>
+          <p>Tick <strong>I understand and want to continue</strong> on the risk notice, then click <strong>Create</strong>.</p>
+        </li>
+        <li>
+          <h3>Connect and approve access in Magento</h3>
+          <p>ChatGPT opens your Magento login page — sign in if needed. On the <strong>Authorize MCP access</strong> page, untick anything you don't want ChatGPT to have, then click <strong>Approve selected</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-authorize-consent.svg" alt="Magento Authorize MCP access page listing tool categories with Approve selected and Deny buttons.">
+          </figure>
+        </li>
+        <li>
+          <h3>Switch it on in your chat</h3>
+          <p>Open a new chat. Click the <strong>+</strong> in the message composer → hover <strong>More</strong>, and pick your app from the submenu. Without this step, ChatGPT won't use your store's tools. Once enabled, your app appears as a chip next to the <strong>+</strong> button — that's how you know it's active for the current chat.</p>
+          <figure>
+            <img src="assets/screenshots/chatgpt-composer-tools-picker.svg" alt="ChatGPT message composer with the + menu open and the More submenu expanded, showing Magento MCP highlighted next to a DEV badge.">
+          </figure>
+        </li>
+      </ol>
+
+      <h3>Try it out</h3>
+      <div class="codeblock">
+        <button class="codeblock__copy" data-copy="cmd-test-chatgpt" aria-label="Copy example prompt">Copy</button>
+        <pre><code id="cmd-test-chatgpt">Show me my store's recent orders.</code></pre>
+      </div>
+
+      <div class="troubleshoot">
+        <h3>If something goes wrong</h3>
+        <dl>
+          <dt>I can't find Developer mode</dt>
+          <dd>It's in <strong>Settings → Apps → Advanced settings → Developer mode</strong>, and it requires a Plus/Pro/Business/Enterprise/Edu plan. On Business / Enterprise / Edu, your workspace admin has to enable it first.</dd>
+          <dt>"Couldn't save the connector"</dt>
+          <dd>Your store has to be reachable from the internet over HTTPS. ChatGPT can't see a local or staging-only address.</dd>
+          <dt>"Invalid redirect URI" on the Magento authorize page</dt>
+          <dd>The Redirect URI you saved in Magento doesn't match ChatGPT's Callback URL. Open the OAuth client in Magento admin and re-paste the exact <code>https://chatgpt.com/connector/oauth/&lt;random-id&gt;</code> string from ChatGPT's <em>Advanced OAuth settings</em>. It must match character for character — no trailing slash.</dd>
+          <dt>Your store isn't in the Tools list</dt>
+          <dd>You probably skipped the last step — click the <strong>+</strong> in the chat composer and pick your app under <strong>More</strong>.</dd>
+          <dt>"You don't have permission"</dt>
+          <dd>The admin user who signed in is restricted. Sign in as a different admin user, or ask your developer to widen that user's role.</dd>
+        </dl>
+      </div>
+
+      <div class="section__actions">
+        <button class="btn btn--ghost" type="button" data-goto="agent">&larr; Pick a different AI</button>
+      </div>
+    </article>
+
+    <!-- ============= Other / generic ============= -->
+    <article class="agent-detail" data-agent="other">
+      <header class="agent-detail__header">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <h2>Another MCP client</h2>
+      </header>
+
+      <p>Any MCP-compatible client can connect to your store. You'll need two things — your store's MCP address and a way for the client to prove who it is. Pick whichever method your client supports:</p>
+
+      <ul>
+        <li><strong>OAuth 2.1</strong> — the client signs in through your Magento admin. Best for hosted/web clients and any client that supports it.</li>
+        <li><strong>Bearer token</strong> — you mint a token in Magento and paste it into the client. Simpler, works with anything.</li>
+      </ul>
+
+      <h3>Your store's MCP address</h3>
+      <dl class="endpoint">
+        <dt>MCP server URL</dt>
+        <dd>https://&lt;your-store&gt;/mcp</dd>
+      </dl>
+
+      <h3>Option A — OAuth 2.1</h3>
+      <p>Use this if your client lets you paste an OAuth Client ID and Secret (or supports automatic OAuth discovery).</p>
+      <ol class="steps-list">
+        <li>
+          <h3>Register the client in Magento admin</h3>
+          <p>Sign in to your Magento admin. Go to <strong>System &rarr; MCP &rarr; OAuth Clients</strong> and click <strong>Add New Client</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-oauth-clients-list.svg" alt="Magento admin OAuth Clients page with an Add New Client button.">
+          </figure>
+        </li>
+        <li>
+          <h3>Fill in Name and Redirect URI</h3>
+          <p>Open the <strong>Preset</strong> dropdown — if your client is in the list, pick it and skip ahead. If it isn't, fill the fields manually:</p>
+          <ul>
+            <li><strong>Name:</strong> anything you'll recognise (e.g. the client name).</li>
+            <li><strong>Redirect URIs:</strong> the OAuth callback URL from your client's documentation. Must match exactly — no trailing slash.</li>
+          </ul>
+        </li>
+        <li>
+          <h3>Choose which tools the client can use</h3>
+          <p>Click the <strong>Allowed Tools</strong> tab. Nothing is ticked by default — click <strong>Allow All</strong> for full access, or tick the categories and tools you want.</p>
+        </li>
+        <li>
+          <h3>Save and copy the Client ID + Secret</h3>
+          <p>Click <strong>Save Client</strong>. You'll see a <strong>Client ID</strong> and a <strong>Client Secret</strong>. Copy both — the secret is only shown once.</p>
+        </li>
+        <li>
+          <h3>Configure your client</h3>
+          <p>In your MCP client, add a new server with the URL above and paste the Client ID and Secret into the OAuth fields. When you connect, your Magento admin login page opens — sign in and click <strong>Approve selected</strong>.</p>
+        </li>
+      </ol>
+
+      <details class="collapsible">
+        <summary>OAuth metadata endpoints (for clients that auto-discover)</summary>
+        <div>
+          <p>Some clients can discover OAuth endpoints automatically from <a href="https://datatracker.ietf.org/doc/html/rfc8414">RFC 8414</a> and <a href="https://datatracker.ietf.org/doc/html/rfc9728">RFC 9728</a>. The metadata lives at:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-oauth-meta" aria-label="Copy OAuth metadata URLs">Copy</button>
+            <pre><code id="cmd-oauth-meta">https://&lt;your-store&gt;/.well-known/oauth-authorization-server
+https://&lt;your-store&gt;/.well-known/oauth-protected-resource</code></pre>
+          </div>
+          <p>You'll still need to pre-register the client in Magento admin to get a Client ID and Secret — this server doesn't support Dynamic Client Registration.</p>
+        </div>
+      </details>
+
+      <h3>Option B — Bearer token</h3>
+      <p>Use this if your client lets you paste an API key or an <code>Authorization</code> header. Simplest path — no consent screen, no client registration.</p>
+      <ol class="steps-list">
+        <li>
+          <h3>Create a token in Magento admin</h3>
+          <p>Sign in to your Magento admin. Go to <strong>System &rarr; MCP &rarr; Connections</strong> and click <strong>New Connection</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connections-list.svg" alt="Magento admin MCP Connections page with a New Connection button.">
+          </figure>
+          <p>On the Token Info tab, pick your <strong>Admin User</strong>, give the token a <strong>Name</strong>, and set <strong>Allow Write Tools</strong> to <em>Yes</em> if the client should be able to make changes. Then click <strong>Save</strong>.</p>
+          <figure>
+            <img src="assets/screenshots/magento-mcp-connection-token-info.svg" alt="New MCP Connection form Token Info tab with Admin User, Name, Expires At and Allow Write Tools fields.">
+          </figure>
+        </li>
+        <li>
+          <h3>Copy the token</h3>
+          <p>The next screen shows the token <em>once</em>. Copy it — if you lose it, just delete that connection and create a new one.</p>
+        </li>
+        <li>
+          <h3>Configure your client</h3>
+          <p>Point your client at the URL above. Send the token as an <code>Authorization</code> header:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-bearer-header" aria-label="Copy Authorization header">Copy</button>
+            <pre><code id="cmd-bearer-header">Authorization: Bearer &lt;your-token&gt;</code></pre>
+          </div>
+          <p>Most MCP clients have either a header field in their server config, or a way to call the server through the <a href="https://www.npmjs.com/package/mcp-remote">mcp-remote</a> stdio bridge — that bridge takes a <code>--header</code> flag:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-mcp-remote" aria-label="Copy mcp-remote example">Copy</button>
+            <pre><code id="cmd-mcp-remote">npx -y mcp-remote https://&lt;your-store&gt;/mcp \
+  --header "Authorization: Bearer &lt;your-token&gt;"</code></pre>
+          </div>
+        </li>
+      </ol>
+
+      <details class="collapsible">
+        <summary>Prefer the command line for token creation?</summary>
+        <div>
+          <p>If you have terminal access to your Magento server, you can mint a token there instead:</p>
+          <div class="codeblock">
+            <button class="codeblock__copy" data-copy="cmd-token-cli-generic" aria-label="Copy token CLI command">Copy</button>
+            <pre><code id="cmd-token-cli-generic">bin/magento magebit:mcp:token:create \
+  --admin-user &lt;username&gt; \
+  --name "&lt;label&gt;" \
+  [--allow-writes]</code></pre>
+          </div>
+        </div>
+      </details>
+
+      <h3>Try it out</h3>
+      <p>Once connected, try this prompt in your MCP client:</p>
+      <div class="codeblock">
+        <button class="codeblock__copy" data-copy="cmd-test-other" aria-label="Copy example prompt">Copy</button>
+        <pre><code id="cmd-test-other">Show me my store's recent orders.</code></pre>
+      </div>
+
+      <div class="troubleshoot">
+        <h3>If something goes wrong</h3>
+        <dl>
+          <dt>401 Unauthorized</dt>
+          <dd>For bearer: the token is wrong, revoked, or the <code>Authorization</code> header is malformed. For OAuth: the Client ID or Secret is wrong, or the Redirect URI doesn't match what the client is using.</dd>
+          <dt>503 Service Unavailable</dt>
+          <dd>The MCP server is turned off. Ask your developer to check <strong>Stores &rarr; Configuration &rarr; Magebit &rarr; MCP Server</strong> and confirm <em>Enable MCP Server</em> is set to Yes.</dd>
+          <dt>"Origin rejected"</dt>
+          <dd>Your client's origin isn't in the allowlist. Add it under <strong>Stores &rarr; Configuration &rarr; Magebit &rarr; MCP Server &rarr; Allowed Origins</strong>.</dd>
+          <dt>Unsupported protocol version</dt>
+          <dd>The server speaks MCP <code>2025-06-18</code>. Older clients may need to send <code>Mcp-Protocol-Version: 2025-06-18</code> explicitly, or update to a newer client build.</dd>
+        </dl>
+      </div>
+
+      <div class="section__actions">
+        <button class="btn btn--ghost" type="button" data-goto="agent">&larr; Pick a different AI</button>
+      </div>
+    </article>
+
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Need help? Open an issue at <a href="https://github.com/magebitcom/magento2-mcp-module/issues">github.com/magebitcom/magento2-mcp-module</a>.</p>
+</footer>
+
+<script src="wizard.js"></script>
+
+</body>
+</html>

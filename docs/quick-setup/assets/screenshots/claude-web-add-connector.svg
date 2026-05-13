@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 605 529" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Add custom connector dialog with Name, Remote MCP server URL and Advanced settings containing OAuth Client ID and OAuth Client Secret fields">
+  <!-- Backdrop -->
+  <rect width="605" height="529" fill="#0a0a0a" opacity="0.6"/>
+
+  <!-- Modal -->
+  <g transform="translate(60, 30)">
+    <rect width="486" height="468" rx="14" fill="#1c1c1c" stroke="#2e2e2e"/>
+
+    <!-- Title row -->
+    <text x="28" y="48" fill="#ffffff" font-size="22" font-weight="500">Add custom connector</text>
+
+    <!-- Close X -->
+    <g transform="translate(444, 32)" stroke="#9a9a9a" stroke-width="2" stroke-linecap="square">
+      <line x1="0" y1="0" x2="12" y2="12"/>
+      <line x1="12" y1="0" x2="0" y2="12"/>
+    </g>
+
+    <!-- Subtitle -->
+    <text x="28" y="78" fill="#bdbdbd" font-size="13">Connect Claude to your data and tools.<tspan fill="#7aa8ff"> Learn more about connectors</tspan> or</text>
+    <text x="28" y="96" fill="#bdbdbd" font-size="13">get started with<tspan fill="#7aa8ff"> pre-built ones</tspan>.</text>
+
+    <!-- Name field -->
+    <rect x="28" y="118" width="430" height="42" rx="8" fill="none" stroke="#3a3a3a"/>
+    <text x="42" y="144" fill="#7a7a7a" font-size="14">Name</text>
+
+    <!-- URL field -->
+    <rect x="28" y="172" width="430" height="42" rx="8" fill="none" stroke="#3a3a3a"/>
+    <text x="42" y="198" fill="#7a7a7a" font-size="14">Remote MCP server URL</text>
+
+    <!-- Advanced settings header -->
+    <g transform="translate(28, 232)">
+      <path d="M0 4 L8 0 L8 8 Z" fill="#bdbdbd" transform="rotate(90, 4, 4)"/>
+      <text x="16" y="8" fill="#e0e0e0" font-size="14" font-weight="500">Advanced settings</text>
+    </g>
+
+    <!-- OAuth Client ID -->
+    <rect x="28" y="252" width="430" height="42" rx="8" fill="none" stroke="#3a3a3a"/>
+    <text x="42" y="278" fill="#7a7a7a" font-size="14">OAuth Client ID (optional)</text>
+
+    <!-- OAuth Client Secret -->
+    <rect x="28" y="306" width="430" height="42" rx="8" fill="none" stroke="#3a3a3a"/>
+    <text x="42" y="332" fill="#7a7a7a" font-size="14">OAuth Client Secret (optional)</text>
+
+    <!-- Trust note -->
+    <text x="28" y="376" fill="#9a9a9a" font-size="12">Only use connectors from developers you trust. Anthropic does not</text>
+    <text x="28" y="392" fill="#9a9a9a" font-size="12">control which tools developers make available and cannot verify that they</text>
+    <text x="28" y="408" fill="#9a9a9a" font-size="12">will work as intended or that they won't change.</text>
+
+    <!-- Bottom action row -->
+    <g transform="translate(308, 422)">
+      <rect width="74" height="32" rx="8" fill="none" stroke="#3a3a3a"/>
+      <text x="37" y="21" fill="#e0e0e0" font-size="13" text-anchor="middle" font-weight="500">Cancel</text>
+    </g>
+    <g transform="translate(394, 422)">
+      <rect width="64" height="32" rx="8" fill="#f0f0f0"/>
+      <text x="32" y="21" fill="#1a1a1a" font-size="13" text-anchor="middle" font-weight="500">Add</text>
+    </g>
+  </g>
+</svg>

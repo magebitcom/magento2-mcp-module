@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 605 560" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Magento Authorize MCP access page listing Catalog, Cms, Customer, Marketing, Reports and Sales tool categories with Approve selected and Deny buttons">
+  <rect width="605" height="560" fill="#f4f4f4"/>
+
+  <!-- Card -->
+  <g transform="translate(96, 56)">
+    <rect width="412" height="448" fill="#ffffff" stroke="#d0d0d0"/>
+
+    <!-- Title -->
+    <text x="24" y="44" fill="#1a1a1a" font-size="20" font-weight="500">Authorize MCP access</text>
+
+    <!-- Description -->
+    <text x="24" y="80" fill="#1a1a1a" font-size="13"><tspan font-weight="500">Claude Web</tspan> wants to access your Magento store on your behalf.</text>
+    <text x="24" y="104" fill="#1a1a1a" font-size="13">Tick the tools you want to grant. Untick anything</text>
+    <text x="24" y="120" fill="#1a1a1a" font-size="13">you don't want this client to have. The token issued</text>
+    <text x="24" y="136" fill="#1a1a1a" font-size="13">will be limited to what you approve here, and to</text>
+    <text x="24" y="152" fill="#1a1a1a" font-size="13">what your admin role would normally permit.</text>
+
+    <!-- Requested tools fieldset -->
+    <g transform="translate(24, 172)">
+      <rect width="356" height="160" fill="none" stroke="#bdbdbd"/>
+      <rect x="12" y="-8" width="120" height="16" fill="#ffffff"/>
+      <text x="16" y="4" fill="#1a1a1a" font-size="13" font-weight="500">Requested tools</text>
+
+      <!-- Tree items -->
+      <g font-size="13" fill="#1a1a1a">
+        <g transform="translate(20, 30)">
+          <path d="M0 0 L6 4 L0 8 Z" fill="#666"/>
+          <rect x="14" y="0" width="10" height="9" fill="#5fbf6f"/>
+          <rect x="28" y="-2" width="14" height="12" fill="#f5b942" stroke="#b97e1c"/>
+          <text x="50" y="9">Catalog</text>
+        </g>
+        <g transform="translate(20, 52)">
+          <path d="M0 0 L6 4 L0 8 Z" fill="#666"/>
+          <rect x="14" y="0" width="10" height="9" fill="#5fbf6f"/>
+          <rect x="28" y="-2" width="14" height="12" fill="#f5b942" stroke="#b97e1c"/>
+          <text x="50" y="9">Cms</text>
+        </g>
+        <g transform="translate(20, 74)">
+          <path d="M0 0 L6 4 L0 8 Z" fill="#666"/>
+          <rect x="14" y="0" width="10" height="9" fill="#5fbf6f"/>
+          <rect x="28" y="-2" width="14" height="12" fill="#f5b942" stroke="#b97e1c"/>
+          <text x="50" y="9">Customer</text>
+        </g>
+        <g transform="translate(20, 96)">
+          <path d="M0 0 L6 4 L0 8 Z" fill="#666"/>
+          <rect x="14" y="0" width="10" height="9" fill="#5fbf6f"/>
+          <rect x="28" y="-2" width="14" height="12" fill="#f5b942" stroke="#b97e1c"/>
+          <text x="50" y="9">Marketing</text>
+        </g>
+        <g transform="translate(20, 118)">
+          <path d="M0 0 L6 4 L0 8 Z" fill="#666"/>
+          <rect x="14" y="0" width="10" height="9" fill="#5fbf6f"/>
+          <rect x="28" y="-2" width="14" height="12" fill="#f5b942" stroke="#b97e1c"/>
+          <text x="50" y="9">Reports</text>
+        </g>
+        <g transform="translate(20, 140)">
+          <path d="M0 0 L6 4 L0 8 Z" fill="#666"/>
+          <rect x="14" y="0" width="10" height="9" fill="#5fbf6f"/>
+          <rect x="28" y="-2" width="14" height="12" fill="#f5b942" stroke="#b97e1c"/>
+          <text x="50" y="9">Sales</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- Note (wrapped to fit card width) -->
+    <text x="24" y="354" fill="#4a4a4a" font-size="12">Note: write tools also require the server-wide</text>
+    <text x="24" y="370" fill="#4a4a4a" font-size="12"><tspan font-style="italic">Allow Write Tools</tspan> setting to be enabled.</text>
+
+    <!-- Buttons -->
+    <g transform="translate(24, 390)">
+      <rect width="124" height="32" fill="#2680eb"/>
+      <text x="62" y="21" fill="#ffffff" font-size="13" font-weight="500" text-anchor="middle">Approve selected</text>
+    </g>
+    <g transform="translate(160, 390)">
+      <rect width="56" height="32" fill="#ffffff" stroke="#bdbdbd"/>
+      <text x="28" y="21" fill="#1a1a1a" font-size="13" font-weight="500" text-anchor="middle">Deny</text>
+    </g>
+  </g>
+</svg>

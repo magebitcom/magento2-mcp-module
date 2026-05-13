@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 605 529" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Claude connector detail page showing You are not connected to Magento MCP yet with a Connect button">
+  <rect width="605" height="529" fill="#1c1c1c"/>
+
+  <!-- Globe icon (centered) -->
+  <g transform="translate(284, 192)">
+    <rect width="40" height="40" rx="8" fill="#2a2a2a"/>
+    <g transform="translate(8, 8)" stroke="#7aa8ff" stroke-width="1.6" fill="none">
+      <circle cx="12" cy="12" r="10"/>
+      <ellipse cx="12" cy="12" rx="5" ry="10"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+    </g>
+  </g>
+
+  <!-- URL with copy icon -->
+  <g transform="translate(302, 264)" text-anchor="middle">
+    <text fill="#cfcfcf" font-size="14">https://magento-store.example/mcp</text>
+  </g>
+  <g transform="translate(420, 252)" stroke="#7a7a7a" stroke-width="1.4" fill="none">
+    <rect x="0" y="2" width="10" height="10" rx="1"/>
+    <rect x="3" y="-1" width="10" height="10" rx="1"/>
+  </g>
+
+  <!-- Status message -->
+  <text x="302" y="304" text-anchor="middle" fill="#bdbdbd" font-size="15">You are not connected to Magento MCP yet.</text>
+
+  <!-- Connect button -->
+  <g transform="translate(264, 332)">
+    <rect width="76" height="36" rx="10" fill="#f0f0f0"/>
+    <text x="38" y="23" fill="#1a1a1a" font-size="14" font-weight="500" text-anchor="middle">Connect</text>
+  </g>
+</svg>

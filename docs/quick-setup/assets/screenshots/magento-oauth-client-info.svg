@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 580" font-family="Inter, system-ui, sans-serif" role="img" aria-label="Magento admin New OAuth Client form Client Info tab with a Preset dropdown set to Claude Web, a Name field, and a Redirect URIs textarea">
+  <rect width="1060" height="580" fill="#f4f4f4"/>
+
+  <!-- Dark left sidebar -->
+  <rect x="0" y="0" width="80" height="580" fill="#41362f"/>
+  <rect x="20" y="14" width="40" height="40" fill="#eb5202"/>
+  <text x="40" y="42" text-anchor="middle" font-size="22" font-weight="500" fill="#ffffff">M</text>
+  <g text-anchor="middle" font-size="9" fill="#a09a96" letter-spacing="0.04em">
+    <text x="40" y="92">DASHBOARD</text>
+    <text x="40" y="124">SALES</text>
+    <text x="40" y="156">CATALOG</text>
+    <text x="40" y="188">CUSTOMERS</text>
+    <text x="40" y="220">MARKETING</text>
+    <text x="40" y="252">CONTENT</text>
+    <text x="40" y="284">REPORTS</text>
+    <text x="40" y="316">STORES</text>
+  </g>
+  <rect x="0" y="336" width="80" height="40" fill="#2c2522"/>
+  <text x="40" y="362" text-anchor="middle" font-size="9" fill="#ffffff" font-weight="500" letter-spacing="0.04em">SYSTEM</text>
+
+  <!-- Page heading -->
+  <text x="100" y="84" fill="#1a1a1a" font-size="28" font-weight="400">New OAuth Client</text>
+
+  <g transform="translate(880, 60)">
+    <g stroke="#41362f" stroke-width="1.6" fill="none">
+      <circle cx="6" cy="20" r="6"/>
+      <line x1="11" y1="25" x2="18" y2="32"/>
+    </g>
+    <path d="M40 14 q-8 0 -8 8 v6 l-3 3 h22 l-3 -3 v-6 q0 -8 -8 -8 z" fill="none" stroke="#41362f" stroke-width="1.6"/>
+    <circle cx="48" cy="14" r="9" fill="#e02b27"/>
+    <text x="48" y="18" text-anchor="middle" font-size="10" fill="#ffffff" font-weight="700">30</text>
+    <circle cx="90" cy="20" r="9" fill="#a09a96"/>
+    <text x="106" y="24" font-size="13" fill="#41362f">magebit ▾</text>
+  </g>
+
+  <!-- Sub-header with Back + Save Client -->
+  <rect x="100" y="120" width="940" height="60" fill="#e8e8e8"/>
+  <text x="800" y="156" text-anchor="end" font-size="14" fill="#1a1a1a" font-weight="500">← Back</text>
+  <g transform="translate(890, 134)">
+    <rect width="140" height="32" fill="#eb5202"/>
+    <text x="70" y="22" text-anchor="middle" font-size="14" fill="#ffffff" font-weight="500">Save Client</text>
+  </g>
+
+  <!-- Left tabs sidebar -->
+  <g transform="translate(100, 208)">
+    <rect width="200" height="170" fill="#ffffff" stroke="#cccccc"/>
+    <rect x="0" y="0" width="200" height="40" fill="#e8e8e8"/>
+    <text x="14" y="26" font-size="12" font-weight="700" fill="#1a1a1a" letter-spacing="0.05em">OAUTH CLIENT SETTINGS</text>
+
+    <!-- Client Info (active) -->
+    <rect x="0" y="60" width="200" height="40" fill="#ffffff"/>
+    <rect x="0" y="60" width="4" height="40" fill="#eb5202"/>
+    <text x="20" y="86" font-size="13" font-weight="500" fill="#1a1a1a">Client Info</text>
+
+    <!-- Allowed Tools -->
+    <text x="20" y="130" font-size="13" fill="#1a1a1a">Allowed Tools</text>
+  </g>
+
+  <!-- Right form panel -->
+  <g transform="translate(330, 208)">
+    <rect width="710" height="320" fill="#ffffff" stroke="#cccccc"/>
+
+    <!-- Section heading -->
+    <text x="24" y="36" font-size="16" fill="#1a1a1a" font-weight="500">OAuth Client</text>
+    <line x1="24" y1="46" x2="686" y2="46" stroke="#e0e0e0"/>
+
+    <!-- Preset row -->
+    <text x="124" y="88" text-anchor="end" font-size="13" fill="#1a1a1a" font-weight="500">Preset</text>
+    <rect x="140" y="68" width="280" height="32" fill="#ffffff" stroke="#1976d2" stroke-width="1.4"/>
+    <text x="156" y="88" font-size="13" fill="#1a1a1a">Claude Web</text>
+    <rect x="394" y="68" width="26" height="32" fill="#e8e8e8" stroke="#cccccc"/>
+    <text x="407" y="88" text-anchor="middle" font-size="12" fill="#1a1a1a">▾</text>
+    <text x="140" y="116" font-size="11" fill="#7a7a7a">Pick a known MCP client to autofill Name and Redirect URIs. You can</text>
+    <text x="140" y="130" font-size="11" fill="#7a7a7a">edit either field afterwards.</text>
+
+    <!-- Name row -->
+    <text x="124" y="172" text-anchor="end" font-size="13" fill="#1a1a1a" font-weight="500">Name <tspan fill="#e02b27">*</tspan></text>
+    <rect x="140" y="152" width="280" height="32" fill="#ffffff" stroke="#cccccc"/>
+    <text x="156" y="172" font-size="13" fill="#1a1a1a">Claude Web</text>
+    <text x="140" y="200" font-size="11" fill="#7a7a7a">A human-readable label, e.g. "Claude Web".</text>
+
+    <!-- Redirect URIs row -->
+    <text x="124" y="240" text-anchor="end" font-size="13" fill="#1a1a1a" font-weight="500">Redirect URIs <tspan fill="#e02b27">*</tspan></text>
+    <rect x="140" y="220" width="490" height="68" fill="#ffffff" stroke="#cccccc"/>
+    <text x="156" y="240" font-size="13" fill="#1a1a1a">https://claude.ai/api/mcp/auth_callback</text>
+    <text x="140" y="306" font-size="11" fill="#7a7a7a">One URI per line. Must be HTTPS (or http://localhost / http://127.0.0.1</text>
+  </g>
+</svg>
