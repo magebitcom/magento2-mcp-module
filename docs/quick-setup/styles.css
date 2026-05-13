@@ -135,6 +135,11 @@ code {
   margin-bottom: 48px;
 }
 
+.hero__brand-link {
+  display: inline-block;
+  line-height: 0;
+}
+
 .hero__logo {
   height: 32px;
   width: auto;
