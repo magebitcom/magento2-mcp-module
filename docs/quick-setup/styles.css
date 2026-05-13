@@ -146,6 +146,33 @@ code {
   display: block;
 }
 
+.hero__github {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.hero__github:hover,
+.hero__github:focus-visible {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+}
+
+.hero__github-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
 .hero__eyebrow {
   font-weight: 500;
   font-size: 0.875rem;
