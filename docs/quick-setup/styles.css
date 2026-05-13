@@ -360,6 +360,21 @@ main {
   border-top: 1px solid var(--grey-01);
 }
 
+.next-steps {
+  margin-top: 48px;
+  padding: 24px;
+  border: 1px solid var(--grey-01);
+  background: var(--grey-005, #fafafa);
+}
+
+.next-steps h3 {
+  margin: 0 0 8px;
+}
+
+.next-steps p {
+  margin: 0;
+}
+
 /* Feature picker (step 1) */
 
 .featurelist {
