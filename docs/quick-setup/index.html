@@ -119,6 +119,10 @@
       <p><strong>You'll need your store address.</strong> That's the URL you visit when you log into your Magento admin — e.g. <code>https://shop.example.com</code>. Keep it handy for the next step.</p>
     </div>
 
+    <div class="callout">
+      <p><strong>Testing on a staging environment?</strong> The AI agent needs to be able to reach <code>/mcp</code> and <code>/.well-known/oauth-*</code> directly. If the staging site is behind an IP whitelist, HTTP basic auth, or any other access gate, those paths have to be whitelisted — otherwise the agent gets blocked before it ever talks to the module.</p>
+    </div>
+
     <div class="section__actions">
       <button class="btn" type="button" data-goto="agent">The module is installed &rarr;</button>
     </div>
