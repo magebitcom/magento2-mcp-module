@@ -30,8 +30,9 @@ $serviceAdminName = $viewModel->getServiceAdminDisplayName($client);
     <h1>Authorize MCP access</h1>
     <p><strong><?= $escaper->escapeHtml($viewModel->getClientLabel($client)) ?></strong> wants to access your Magento store on your behalf.</p>
     <?php if ($isSharedMode): ?>
-        <div class="mcp-oauth-consent__shared-banner message message-warning"
-             style="border:1px solid #f0a500; background:#fff7e0; padding:10px 14px; margin:12px 0;">
+        <div class="mcp-oauth-consent__shared-banner"
+             style="border:1px solid #f0a500; background:#fff7e0; color:#1a1a1a;
+                    padding:12px 16px; margin:12px 0; border-radius:3px; line-height:1.5;">
             <strong>This is a shared organization connector.</strong>
             <?php if ($serviceAdminName !== null): ?>
                 The token approved here will be issued on behalf of

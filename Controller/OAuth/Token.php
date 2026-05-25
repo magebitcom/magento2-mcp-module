@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Controller\OAuth;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\OAuthException;
 use Magebit\Mcp\Model\Auth\TokenHasher;
+use Magebit\Mcp\Model\Http\CorsResponder;
 use Magebit\Mcp\Model\OAuth\AccessTokenIssuer;
 use Magebit\Mcp\Model\OAuth\AuthCodeRepository;
 use Magebit\Mcp\Model\OAuth\Client;
@@ -21,6 +22,7 @@ use Magebit\Mcp\Model\OAuth\PkceVerifier;
 use Magebit\Mcp\Model\OAuth\RefreshTokenRotator;
 use Magebit\Mcp\Model\OAuth\ToolGrantResolver;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\Action\HttpOptionsActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
@@ -45,8 +47,14 @@ use Magento\Framework\Exception\NoSuchEntityException;
  * Per RFC 6749 §5.2 errors are emitted as JSON via {@see OAuthErrorResponse},
  * with `WWW-Authenticate: Basic` added on `invalid_client`.
  */
-class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwareActionInterface
+class Token implements
+    HttpPostActionInterface,
+    HttpGetActionInterface,
+    HttpOptionsActionInterface,
+    CsrfAwareActionInterface
 {
+    private const ALLOWED_METHODS = 'POST, OPTIONS';
+
     /**
      * @param HttpRequest $request
      * @param HttpResponse $response
@@ -58,6 +66,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
      * @param RefreshTokenRotator $refreshTokenRotator
      * @param OAuthErrorResponse $errorResponse
      * @param ToolGrantResolver $toolGrantResolver
+     * @param CorsResponder $corsResponder
      * @param LoggerInterface $logger
      */
     public function __construct(
@@ -71,6 +80,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         private readonly RefreshTokenRotator $refreshTokenRotator,
         private readonly OAuthErrorResponse $errorResponse,
         private readonly ToolGrantResolver $toolGrantResolver,
+        private readonly CorsResponder $corsResponder,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -80,9 +90,14 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
      */
     public function execute(): ResponseInterface
     {
-        if ($this->request->getMethod() !== 'POST') {
+        $method = strtoupper((string) $this->request->getMethod());
+        if ($method === 'OPTIONS') {
+            return $this->corsResponder->emitPreflight($this->response, self::ALLOWED_METHODS);
+        }
+        if ($method !== 'POST') {
             $this->response->setHttpResponseCode(405);
             $this->response->setHeader('Allow', 'POST', true);
+            $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             $this->response->setBody('');
             return $this->response;
         }
@@ -105,9 +120,11 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
                 ),
             };
         } catch (OAuthException $e) {
+            $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             return $this->errorResponse->emit($this->response, $e);
         } catch (\Throwable $e) {
             $this->logger->error('OAuth token endpoint failed.', ['exception' => $e]);
+            $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             return $this->errorResponse->emit(
                 $this->response,
                 new OAuthException('server_error', 'Token endpoint error.', 500)
@@ -273,6 +290,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         $this->response->setHeader('Content-Type', 'application/json', true);
         $this->response->setHeader('Cache-Control', 'no-store', true);
         $this->response->setHeader('Pragma', 'no-cache', true);
+        $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
         $this->response->setBody($body);
         return $this->response;
     }
