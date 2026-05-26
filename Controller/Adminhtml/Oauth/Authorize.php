@@ -34,19 +34,16 @@ use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 
 /**
- * Adminhtml `GET|POST /<adminFrontName>/magebit_mcp/oauth/authorize` — consent
- * screen reached only via the public frontend authorize controller. The form
- * submits a per-tool tick selection (jstree ACL ids → tool names); the granted
- * set is the intersection of the client's allowed-tool cap, the consenting
- * admin's role, and the tick selection. Unticking everything = denying.
+ * Adminhtml consent screen — reached only via the public authorize controller.
+ * The granted tool set is the intersection of the client's allowed-tools, the
+ * admin's role, and the form's tick selection.
  */
 class Authorize extends Action implements HttpGetActionInterface, HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_oauth_authorize';
 
     /**
-     * Action names that bypass the secret-key URL check. The handoff nonce + admin
-     * session combine to authenticate the request.
+     * Bypasses the secret-key URL check; the handoff nonce + admin session authenticate.
      *
      * @var string[]
      */
@@ -116,10 +113,8 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
         /** @var \Magento\User\Model\User|null $admin */
         $admin = $this->_auth->getUser();
 
-        // Reject before the admin sees the consent screen so they're not led on:
-        // disabled clients, non-whitelisted admins (personal mode), and
-        // wrong-admin/un-pinned configs (shared mode) all redirect back to the
-        // OAuth client with the canonical OAuth error.
+        // Reject before the admin sees the screen — disabled clients, non-whitelisted
+        // admins (personal), wrong-admin/un-pinned (shared) all redirect back with the OAuth error.
         if ($client !== null) {
             $decision = $this->adminAuthorizationGate->decide($client, $admin);
             if (!$decision->isAllowed()) {
@@ -205,19 +200,15 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
             ]);
         }
 
-        // Re-check the gate even though renderConsent already did. The admin could
-        // have swapped accounts, an operator could have flipped auth_mode or the
-        // whitelist while the consent screen was open, or the client could have
-        // been disabled. Cheaper to re-check than to issue a bad token.
+        // Re-check the gate even though renderConsent already did: account swap,
+        // policy flip, or client disabled while the screen was open.
         $gateDecision = $this->adminAuthorizationGate->decide($client, $admin);
         if (!$gateDecision->isAllowed()) {
             return $this->handleGateDenial($gateDecision, $redirectUri, $state);
         }
 
-        // Shared mode: every issued auth code is bound to the pinned service admin.
-        // In practice the gate above already ensures $adminUserId equals the
-        // service admin id, but we encode the invariant explicitly so a future
-        // gate change can't silently desync issuance from policy.
+        // Shared mode: pin the auth code to the service admin. Belt-and-braces — the
+        // gate already enforced the same equality.
         if ($client->getAuthMode() === AuthMode::SHARED) {
             $serviceAdminId = $client->getServiceAdminUserId();
             if ($serviceAdminId !== null && $serviceAdminId > 0) {
@@ -313,15 +304,10 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
     }
 
     /**
-     * Render the OAuth-protocol response for a gate denial. We redirect back to
-     * the client's redirect_uri whenever we have one and it isn't empty so the
-     * Claude / MCP-client side surfaces the error; otherwise we fall back to an
-     * inline error page.
-     *
      * @param AdminAuthorizationDecision $decision
      * @param string $redirectUri
      * @param string $state
-     * @return HttpResponse
+     * @return HttpResponse Redirects to the client with the OAuth error, or inline if no redirect_uri.
      */
     private function handleGateDenial(
         AdminAuthorizationDecision $decision,

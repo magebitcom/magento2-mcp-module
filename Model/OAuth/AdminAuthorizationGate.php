@@ -11,14 +11,8 @@ namespace Magebit\Mcp\Model\OAuth;
 use Magento\User\Model\User;
 
 /**
- * Pure-logic decision: may the currently-logged-in Magento admin authorize
- * (or refresh through) the given OAuth client?
- *
- * Reused by both the adminhtml consent controller (which decides before
- * rendering the consent screen) and the public OAuth Authorize controller
- * (which short-circuits on disabled clients before storing a handoff). Kept
- * stateless and side-effect-free so it can be exhaustively unit-tested
- * without a Magento environment.
+ * Pure-logic decision: may the current admin authorize (or refresh through) the
+ * given OAuth client? Stateless and side-effect-free.
  */
 class AdminAuthorizationGate
 {
@@ -73,8 +67,7 @@ class AdminAuthorizationGate
         $allowedUserIds = $client->getAllowedAdminUserIds();
         $allowedRoleIds = $client->getAllowedAdminRoleIds();
 
-        // Both lists empty → no per-client restriction; ACL on the consent screen
-        // and the per-token scope cap still apply downstream.
+        // Both lists empty → no per-client restriction; ACL + per-token scope still apply downstream.
         if ($allowedUserIds === [] && $allowedRoleIds === []) {
             return AdminAuthorizationDecision::ALLOW;
         }
@@ -116,8 +109,7 @@ class AdminAuthorizationGate
      */
     private function adminInAnyRole(User $admin, array $allowedRoleIds): bool
     {
-        // User::getRoles() declares array<int> but mocked test doubles and
-        // legacy adapters have returned strings; the loop coerces per-row.
+        // Defensive coercion — User::getRoles() has been observed returning strings.
         $roles = $admin->getRoles();
         foreach ($roles as $roleId) {
             $rid = $this->coerceRoleId($roleId);

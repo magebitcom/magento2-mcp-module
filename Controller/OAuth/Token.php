@@ -33,19 +33,9 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * `POST /mcp/oauth/token` — OAuth 2.1 token endpoint.
- *
- * Implements both the `authorization_code` (Task 19) and `refresh_token`
- * (Task 20) grants. `refresh_token` rotation is revoke-on-use: presenting
- * a refresh token mints a fresh access+refresh pair and invalidates the
- * one used to obtain it (per OAuth 2.1 §6.1).
- *
- * Supports both `client_secret_basic` (HTTP Basic Authorization header) and
- * `client_secret_post` (form-encoded `client_id` / `client_secret` fields)
- * client authentication, as advertised by the authorization-server metadata.
- *
- * Per RFC 6749 §5.2 errors are emitted as JSON via {@see OAuthErrorResponse},
- * with `WWW-Authenticate: Basic` added on `invalid_client`.
+ * `POST /mcp/oauth/token` — OAuth 2.1 token endpoint. Implements authorization_code
+ * and refresh_token grants (revoke-on-use rotation per §6.1); accepts both
+ * client_secret_basic and client_secret_post client authentication.
  */
 class Token implements
     HttpPostActionInterface,
@@ -96,7 +86,7 @@ class Token implements
         }
         if ($method !== 'POST') {
             $this->response->setHttpResponseCode(405);
-            $this->response->setHeader('Allow', 'POST', true);
+            $this->response->setHeader('Allow', self::ALLOWED_METHODS, true);
             $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             $this->response->setBody('');
             return $this->response;
@@ -105,9 +95,8 @@ class Token implements
         try {
             $client = $this->authenticateClient();
             if ($client->isDisabled()) {
-                // Per RFC 6749 §5.2: refuse the grant; the matching `error` for a
-                // client that's been administratively retired is invalid_client.
-                throw new OAuthException('invalid_client', 'OAuth client is disabled.', 401);
+                // Same wording as unknown-client — don't leak disabled-vs-rotated to a leaked secret holder.
+                throw new OAuthException('invalid_client', 'Unknown client.', 401);
             }
             $grantType = $this->stringParam('grant_type');
 
@@ -306,10 +295,6 @@ class Token implements
     }
 
     /**
-     * Opt out of form-key CSRF. The token endpoint is authenticated via the
-     * client's HTTP Basic / form-post credentials, which is the spec-mandated
-     * CSRF gate (a form-key cookie wouldn't even reach a confidential client).
-     *
      * @param RequestInterface $request
      * @return InvalidRequestException|null
      */

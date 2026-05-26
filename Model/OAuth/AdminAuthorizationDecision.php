@@ -10,10 +10,6 @@ namespace Magebit\Mcp\Model\OAuth;
 
 /**
  * Result of {@see AdminAuthorizationGate::decide()}.
- *
- * Each case carries an OAuth-2.1 error code and a redirect-safe description,
- * so the controllers can render a uniform `error=…&error_description=…` response
- * for non-allow outcomes without re-deriving the wording per call-site.
  */
 enum AdminAuthorizationDecision: string
 {
@@ -33,8 +29,6 @@ enum AdminAuthorizationDecision: string
     }
 
     /**
-     * OAuth-2.1 `error` token to return when this decision is non-allow.
-     *
      * @return string
      */
     public function oauthError(): string
@@ -50,7 +44,8 @@ enum AdminAuthorizationDecision: string
     }
 
     /**
-     * Operator-facing description suitable for an `error_description` query param.
+     * Generic description safe to leak via `error_description` to a redirect URI.
+     * Operator-facing detail goes to the server log, not the client.
      *
      * @return string
      */
@@ -58,16 +53,11 @@ enum AdminAuthorizationDecision: string
     {
         return match ($this) {
             self::ALLOW => '',
-            self::DENIED_NO_ADMIN
-                => 'Admin session lost during approval.',
-            self::DENIED_NOT_WHITELISTED
-                => 'Admin user not permitted to authorize this client.',
-            self::DENIED_SHARED_MISMATCH
-                => 'Only the pinned service admin may authorize this client.',
-            self::DENIED_CLIENT_DISABLED
-                => 'This OAuth client has been disabled by an operator.',
-            self::MISCONFIGURED_NO_SERVICE_ADMIN
-                => 'This OAuth client is configured for shared mode but has no service admin pinned.',
+            self::DENIED_NO_ADMIN => 'Admin session lost during approval.',
+            self::DENIED_NOT_WHITELISTED,
+            self::DENIED_SHARED_MISMATCH => 'Admin not authorized for this client.',
+            self::DENIED_CLIENT_DISABLED,
+            self::MISCONFIGURED_NO_SERVICE_ADMIN => 'OAuth client temporarily unavailable.',
         };
     }
 }

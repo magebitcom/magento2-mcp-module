@@ -11,9 +11,7 @@ namespace Magebit\Mcp\Block\Adminhtml\OAuthClient;
 use Magento\Backend\Block\Template;
 
 /**
- * One-shot post-create credentials display. Plaintext is passed in by the Save
- * controller via {@see setData()} and is never persisted to session storage —
- * it lives only in the in-flight response body.
+ * One-shot post-create credentials display; plaintext lives only in the in-flight response.
  */
 class Created extends Template
 {
@@ -35,11 +33,18 @@ class Created extends Template
         return is_string($v) ? $v : '';
     }
 
+    /**
+     * @return string
+     */
     public function getBackUrl(): string
     {
         return $this->getUrl('magebit_mcp/oauthclient/index');
     }
 
+    /**
+     * @return bool True when the page is being rendered after a secret rotation;
+     *              the template uses this to switch the post-action copy.
+     */
     public function getIsRotation(): bool
     {
         return (bool) $this->getData('is_rotation');

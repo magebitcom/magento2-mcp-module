@@ -21,11 +21,8 @@ use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
 
 /**
- * RFC 9728 Protected Resource Metadata document for the MCP server.
- *
- * Advertised by the `WWW-Authenticate: Bearer … resource_metadata=…` header
- * the MCP controller emits on every 401, so OAuth-aware clients can discover
- * which authorization servers issue tokens accepted at this resource.
+ * RFC 9728 Protected Resource Metadata. Advertised by the `WWW-Authenticate`
+ * header the MCP controller emits on every 401.
  */
 class ProtectedResourceMetadata implements
     HttpGetActionInterface,
@@ -78,9 +75,6 @@ class ProtectedResourceMetadata implements
     }
 
     /**
-     * Opt out of form-key CSRF — this is a public, unauthenticated GET that
-     * returns deterministic JSON metadata. No state is mutated.
-     *
      * @param RequestInterface $request
      * @return InvalidRequestException|null
      */

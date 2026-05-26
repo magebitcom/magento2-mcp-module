@@ -3,6 +3,9 @@
       layout="admin-2columns-left"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <update handle="editor"/>
+    <head>
+        <css src="Magebit_Mcp::css/oauth-client-rotate.css"/>
+    </head>
     <body>
         <referenceContainer name="left">
             <block class="Magebit\Mcp\Block\Adminhtml\AbstractEdit\Tabs"

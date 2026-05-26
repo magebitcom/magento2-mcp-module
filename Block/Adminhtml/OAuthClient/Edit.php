@@ -16,9 +16,7 @@ use Magento\Backend\Block\Widget\Form\Container;
 use Magento\Framework\Registry;
 
 /**
- * Form\Container for the OAuth client New / Edit pages. Pairs with the Tabs
- * widget in the `left` container so the rendered tab panels are moved into
- * this form's `<form id="edit_form">` element by mage/backend/tabs.js.
+ * Form\Container for the OAuth client New / Edit pages.
  */
 class Edit extends Container
 {
@@ -36,6 +34,9 @@ class Edit extends Container
         parent::__construct($context, $data);
     }
 
+    /**
+     * @return void
+     */
     protected function _construct(): void
     {
         $this->_objectId = 'id';
@@ -57,7 +58,9 @@ class Edit extends Container
             $this->buttonList->add('rotate_secret', [
                 'label' => __('Rotate Secret'),
                 'class' => 'action-secondary',
-                'onclick' => 'magebitMcpOpenRotateSecretModal();',
+                'data_attribute' => [
+                    'mcp-action' => 'rotate-secret',
+                ],
             ], -1, 15);
         }
     }
@@ -74,22 +77,20 @@ class Edit extends Container
         return (string) __('New OAuth Client');
     }
 
+    /**
+     * @return string
+     */
     public function getFormActionUrl(): string
     {
         return $this->getUrl('magebit_mcp/oauthclient/save');
     }
 
     /**
-     * @return string
+     * @return string Override — default NameBuilder yields Adminhtml\Oauthclient,
+     *                which fails to resolve on case-sensitive filesystems.
      */
     protected function _buildFormClassName()
     {
-        // NameBuilder lowercases all but the first char of each part,
-        // so _controller='adminhtml_oauthclient' would resolve to
-        // Adminhtml\Oauthclient — which doesn't match this module's
-        // OAuthClient directory on case-sensitive filesystems. Without
-        // this override the form child silently fails to resolve,
-        // leaving tab panels stranded in the sidebar.
         return Form::class;
     }
 }

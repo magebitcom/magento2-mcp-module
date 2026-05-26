@@ -218,7 +218,6 @@ class Client extends AbstractModel implements ClientInterface
      */
     public function isDisabled(): bool
     {
-        // Storage is smallint 0/1 — Magento returns it as string|int depending on adapter.
         $raw = $this->getData(self::DISABLED);
         return is_scalar($raw) && (int) $raw === 1;
     }

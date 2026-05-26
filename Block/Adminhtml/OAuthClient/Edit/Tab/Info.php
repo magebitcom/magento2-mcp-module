@@ -25,10 +25,8 @@ use Magento\Framework\Serialize\Serializer\Json;
 use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
 
 /**
- * "Client Info" tab — preset dropdown + Name + Redirect URIs textarea, plus
- * a read-only Client ID display + secret-rotation note when editing an
- * existing row. The preset dropdown is wired by `view/adminhtml/web/js/
- * oauthclient/presets.js` to autofill Name + Redirect URIs.
+ * "Client Info" tab — preset dropdown, Name, Redirect URIs, Authorization
+ * fieldset. On edit also shows the read-only Client ID and secret-rotation note.
  */
 class Info extends Generic implements TabInterface
 {
@@ -129,9 +127,8 @@ class Info extends Generic implements TabInterface
     }
 
     /**
-     * Preset dropdown rendered only on the create page. The widget marker is
-     * smuggled in via `after_element_html` because adminhtml form fields don't
-     * render data-mage-init themselves; the marker span is hidden.
+     * Preset dropdown shown only on the create page; the widget marker is smuggled
+     * in via after_element_html because adminhtml form fields don't render data-mage-init.
      *
      * @param Fieldset $fieldset
      */
@@ -209,6 +206,18 @@ class Info extends Generic implements TabInterface
         $adminUsers = $this->getAdminUserOptions();
         $adminRoles = $this->getAdminRoleOptions();
 
+        $this->addAuthModeField($fieldset);
+        $this->addServiceAdminField($fieldset, $adminUsers);
+        $this->addAdminUserWhitelistField($fieldset, $adminUsers);
+        $this->addAdminRoleWhitelistField($fieldset, $adminRoles);
+        $this->addDisabledField($fieldset);
+    }
+
+    /**
+     * @param Fieldset $fieldset
+     */
+    private function addAuthModeField(Fieldset $fieldset): void
+    {
         $fieldset->addField('auth_mode', 'select', [
             'name' => 'auth_mode',
             'label' => __('Auth Mode'),
@@ -223,9 +232,16 @@ class Info extends Generic implements TabInterface
                 . ' org members will use it; every token gets issued on behalf of the same pinned admin.'
                 . ' Choose <em>Personal</em> for single-user connections.'
             ),
-            'after_element_html' => $this->renderAuthModeToggleScript(),
+            'after_element_html' => $this->renderAuthModeToggleInit(),
         ]);
+    }
 
+    /**
+     * @param Fieldset $fieldset
+     * @param array<int, array{value: string, label: string}> $adminUsers
+     */
+    private function addServiceAdminField(Fieldset $fieldset, array $adminUsers): void
+    {
         $fieldset->addField('service_admin_user_id', 'select', [
             'name' => 'service_admin_user_id',
             'label' => __('Service Admin User'),
@@ -239,7 +255,14 @@ class Info extends Generic implements TabInterface
                 . ' bound to this admin, and only this admin can complete the OAuth consent screen.'
             ),
         ]);
+    }
 
+    /**
+     * @param Fieldset $fieldset
+     * @param array<int, array{value: string, label: string}> $adminUsers
+     */
+    private function addAdminUserWhitelistField(Fieldset $fieldset, array $adminUsers): void
+    {
         $fieldset->addField('allowed_admin_user_ids', 'multiselect', [
             'name' => 'allowed_admin_user_ids[]',
             'label' => __('Allowed Admin Users'),
@@ -251,7 +274,14 @@ class Info extends Generic implements TabInterface
                 . ' an admin matched by either list may authorize.'
             ),
         ]);
+    }
 
+    /**
+     * @param Fieldset $fieldset
+     * @param array<int, array{value: string, label: string}> $adminRoles
+     */
+    private function addAdminRoleWhitelistField(Fieldset $fieldset, array $adminRoles): void
+    {
         $fieldset->addField('allowed_admin_role_ids', 'multiselect', [
             'name' => 'allowed_admin_role_ids[]',
             'label' => __('Allowed Admin Roles'),
@@ -263,7 +293,13 @@ class Info extends Generic implements TabInterface
                 . ' add new admins to the role rather than editing the list each time.'
             ),
         ]);
+    }
 
+    /**
+     * @param Fieldset $fieldset
+     */
+    private function addDisabledField(Fieldset $fieldset): void
+    {
         $fieldset->addField('disabled', 'select', [
             'name' => 'disabled',
             'label' => __('Disabled'),
@@ -281,41 +317,17 @@ class Info extends Generic implements TabInterface
     }
 
     /**
-     * Inline visibility-toggle JS for the auth-mode dependent fields. Avoids an
-     * extra .js file for what is ~10 lines of DOM glue.
-     *
      * @return string
      */
-    private function renderAuthModeToggleScript(): string
+    private function renderAuthModeToggleInit(): string
     {
-        // Nowdoc — no PHP interpolation — keeps the JS body free of escaping.
-        // Field IDs come from setHtmlIdPrefix('magebit_mcp_oauth_client_').
-        return <<<'HTML'
-<script>
-require(['jquery'], function ($) {
-    var $mode = $('#magebit_mcp_oauth_client_auth_mode');
-    if ($mode.length === 0) {
-        return;
-    }
-    var $service = $('#magebit_mcp_oauth_client_service_admin_user_id').closest('tr, .field, .admin__field');
-    var $allowedUsers = $('#magebit_mcp_oauth_client_allowed_admin_user_ids').closest('tr, .field, .admin__field');
-    var $allowedRoles = $('#magebit_mcp_oauth_client_allowed_admin_role_ids').closest('tr, .field, .admin__field');
-    function sync() {
-        if ($mode.val() === 'shared') {
-            $service.show();
-            $allowedUsers.hide();
-            $allowedRoles.hide();
-        } else {
-            $service.hide();
-            $allowedUsers.show();
-            $allowedRoles.show();
-        }
-    }
-    $mode.on('change', sync);
-    sync();
-});
-</script>
-HTML;
+        $serialized = $this->jsonSerializer->serialize([
+            'Magebit_Mcp/js/oauth-client-auth-mode-toggle' => [],
+        ]);
+        return sprintf(
+            '<script type="text/x-magento-init">{"*": %s}</script>',
+            is_string($serialized) ? $serialized : '{}'
+        );
     }
 
     /**
@@ -404,7 +416,7 @@ HTML;
 
     /**
      * @param ClientInterface|null $client
-     * @return array<string, mixed>
+     * @return array<string, string|array<int, string>>
      */
     private function getRestoredValues(?ClientInterface $client): array
     {

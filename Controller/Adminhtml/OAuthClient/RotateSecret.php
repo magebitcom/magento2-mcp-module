@@ -26,9 +26,8 @@ use Magento\User\Model\User;
 use Throwable;
 
 /**
- * POST `magebit_mcp/oauthclient/rotatesecret` — regenerates the client secret on an
- * existing OAuth client row. Optional `revoke_tokens=1` also revokes every live
- * token the client has issued. New plaintext is rendered exactly once.
+ * POST `magebit_mcp/oauthclient/rotatesecret` — regenerates the client secret.
+ * `revoke_tokens=1` also revokes every live token from this client.
  */
 class RotateSecret extends Action implements HttpPostActionInterface
 {
@@ -99,8 +98,7 @@ class RotateSecret extends Action implements HttpPostActionInterface
             try {
                 $tokensRevoked = $this->tokenRepository->revokeAllForClient($clientPk);
             } catch (Throwable $e) {
-                // Rotation already succeeded — surface revocation failure as a warning
-                // rather than rolling back, so the new plaintext still reaches the operator.
+                // Rotation already succeeded — surface as a warning so the new secret still reaches the operator.
                 $this->logger->warning('OAuth client token revocation failed after rotation.', [
                     'client_id' => $client->getClientId(),
                     'exception' => $e,

@@ -351,10 +351,13 @@ class AccessTokenIssuerTest extends TestCase
             ->method('getActiveByClientAndAdmin')
             ->with(7, 42)
             ->willReturn([$priorA, $priorB]);
+        $revokedIds = [];
         $tokenRepo->expects(self::exactly(2))
             ->method('revoke')
-            ->withConsecutive([101], [102])
-            ->willReturnOnConsecutiveCalls($priorA, $priorB);
+            ->willReturnCallback(function (int $id) use (&$revokedIds, $priorA, $priorB) {
+                $revokedIds[] = $id;
+                return $id === 101 ? $priorA : $priorB;
+            });
 
         $refresh = $this->createMock(RefreshToken::class);
         $refresh->method('getId')->willReturn(2);
@@ -385,6 +388,7 @@ class AccessTokenIssuerTest extends TestCase
         );
 
         $issuer->issue(7, 'Claude Web', 42, false, null);
+        self::assertSame([101, 102], $revokedIds);
     }
 
     public function testReauthRejectThrowsInvalidGrantWhenActiveTokenExists(): void

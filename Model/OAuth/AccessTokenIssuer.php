@@ -18,11 +18,9 @@ use Magebit\Mcp\Model\TokenRepository;
 use RuntimeException;
 
 /**
- * Mints an OAuth 2.1 access-token + refresh-token pair. The access token is a
- * row in `magebit_mcp_token` carrying an `oauth_client_id` linkback, so it
- * flows through the same {@see \Magebit\Mcp\Model\Auth\TokenAuthenticator} as
- * CLI-issued bearers. Plaintexts are returned exactly once via
- * {@see IssuedTokenPair}; only HMAC hashes are persisted.
+ * Mints an OAuth 2.1 access + refresh token pair. The access token is a row in
+ * `magebit_mcp_token` with an `oauth_client_id` linkback so it flows through the
+ * same authenticator as CLI bearers. Plaintexts are returned once; only HMACs persist.
  */
 class AccessTokenIssuer
 {
@@ -65,11 +63,8 @@ class AccessTokenIssuer
         ?array $toolNames = null,
         ?int $parentRefreshTokenId = null
     ): IssuedTokenPair {
-        // Apply the operator-chosen re-authorization policy before any new row
-        // hits the database. Refresh-token rotation (parentRefreshTokenId set)
-        // is exempt — the rotator already revokes the predecessor, and applying
-        // the policy here would also nuke the very token the refresh is
-        // replacing, breaking long-lived MCP sessions.
+        // Refresh-token rotation already revokes the predecessor — re-applying the policy
+        // here would nuke the token being replaced and break long-lived sessions.
         if ($parentRefreshTokenId === null) {
             $this->applyReauthPolicy($oauthClientId, $adminUserId);
         }
@@ -86,9 +81,6 @@ class AccessTokenIssuer
             ? null
             : array_values($toolNames);
 
-        // OAuth-protocol scope summary derived deterministically from the granted tool set so
-        // the wire-level `scope` echo matches what's stored in `scopes_json`. CLI-issued
-        // tokens (toolNames === null) never carry an OAuth scope.
         $grantedScope = $normalizedTools === null
             ? null
             : ($this->toolGrantResolver->summarizeScope($normalizedTools) ?: null);
@@ -137,9 +129,6 @@ class AccessTokenIssuer
     }
 
     /**
-     * Apply `magebit_mcp/oauth/reauth_behavior` to any prior active tokens for
-     * the same (client, admin) pair.
-     *
      * @param int $oauthClientId
      * @param int $adminUserId
      * @return void
@@ -164,10 +153,8 @@ class AccessTokenIssuer
             );
         }
 
-        // ROTATE — revoke every active prior token. The downstream FK from
-        // magebit_mcp_oauth_refresh_token uses onDelete=CASCADE on access_token_id,
-        // and the rotator's reuse-detection covers refresh tokens whose access
-        // token is now revoked, so we don't need to walk that table here.
+        // ROTATE — revoke marks `revoked_at`; refresh tokens whose access_token row is
+        // revoked become unusable through the rotator's reuse-detection.
         foreach ($active as $token) {
             $id = $token->getId();
             if ($id !== null) {

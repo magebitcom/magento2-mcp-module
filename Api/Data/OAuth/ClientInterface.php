@@ -9,8 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Api\Data\OAuth;
 
 /**
- * OAuth 2.1 pre-registered client. Issues MCP access tokens via the
- * authorization_code (PKCE) and refresh_token grants.
+ * OAuth 2.1 pre-registered client.
  */
 interface ClientInterface
 {
@@ -33,9 +32,7 @@ interface ClientInterface
     public function getId(): ?int;
 
     /**
-     * Public client identifier (UUID v4).
-     *
-     * @return string
+     * @return string Public client identifier (UUID v4).
      */
     public function getClientId(): string;
 
@@ -46,9 +43,7 @@ interface ClientInterface
     public function setClientId(string $clientId): self;
 
     /**
-     * HMAC hash of the plaintext secret; plaintext is never stored.
-     *
-     * @return string
+     * @return string HMAC hash; plaintext is never stored.
      */
     public function getClientSecretHash(): string;
 
@@ -70,9 +65,7 @@ interface ClientInterface
     public function setName(string $name): self;
 
     /**
-     * Allowed redirect URIs for the authorization-code flow (exact match).
-     *
-     * @return array<int, string>
+     * @return array<int, string> Allowed redirect URIs (exact match).
      */
     public function getRedirectUris(): array;
 
@@ -84,9 +77,8 @@ interface ClientInterface
     public function setRedirectUris(array $uris): self;
 
     /**
-     * MCP tool names this client may request at consent time. The consent
-     * screen lets the approving admin tighten this further; the runtime
-     * dispatcher enforces both the per-token grant and the admin's role.
+     * Tool names this client may request at consent time; the consent screen and
+     * runtime ACL narrow further.
      *
      * @return array<int, string>
      */
@@ -100,8 +92,6 @@ interface ClientInterface
     public function setAllowedTools(array $tools): self;
 
     /**
-     * Mapping mode for OAuth consents. See {@see \Magebit\Mcp\Model\OAuth\AuthMode}.
-     *
      * @return \Magebit\Mcp\Model\OAuth\AuthMode
      */
     public function getAuthMode(): \Magebit\Mcp\Model\OAuth\AuthMode;
@@ -113,11 +103,7 @@ interface ClientInterface
     public function setAuthMode(\Magebit\Mcp\Model\OAuth\AuthMode $mode): self;
 
     /**
-     * Pinned admin user the client mints tokens on behalf of when
-     * {@see getAuthMode()} is SHARED. NULL otherwise (and a misconfiguration in
-     * SHARED mode).
-     *
-     * @return int|null
+     * @return int|null Pinned admin in SHARED mode; NULL in PERSONAL mode.
      */
     public function getServiceAdminUserId(): ?int;
 
@@ -128,8 +114,8 @@ interface ClientInterface
     public function setServiceAdminUserId(?int $adminUserId): self;
 
     /**
-     * Personal-mode whitelist of admin user IDs that may authorize. Empty =
-     * no user-level restriction (union with {@see getAllowedAdminRoleIds()}).
+     * Personal-mode admin-user whitelist; empty = no restriction. Union with
+     * {@see getAllowedAdminRoleIds()}.
      *
      * @return array<int, int>
      */
@@ -143,8 +129,8 @@ interface ClientInterface
     public function setAllowedAdminUserIds(array $userIds): self;
 
     /**
-     * Personal-mode whitelist of admin role IDs that may authorize. Empty =
-     * no role-level restriction (union with {@see getAllowedAdminUserIds()}).
+     * Personal-mode admin-role whitelist; empty = no restriction. Union with
+     * {@see getAllowedAdminUserIds()}.
      *
      * @return array<int, int>
      */
@@ -158,10 +144,7 @@ interface ClientInterface
     public function setAllowedAdminRoleIds(array $roleIds): self;
 
     /**
-     * When true, the client is preserved for audit but cannot mint new tokens
-     * and cannot refresh existing ones.
-     *
-     * @return bool
+     * @return bool When true the client is preserved but can't mint or refresh tokens.
      */
     public function isDisabled(): bool;
 
