@@ -20,6 +20,39 @@
     margin-right: 4px;
 }
 
+.mcp-scope-count {
+    background: #303030;
+    border-radius: 3px;
+    color: #fff;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-right: 6px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+}
+
+.mcp-scope-domain {
+    background: #f4f4f4;
+    border: 1px solid #e3e3e3;
+    border-radius: 3px;
+    color: #303030;
+    cursor: help;
+    display: inline-block;
+    font-family: 'Source Code Pro', Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 2px 4px 2px 0;
+    padding: 1px 8px;
+}
+
+.mcp-scope-domain em {
+    color: #858585;
+    font-style: normal;
+    margin-left: 2px;
+}
+
 .admin__data-grid-outer-wrap .grid-severity-notice,
 .admin__data-grid-outer-wrap .grid-severity-critical,
 .admin__data-grid-outer-wrap .grid-severity-major,
