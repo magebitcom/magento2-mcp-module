@@ -105,11 +105,8 @@ class TokenRepository
     }
 
     /**
-     * Bulk-revoke every still-active token issued via the given OAuth client.
-     * Returns the number of rows updated.
-     *
      * @param int $oauthClientId
-     * @return int
+     * @return int Number of rows updated.
      */
     public function revokeAllForClient(int $oauthClientId): int
     {
@@ -122,7 +119,7 @@ class TokenRepository
             ['revoked_at' => $this->dateTime->gmtDate()],
             [
                 $connection->quoteInto('oauth_client_id = ?', $oauthClientId),
-                'revoked_at IS NULL',
+                $connection->quoteIdentifier('revoked_at') . ' IS NULL',
             ]
         );
         return (int) $updated;
@@ -160,10 +157,7 @@ class TokenRepository
     }
 
     /**
-     * Tokens issued for a specific (OAuth client, admin user) pair that are
-     * still usable — not revoked and not past their `expires_at`. Used by
-     * {@see \Magebit\Mcp\Model\OAuth\AccessTokenIssuer} to apply the
-     * `magebit_mcp/oauth/reauth_behavior` policy at issuance time.
+     * Active tokens (not revoked, not expired) for the given OAuth-client + admin pair.
      *
      * @param int $oauthClientId
      * @param int $adminUserId

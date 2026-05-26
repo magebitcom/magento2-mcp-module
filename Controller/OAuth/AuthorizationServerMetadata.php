@@ -21,12 +21,8 @@ use Magento\Framework\App\Response\Http as HttpResponse;
 use Magento\Framework\App\ResponseInterface;
 
 /**
- * RFC 8414 Authorization Server Metadata document.
- *
- * The MCP module embeds an OAuth 2.1 authorization server, so the resource
- * (this Magento install) and the issuer share the same origin. PKCE-S256 is
- * mandatory; client authentication on the token endpoint accepts both
- * `client_secret_basic` and `client_secret_post`.
+ * RFC 8414 Authorization Server Metadata. PKCE-S256 is mandatory; the token
+ * endpoint accepts both `client_secret_basic` and `client_secret_post`.
  */
 class AuthorizationServerMetadata implements
     HttpGetActionInterface,
@@ -69,9 +65,8 @@ class AuthorizationServerMetadata implements
             'code_challenge_methods_supported' => ['S256'],
             'token_endpoint_auth_methods_supported' => ['client_secret_basic', 'client_secret_post'],
             'scopes_supported' => Scope::allValues(),
-            // Hint to OAuth-aware clients that PKCE is mandatory — without this they
-            // sometimes short-circuit the verifier wiring even when S256 is the only
-            // advertised challenge method.
+            // Explicit hint — some clients short-circuit the PKCE verifier even when
+            // S256 is the only advertised challenge method.
             'pkce_required' => true,
             'require_pushed_authorization_requests' => false,
             'service_documentation' => $issuer . '/mcp',
@@ -87,9 +82,6 @@ class AuthorizationServerMetadata implements
     }
 
     /**
-     * Opt out of form-key CSRF — this is a public, unauthenticated GET that
-     * returns deterministic JSON metadata. No state is mutated.
-     *
      * @param RequestInterface $request
      * @return InvalidRequestException|null
      */

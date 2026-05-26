@@ -37,11 +37,16 @@ class ClientCredentialIssuer
      * @param string $name
      * @param array<int, string> $redirectUris
      * @param array<int, string> $allowedTools
+     * @param AuthorizationOptions|null $auth Defaults to personal mode.
      * @return array{client: Client, client_id: string, client_secret: string}
      * @throws InvalidArgumentException
      */
-    public function issue(string $name, array $redirectUris, array $allowedTools): array
-    {
+    public function issue(
+        string $name,
+        array $redirectUris,
+        array $allowedTools,
+        ?AuthorizationOptions $auth = null
+    ): array {
         if (trim($name) === '') {
             throw new InvalidArgumentException('Client name is required.');
         }
@@ -55,6 +60,7 @@ class ClientCredentialIssuer
             $this->assertRedirectUriValid($uri);
         }
 
+        $options = $auth ?? AuthorizationOptions::personalDefault();
         $clientId = self::generateUuidV4();
         $plaintextSecret = $this->tokenGenerator->generate();
         $hash = $this->tokenHasher->hash($plaintextSecret);
@@ -65,6 +71,7 @@ class ClientCredentialIssuer
         $client->setClientSecretHash($hash);
         $client->setRedirectUris(array_values($redirectUris));
         $client->setAllowedTools(array_values($allowedTools));
+        $this->applyAuthorizationOptions($client, $options);
 
         $this->clientRepository->save($client);
 
@@ -76,10 +83,30 @@ class ClientCredentialIssuer
     }
 
     /**
-     * Regenerates the client secret on an existing row; `client_id` is preserved.
-     *
      * @param Client $client
-     * @return string
+     * @param AuthorizationOptions $options
+     * @return void
+     */
+    public function applyAuthorizationOptions(Client $client, AuthorizationOptions $options): void
+    {
+        $client->setAuthMode($options->mode);
+        if ($options->mode === AuthMode::SHARED) {
+            $client->setServiceAdminUserId($options->serviceAdminUserId);
+            // Whitelists only apply to personal mode; clear them so stale UI state can't leak
+            // back if the client is flipped back to personal later.
+            $client->setAllowedAdminUserIds([]);
+            $client->setAllowedAdminRoleIds([]);
+        } else {
+            $client->setServiceAdminUserId(null);
+            $client->setAllowedAdminUserIds($options->allowedAdminUserIds);
+            $client->setAllowedAdminRoleIds($options->allowedAdminRoleIds);
+        }
+        $client->setDisabled($options->disabled);
+    }
+
+    /**
+     * @param Client $client
+     * @return string New plaintext secret; `client_id` is preserved.
      */
     public function rotateSecret(Client $client): string
     {
@@ -100,9 +127,7 @@ class ClientCredentialIssuer
             throw $this->redirectUriException();
         }
 
-        // Reject `?` and `#` so the byte-exact match in {@see RedirectUriValidator} is
-        // unambiguous — a request URI carrying decorations the client never registered
-        // would otherwise either spuriously match or spuriously fail.
+        // Reject `?` and `#` so the byte-exact match in RedirectUriValidator is unambiguous.
         if (str_contains($uri, '?') || str_contains($uri, '#')) {
             throw new InvalidArgumentException(
                 'Redirect URIs must not contain query strings or fragments.'
@@ -138,9 +163,7 @@ class ClientCredentialIssuer
     }
 
     /**
-     * RFC 4122 v4 UUID from cryptographically secure randomness.
-     *
-     * @return string
+     * @return string RFC 4122 v4 UUID from cryptographically secure randomness.
      */
     private static function generateUuidV4(): string
     {

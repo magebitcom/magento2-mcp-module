@@ -1,0 +1,20 @@
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+
+.mcp-rotate-secret-modal {
+    display: none;
+}
+
+.mcp-rotate-secret-modal__revoke {
+    align-items: flex-start;
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.mcp-rotate-secret-modal__revoke input[type="checkbox"] {
+    margin-top: 4px;
+}

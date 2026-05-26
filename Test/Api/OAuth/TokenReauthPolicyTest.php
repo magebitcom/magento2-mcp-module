@@ -11,13 +11,8 @@ namespace Magebit\Mcp\Test\Api\OAuth;
 use Magebit\Mcp\Model\Config\Source\ReauthBehavior;
 
 /**
- * End-to-end coverage for the `magebit_mcp/oauth/reauth_behavior` config and
- * the per-client `disabled` flag — both touch the actual /mcp/oauth/token
- * controller and need an HTTP round-trip to confirm policy enforcement.
- *
- * Unit tests in `Test/Unit/Model/OAuth/AccessTokenIssuerTest` exhaustively
- * cover the issuance-level branches; these tests are the "does it actually
- * fire over real HTTP" safety net.
+ * End-to-end coverage for `magebit_mcp/oauth/reauth_behavior` and the per-client
+ * `disabled` flag over real HTTP. Issuer branches are covered by unit tests.
  */
 class TokenReauthPolicyTest extends TokenEndpointTestCase
 {

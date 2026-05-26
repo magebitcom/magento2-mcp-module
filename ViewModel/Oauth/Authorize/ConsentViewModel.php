@@ -19,10 +19,8 @@ use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFac
 use Magento\User\Model\User;
 
 /**
- * Consent screen view model. Owns the per-tool jstree payload — the template
- * just escapes and renders. Lifts the previous template-level
- * `ObjectManager::getInstance()` lookups and the recursive `state.disabled`
- * mutator into testable ViewModel methods.
+ * Consent-screen view model — owns the per-tool jstree payload so the template
+ * just escapes and renders.
  */
 class ConsentViewModel implements ArgumentInterface
 {
@@ -52,12 +50,9 @@ class ConsentViewModel implements ArgumentInterface
     }
 
     /**
-     * Loads the pinned service admin's display name for the shared-mode
-     * banner. Returns null when the client isn't in shared mode or the row
-     * has gone missing (e.g. admin deleted).
-     *
      * @param Client|null $client
-     * @return string|null
+     * @return string|null Pinned service admin display name; null outside shared mode
+     *                    or when the admin row is gone.
      */
     public function getServiceAdminDisplayName(?Client $client): ?string
     {
@@ -68,10 +63,7 @@ class ConsentViewModel implements ArgumentInterface
         if ($userId === null || $userId <= 0) {
             return null;
         }
-        // Collection lookup instead of Model::load() — keeps the rule
-        // "bitExpertMagento.abstractModelUseServiceContract" satisfied. The
-        // admin user table doesn't ship a public repository, so the collection
-        // is the cleanest equivalent.
+        // Collection avoids Model::load() while admin_user has no service contract.
         $collection = $this->userCollectionFactory->create();
         $collection->addFieldToFilter('user_id', ['eq' => $userId]);
         $user = $collection->getFirstItem();
@@ -97,11 +89,9 @@ class ConsentViewModel implements ArgumentInterface
     }
 
     /**
-     * Tree shape consumed by the jstree widget. Every node beyond the
-     * client's allowed-tool cap renders disabled with a tooltip.
-     *
      * @param Client|null $client
-     * @return array<int, array<string, mixed>>
+     * @return array<int, array<string, mixed>> jstree payload — nodes outside the
+     *                    client's allowed-tool cap render disabled.
      */
     public function getTreeForRender(?Client $client): array
     {
@@ -130,11 +120,9 @@ class ConsentViewModel implements ArgumentInterface
     }
 
     /**
-     * Pre-serialised mage-init payload ready to drop into `data-mage-init`.
-     *
      * @param Client|null $client
      * @param array<int, string> $preTickedTools
-     * @return string
+     * @return string Serialized mage-init payload for `data-mage-init`.
      */
     public function getWidgetOptionsJson(?Client $client, array $preTickedTools): string
     {
@@ -160,9 +148,7 @@ class ConsentViewModel implements ArgumentInterface
     }
 
     /**
-     * Recursively disable any node not in the client's allowed-tool list.
-     * Group / root nodes are left enabled — disabling a leaf cascades the
-     * group's "any enabled child?" computation in the JS widget.
+     * Recursively disable leaves not in $allowedAclIds; group/root nodes stay enabled.
      *
      * @param array<int, array<string, mixed>> $nodes
      * @param array<string, true> $allowedAclIds

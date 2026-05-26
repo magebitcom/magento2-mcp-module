@@ -77,11 +77,7 @@ class ModuleConfig
     }
 
     /**
-     * Display title advertised via `initialize.serverInfo.title`. Falls back
-     * to the storefront's `Store Information → Store Name` so a fresh install
-     * carries the operator's brand without manual setup.
-     *
-     * @return ?string
+     * @return ?string Falls back to Store Information → Store Name.
      */
     public function getServerTitle(): ?string
     {
@@ -99,11 +95,7 @@ class ModuleConfig
     }
 
     /**
-     * Website URL advertised via `initialize.serverInfo.websiteUrl`. Falls
-     * back to the store's secure base URL so the field points somewhere
-     * useful out of the box; admins can override with a marketing page.
-     *
-     * @return ?string
+     * @return ?string Falls back to the store's secure base URL.
      */
     public function getServerWebsiteUrl(): ?string
     {
@@ -126,8 +118,7 @@ class ModuleConfig
     }
 
     /**
-     * Single icon entry for `initialize.serverInfo.icons[]`. Returns null
-     * unless both URL and MIME type are configured — a URL without a
+     * Returns null unless both URL and MIME type are configured — a URL without a
      * declared MIME type is dropped rather than guessed.
      *
      * @return ?array{src: string, mimeType: string, sizes: list<string>}
@@ -167,8 +158,8 @@ class ModuleConfig
     }
 
     /**
-     * One origin per line; `#` comments and blank lines stripped. Trailing `*` wildcards
-     * are handled by {@see \Magebit\Mcp\Model\Validator\OriginValidator}.
+     * One origin per line; `#` comments and blank lines stripped. Wildcards are
+     * handled by OriginValidator.
      *
      * @return string[]
      */

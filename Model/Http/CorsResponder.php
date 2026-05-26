@@ -8,31 +8,22 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Http;
 
+use Laminas\Http\Header\HeaderInterface;
 use Magento\Framework\App\Response\Http as HttpResponse;
 
 /**
- * Emits CORS headers for the OAuth metadata and token endpoints so MCP clients
- * (e.g. the MCP Inspector running in a browser tab at localhost:6274) can
- * fetch them cross-origin. The OAuth 2.0 / RFC 8414 / RFC 9728 documents are
- * intentionally public and unauthenticated — wildcard origin is the standard
- * disposition. The token endpoint is browser-callable too; auth there is by
- * `client_id` / `client_secret`, not cookies, so allowing `*` is safe.
+ * Emits CORS headers on the OAuth metadata and token endpoints so MCP clients
+ * (browser-hosted inspectors, embeds) can call them cross-origin. Wildcard
+ * origin is safe here — these endpoints are intentionally public and the token
+ * endpoint authenticates via client_id/client_secret, not cookies.
  */
 class CorsResponder
 {
-    /**
-     * Headers MCP clients legitimately send on token-exchange or metadata fetches.
-     * `Authorization` and `Content-Type` cover the token endpoint; the rest are
-     * for parity with the MCP transport itself.
-     */
-    private const ALLOWED_HEADERS = 'Authorization, Content-Type, Accept, Mcp-Protocol-Version, '
-        . 'Mcp-Session-Id, Last-Event-ID, X-Requested-With';
+    private const ALLOWED_HEADERS = 'Authorization, Content-Type, Accept';
 
     private const MAX_AGE_SECONDS = 600;
 
     /**
-     * Add CORS headers to a real (GET/POST) response.
-     *
      * @param HttpResponse $response
      * @param string $allowedMethods Comma-separated, e.g. "GET, OPTIONS" or "POST, OPTIONS".
      * @return void
@@ -44,15 +35,10 @@ class CorsResponder
         $response->setHeader('Access-Control-Allow-Headers', self::ALLOWED_HEADERS, true);
         $response->setHeader('Access-Control-Expose-Headers', 'WWW-Authenticate', true);
         $response->setHeader('Access-Control-Max-Age', (string) self::MAX_AGE_SECONDS, true);
-        // Any caching proxy must vary on Origin so a cached `*` response isn't reused for a
-        // request that would have warranted a narrower allowlist response in the future.
-        $response->setHeader('Vary', 'Origin', false);
+        $this->appendVaryOrigin($response);
     }
 
     /**
-     * Emit a 204 preflight response. Browsers don't read the body of an OPTIONS
-     * response — only the headers — so an empty body is correct.
-     *
      * @param HttpResponse $response
      * @param string $allowedMethods Comma-separated method list.
      * @return HttpResponse
@@ -64,5 +50,27 @@ class CorsResponder
         $response->setHttpResponseCode(204);
         $response->setBody('');
         return $response;
+    }
+
+    /**
+     * @param HttpResponse $response
+     * @return void
+     */
+    private function appendVaryOrigin(HttpResponse $response): void
+    {
+        $existing = $response->getHeader('Vary');
+        $current = $existing instanceof HeaderInterface ? trim($existing->getFieldValue()) : '';
+        if ($current === '') {
+            $response->setHeader('Vary', 'Origin', true);
+            return;
+        }
+        $parts = array_values(array_filter(array_map('trim', explode(',', $current))));
+        foreach ($parts as $part) {
+            if (strcasecmp($part, 'Origin') === 0 || $part === '*') {
+                return;
+            }
+        }
+        $parts[] = 'Origin';
+        $response->setHeader('Vary', implode(', ', $parts), true);
     }
 }

@@ -11,11 +11,8 @@ namespace Magebit\Mcp\Model\Config\Source;
 use Magento\Framework\Data\OptionSourceInterface;
 
 /**
- * Storefront-config picker for `magebit_mcp/oauth/reauth_behavior` — controls
- * what happens when the same (oauth_client_id, admin_user_id) pair receives a
- * fresh authorization while a prior token is still live.
- *
- * Values are consumed by {@see \Magebit\Mcp\Model\OAuth\AccessTokenIssuer}.
+ * Source for `magebit_mcp/oauth/reauth_behavior` — what happens when the same
+ * (client, admin) pair re-authorizes while a prior token is live.
  */
 class ReauthBehavior implements OptionSourceInterface
 {
@@ -45,12 +42,8 @@ class ReauthBehavior implements OptionSourceInterface
     }
 
     /**
-     * Strict parser: returns one of the three known values, falling back to
-     * ALLOW_MULTIPLE (the historical behavior) on null / unknown input so a
-     * misconfigured row never locks the OAuth flow.
-     *
      * @param mixed $value
-     * @return string
+     * @return string One of the three known values; falls back to ALLOW_MULTIPLE on null/unknown.
      */
     public static function normalize(mixed $value): string
     {

@@ -42,8 +42,9 @@ define([
             ]
         }, $el);
 
-        window.magebitMcpOpenRotateSecretModal = function () {
+        $(document).on('click', '[data-mcp-action="rotate-secret"]', function (event) {
+            event.preventDefault();
             $el.modal('openModal');
-        };
+        });
     };
 });

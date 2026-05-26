@@ -109,14 +109,7 @@ class TokenScopes extends Column
      */
     private function renderDomainSummary(array $names): string
     {
-        $byDomain = [];
-        foreach ($names as $tool) {
-            $dot = strpos($tool, '.');
-            $domain = $dot === false ? $tool : substr($tool, 0, $dot);
-            $byDomain[$domain] ??= [];
-            $byDomain[$domain][] = $tool;
-        }
-        ksort($byDomain);
+        $byDomain = $this->groupByDomain($names);
 
         $countLabel = sprintf('%d tools', count($names));
         $out = '<span class="mcp-scope-count">'
@@ -134,5 +127,22 @@ class TokenScopes extends Column
                 . ')</em></span>';
         }
         return $out;
+    }
+
+    /**
+     * @param array<int, string> $names
+     * @return array<string, array<int, string>>
+     */
+    private function groupByDomain(array $names): array
+    {
+        $byDomain = [];
+        foreach ($names as $tool) {
+            $dot = strpos($tool, '.');
+            $domain = $dot === false ? $tool : substr($tool, 0, $dot);
+            $byDomain[$domain] ??= [];
+            $byDomain[$domain][] = $tool;
+        }
+        ksort($byDomain);
+        return $byDomain;
     }
 }
