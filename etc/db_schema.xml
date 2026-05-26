@@ -153,6 +153,16 @@
                 comment="JSON array of allowed redirect URIs (exact match)"/>
         <column xsi:type="text" name="allowed_tools_json" nullable="false"
                 comment="JSON array of MCP tool names this client may request (e.g. ['catalog.product.list']). The consent screen narrows further; the runtime gate is the source of truth."/>
+        <column xsi:type="varchar" name="auth_mode" length="16" nullable="false" default="personal"
+                comment="Mapping of OAuth consents to Magento admin users: 'personal' (each admin who logs in gets their own token) or 'shared' (every consent issues a token bound to the pinned service_admin_user_id)"/>
+        <column xsi:type="int" name="service_admin_user_id" unsigned="true" nullable="true"
+                comment="Required when auth_mode='shared': the admin user every issued token will be bound to. NULL in personal mode"/>
+        <column xsi:type="text" name="allowed_admin_user_ids_json" nullable="true"
+                comment="Personal-mode whitelist of admin user IDs that may authorize this client. NULL or empty = no user-level restriction. Union with allowed_admin_role_ids_json"/>
+        <column xsi:type="text" name="allowed_admin_role_ids_json" nullable="true"
+                comment="Personal-mode whitelist of admin role IDs that may authorize this client. NULL or empty = no role-level restriction. Union with allowed_admin_user_ids_json"/>
+        <column xsi:type="smallint" name="disabled" unsigned="true" nullable="false" default="0"
+                comment="When 1, the client cannot mint new tokens or refresh existing ones, but its audit trail is preserved"/>
         <column xsi:type="timestamp" name="created_at" on_update="false"
                 default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
 
@@ -163,6 +173,16 @@
         <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_OAUTH_CLIENT_CLIENT_ID">
             <column name="client_id"/>
         </constraint>
+
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_OAUTH_CLIENT_SERVICE_ADMIN_USER_ID_FK"
+                    table="magebit_mcp_oauth_client" column="service_admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id"
+                    onDelete="SET NULL"/>
+
+        <index referenceId="MAGEBIT_MCP_OAUTH_CLIENT_SERVICE_ADMIN_USER_ID" indexType="btree">
+            <column name="service_admin_user_id"/>
+        </index>
     </table>
 
     <table name="magebit_mcp_oauth_auth_code" resource="default" engine="innodb"

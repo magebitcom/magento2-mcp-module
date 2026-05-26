@@ -10,7 +10,10 @@ namespace Magebit\Mcp\Controller\Adminhtml\Oauth;
 
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\OAuthException;
+use Magebit\Mcp\Model\OAuth\AdminAuthorizationDecision;
+use Magebit\Mcp\Model\OAuth\AdminAuthorizationGate;
 use Magebit\Mcp\Model\OAuth\AuthCodeIssuer;
+use Magebit\Mcp\Model\OAuth\AuthMode;
 use Magebit\Mcp\Model\OAuth\AuthorizeHandoffStorage;
 use Magebit\Mcp\Model\OAuth\ConsentParamsResolver;
 use Magebit\Mcp\Model\OAuth\InlineErrorRenderer;
@@ -31,19 +34,16 @@ use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 
 /**
- * Adminhtml `GET|POST /<adminFrontName>/magebit_mcp/oauth/authorize` — consent
- * screen reached only via the public frontend authorize controller. The form
- * submits a per-tool tick selection (jstree ACL ids → tool names); the granted
- * set is the intersection of the client's allowed-tool cap, the consenting
- * admin's role, and the tick selection. Unticking everything = denying.
+ * Adminhtml consent screen — reached only via the public authorize controller.
+ * The granted tool set is the intersection of the client's allowed-tools, the
+ * admin's role, and the form's tick selection.
  */
 class Authorize extends Action implements HttpGetActionInterface, HttpPostActionInterface
 {
     public const ADMIN_RESOURCE = 'Magebit_Mcp::mcp_oauth_authorize';
 
     /**
-     * Action names that bypass the secret-key URL check. The handoff nonce + admin
-     * session combine to authenticate the request.
+     * Bypasses the secret-key URL check; the handoff nonce + admin session authenticate.
      *
      * @var string[]
      */
@@ -59,6 +59,7 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
      * @param ToolGrantResolver $toolGrantResolver
      * @param ConsentParamsResolver $consentParamsResolver
      * @param InlineErrorRenderer $inlineErrorRenderer
+     * @param AdminAuthorizationGate $adminAuthorizationGate
      * @param LoggerInterface $logger
      */
     public function __construct(
@@ -71,6 +72,7 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
         private readonly ToolGrantResolver $toolGrantResolver,
         private readonly ConsentParamsResolver $consentParamsResolver,
         private readonly InlineErrorRenderer $inlineErrorRenderer,
+        private readonly AdminAuthorizationGate $adminAuthorizationGate,
         private readonly LoggerInterface $logger
     ) {
         parent::__construct($context);
@@ -108,6 +110,21 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
             );
         }
         $client = $this->consentParamsResolver->resolveClient($params);
+        /** @var \Magento\User\Model\User|null $admin */
+        $admin = $this->_auth->getUser();
+
+        // Reject before the admin sees the screen — disabled clients, non-whitelisted
+        // admins (personal), wrong-admin/un-pinned (shared) all redirect back with the OAuth error.
+        if ($client !== null) {
+            $decision = $this->adminAuthorizationGate->decide($client, $admin);
+            if (!$decision->isAllowed()) {
+                return $this->handleGateDenial(
+                    $decision,
+                    ConsentParamsResolver::stringFromParams($params, 'redirect_uri'),
+                    ConsentParamsResolver::stringFromParams($params, 'state')
+                );
+            }
+        }
 
         /** @var Page $page */
         $page = $this->pageFactory->create();
@@ -119,8 +136,6 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
         $requestedScopes = $this->scopeValidator->parse(
             ConsentParamsResolver::nullableStringFromParams($params, 'scope')
         );
-        /** @var \Magento\User\Model\User|null $admin */
-        $admin = $this->_auth->getUser();
         $preTicked = $this->consentParamsResolver->computePreTickedTools($client, $admin, $requestedScopes);
 
         $block = $page->getLayout()->getBlock('mcp.oauth.authorize.consent');
@@ -129,6 +144,7 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
             $block->setData('current_url', $this->_url->getCurrentUrl());
             $block->setData('requested_scopes', $requestedScopes);
             $block->setData('pre_ticked_tools', $preTicked);
+            $block->setData('is_shared_mode', $client !== null && $client->getAuthMode() === AuthMode::SHARED);
         }
         return $page;
     }
@@ -182,6 +198,22 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
                 'error_description' => 'Admin session lost during approval.',
                 'state' => $state,
             ]);
+        }
+
+        // Re-check the gate even though renderConsent already did: account swap,
+        // policy flip, or client disabled while the screen was open.
+        $gateDecision = $this->adminAuthorizationGate->decide($client, $admin);
+        if (!$gateDecision->isAllowed()) {
+            return $this->handleGateDenial($gateDecision, $redirectUri, $state);
+        }
+
+        // Shared mode: pin the auth code to the service admin. Belt-and-braces — the
+        // gate already enforced the same equality.
+        if ($client->getAuthMode() === AuthMode::SHARED) {
+            $serviceAdminId = $client->getServiceAdminUserId();
+            if ($serviceAdminId !== null && $serviceAdminId > 0) {
+                $adminUserId = $serviceAdminId;
+            }
         }
 
         $rawResources = $this->getRequest()->getParam('resource');
@@ -269,6 +301,33 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
     private function renderInlineError(int $httpStatus, string $error, string $description): HttpResponse
     {
         return $this->inlineErrorRenderer->render($this->httpResponse(), $httpStatus, $error, $description);
+    }
+
+    /**
+     * @param AdminAuthorizationDecision $decision
+     * @param string $redirectUri
+     * @param string $state
+     * @return HttpResponse Redirects to the client with the OAuth error, or inline if no redirect_uri.
+     */
+    private function handleGateDenial(
+        AdminAuthorizationDecision $decision,
+        string $redirectUri,
+        string $state
+    ): HttpResponse {
+        $this->logger->info('OAuth consent denied by AdminAuthorizationGate.', [
+            'decision' => $decision->value,
+            'redirect_uri' => $redirectUri,
+        ]);
+
+        if ($redirectUri === '') {
+            return $this->renderInlineError(403, $decision->oauthError(), $decision->description());
+        }
+
+        return $this->redirectToClient($redirectUri, [
+            'error' => $decision->oauthError(),
+            'error_description' => $decision->description(),
+            'state' => $state,
+        ]);
     }
 
     /**

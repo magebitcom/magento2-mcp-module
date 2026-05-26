@@ -22,9 +22,26 @@ $currentUrl = $block->getData('current_url') ?? '';
 $preTicked = $block->getData('pre_ticked_tools') ?? [];
 $tree = $viewModel->getTreeForRender($client);
 ?>
+<?php
+$isSharedMode = $viewModel->isSharedMode($client);
+$serviceAdminName = $viewModel->getServiceAdminDisplayName($client);
+?>
 <div class="mcp-oauth-consent">
     <h1>Authorize MCP access</h1>
     <p><strong><?= $escaper->escapeHtml($viewModel->getClientLabel($client)) ?></strong> wants to access your Magento store on your behalf.</p>
+    <?php if ($isSharedMode): ?>
+        <div class="mcp-oauth-consent__shared-banner">
+            <strong>This is a shared organization connector.</strong>
+            <?php if ($serviceAdminName !== null): ?>
+                The token approved here will be issued on behalf of
+                <strong><?= $escaper->escapeHtml($serviceAdminName) ?></strong>.
+                Everyone in the organization who uses this connector will act as that admin.
+            <?php else: ?>
+                The token approved here will be issued on behalf of a pinned service admin.
+                Everyone in the organization who uses this connector will act as that admin.
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
     <p>Tick the tools you want to grant. Untick anything you don't want this client to have. The token issued will be limited to what you approve here, and to what your admin role would normally permit.</p>
 
     <form method="post" id="mcp-oauth-consent-form" action="<?= $escaper->escapeUrl($currentUrl) ?>">

@@ -3,6 +3,9 @@
       layout="admin-2columns-left"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <update handle="editor"/>
+    <head>
+        <css src="Magebit_Mcp::css/oauth-client-rotate.css"/>
+    </head>
     <body>
         <referenceContainer name="left">
             <block class="Magebit\Mcp\Block\Adminhtml\AbstractEdit\Tabs"
@@ -29,6 +32,9 @@
         <referenceContainer name="content">
             <block class="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit"
                    name="magebit_mcp_oauthclient_edit"/>
+            <block class="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\RotateModal"
+                   name="magebit_mcp_oauthclient_edit_rotate_modal"
+                   template="Magebit_Mcp::oauthclient/edit/rotate-secret-modal.phtml"/>
         </referenceContainer>
     </body>
 </page>

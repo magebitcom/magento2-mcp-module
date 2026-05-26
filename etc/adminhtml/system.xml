@@ -180,6 +180,21 @@
                     <validate>validate-greater-than-zero validate-digits</validate>
                     <comment>How long an authorization code stays valid before exchange. Default 60. Increase only for debugging.</comment>
                 </field>
+                <field id="reauth_behavior" translate="label comment" type="select" sortOrder="40"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Re-authorization Behavior</label>
+                    <source_model>Magebit\Mcp\Model\Config\Source\ReauthBehavior</source_model>
+                    <comment><![CDATA[<p>What to do when the same (OAuth client, admin user) pair completes
+                    a new consent while a previously issued token is still live.</p>
+                    <ul>
+                        <li><strong>Allow multiple</strong> (default) — keep prior tokens and issue a new one
+                        alongside. Recommended for shared organization connectors</li>
+                        <li><strong>Rotate</strong> — revoke every active token for the pair, then issue a
+                        fresh one. Cleanest audit trail; breaks the multi-seat case.</li>
+                        <li><strong>Reject</strong> — fail the token exchange with <code>invalid_grant</code>.
+                        Operator must revoke the existing token before a new one can be issued.</li>
+                    </ul>]]></comment>
+                </field>
             </group>
         </section>
     </system>

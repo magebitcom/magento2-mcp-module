@@ -105,6 +105,27 @@ class TokenRepository
     }
 
     /**
+     * @param int $oauthClientId
+     * @return int Number of rows updated.
+     */
+    public function revokeAllForClient(int $oauthClientId): int
+    {
+        $connection = $this->resource->getConnection();
+        if ($connection === false) {
+            throw new RuntimeException('Default DB connection unavailable.');
+        }
+        $updated = $connection->update(
+            $this->resource->getMainTable(),
+            ['revoked_at' => $this->dateTime->gmtDate()],
+            [
+                $connection->quoteInto('oauth_client_id = ?', $oauthClientId),
+                $connection->quoteIdentifier('revoked_at') . ' IS NULL',
+            ]
+        );
+        return (int) $updated;
+    }
+
+    /**
      * Direct UPDATE, no model round-trip. Safe to call on every successful authentication.
      *
      * @param int $id
@@ -133,6 +154,23 @@ class TokenRepository
         $collection = $this->collectionFactory->create();
         $collection->addFieldToFilter('admin_user_id', ['eq' => $adminUserId]);
         return $this->narrowItems($collection->getItems());
+    }
+
+    /**
+     * Active tokens (not revoked, not expired) for the given OAuth-client + admin pair.
+     *
+     * @param int $oauthClientId
+     * @param int $adminUserId
+     * @return array<int, Token>
+     */
+    public function getActiveByClientAndAdmin(int $oauthClientId, int $adminUserId): array
+    {
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('oauth_client_id', ['eq' => $oauthClientId]);
+        $collection->addFieldToFilter('admin_user_id', ['eq' => $adminUserId]);
+        $collection->addFieldToFilter('revoked_at', ['null' => true]);
+        $items = $this->narrowItems($collection->getItems());
+        return array_values(array_filter($items, static fn (Token $t): bool => !$t->isExpired()));
     }
 
     /**

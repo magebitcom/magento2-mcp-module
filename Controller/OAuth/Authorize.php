@@ -29,15 +29,9 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * Public-facing `GET /mcp/oauth/authorize` advertised in the RFC 8414 metadata.
- *
- * Validates OAuth params, stashes them in a single-use handoff record keyed by a
- * random nonce, and 302-redirects the browser to the adminhtml consent URL —
- * keeping the admin URL out of the public discovery document.
- *
- * Two error families per OAuth 2.1 §4.1.2.1:
- *   - redirect_uri / client_id failures render inline (no safe place to bounce);
- *   - protocol failures redirect back to the registered URI with `error=…`.
+ * Public `GET /mcp/oauth/authorize`. Validates params, stashes them under a
+ * single-use nonce, and 302s to the adminhtml consent screen. redirect_uri /
+ * client_id failures render inline; protocol failures redirect with `error=…`.
  */
 class Authorize implements HttpGetActionInterface, CsrfAwareActionInterface
 {
@@ -89,8 +83,7 @@ class Authorize implements HttpGetActionInterface, CsrfAwareActionInterface
             );
         }
 
-        // Canonicalise so the admin side sees a deduped, validated string regardless
-        // of what the client put on the wire.
+        // Canonicalise so the admin side sees a deduped, validated string.
         $canonicalScope = $this->scopeValidator->canonicalize(
             $this->scopeValidator->parse($params['scope'])
         );
@@ -145,6 +138,11 @@ class Authorize implements HttpGetActionInterface, CsrfAwareActionInterface
         try {
             $client = $this->clientRepository->getByClientId($clientId);
         } catch (NoSuchEntityException) {
+            throw new OAuthException('invalid_client', 'Unknown client.', 400);
+        }
+
+        if ($client->isDisabled()) {
+            // Same wording as unknown-client — don't leak existence-but-disabled to anonymous callers.
             throw new OAuthException('invalid_client', 'Unknown client.', 400);
         }
 
@@ -205,9 +203,8 @@ class Authorize implements HttpGetActionInterface, CsrfAwareActionInterface
             );
         }
 
-        // Reject unknown scope values now (with `invalid_scope` redirect) before we
-        // touch the handoff table. The protocol scope is only a pre-tick hint for the
-        // consent screen — the per-tool cap on the client row is what bounds the grant.
+        // Reject unknown scope values now — protocol scope is only a pre-tick hint;
+        // the per-tool cap on the client row bounds the grant.
         $this->scopeValidator->parse($params['scope']);
     }
 
@@ -264,8 +261,6 @@ class Authorize implements HttpGetActionInterface, CsrfAwareActionInterface
     }
 
     /**
-     * Opt out of form-key CSRF; the admin-area controller revalidates before issuing.
-     *
      * @param RequestInterface $request
      * @return InvalidRequestException|null
      */

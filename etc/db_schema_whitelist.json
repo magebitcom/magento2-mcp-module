@@ -66,11 +66,20 @@
             "name": true,
             "redirect_uris_json": true,
             "allowed_tools_json": true,
+            "auth_mode": true,
+            "service_admin_user_id": true,
+            "allowed_admin_user_ids_json": true,
+            "allowed_admin_role_ids_json": true,
+            "disabled": true,
             "created_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_OAUTH_CLIENT_SERVICE_ADMIN_USER_ID": true
         },
         "constraint": {
             "PRIMARY": true,
-            "MAGEBIT_MCP_OAUTH_CLIENT_CLIENT_ID": true
+            "MAGEBIT_MCP_OAUTH_CLIENT_CLIENT_ID": true,
+            "MAGEBIT_MCP_OAUTH_CLIENT_SERVICE_ADMIN_USER_ID_FK": true
         }
     },
     "magebit_mcp_oauth_auth_code": {

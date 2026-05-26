@@ -10,17 +10,17 @@ namespace Magebit\Mcp\ViewModel\Oauth\Authorize;
 
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
+use Magebit\Mcp\Model\OAuth\AuthMode;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magento\Backend\Model\Auth;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
+use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
 use Magento\User\Model\User;
 
 /**
- * Consent screen view model. Owns the per-tool jstree payload — the template
- * just escapes and renders. Lifts the previous template-level
- * `ObjectManager::getInstance()` lookups and the recursive `state.disabled`
- * mutator into testable ViewModel methods.
+ * Consent-screen view model — owns the per-tool jstree payload so the template
+ * just escapes and renders.
  */
 class ConsentViewModel implements ArgumentInterface
 {
@@ -29,21 +29,69 @@ class ConsentViewModel implements ArgumentInterface
      * @param ToolRegistryInterface $toolRegistry
      * @param Auth $auth
      * @param Json $jsonSerializer
+     * @param UserCollectionFactory $userCollectionFactory
      */
     public function __construct(
         private readonly ToolResourceTree $toolResourceTree,
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly Auth $auth,
-        private readonly Json $jsonSerializer
+        private readonly Json $jsonSerializer,
+        private readonly UserCollectionFactory $userCollectionFactory
     ) {
     }
 
     /**
-     * Tree shape consumed by the jstree widget. Every node beyond the
-     * client's allowed-tool cap renders disabled with a tooltip.
-     *
      * @param Client|null $client
-     * @return array<int, array<string, mixed>>
+     * @return bool
+     */
+    public function isSharedMode(?Client $client): bool
+    {
+        return $client !== null && $client->getAuthMode() === AuthMode::SHARED;
+    }
+
+    /**
+     * @param Client|null $client
+     * @return string|null Pinned service admin display name; null outside shared mode
+     *                    or when the admin row is gone.
+     */
+    public function getServiceAdminDisplayName(?Client $client): ?string
+    {
+        if ($client === null || $client->getAuthMode() !== AuthMode::SHARED) {
+            return null;
+        }
+        $userId = $client->getServiceAdminUserId();
+        if ($userId === null || $userId <= 0) {
+            return null;
+        }
+        // Collection avoids Model::load() while admin_user has no service contract.
+        $collection = $this->userCollectionFactory->create();
+        $collection->addFieldToFilter('user_id', ['eq' => $userId]);
+        $user = $collection->getFirstItem();
+        if (!($user instanceof User) || $user->getId() === null) {
+            return null;
+        }
+        $username = self::scalarToString($user->getData('username'));
+        $firstName = self::scalarToString($user->getData('firstname'));
+        $lastName = self::scalarToString($user->getData('lastname'));
+        $fullName = trim($firstName . ' ' . $lastName);
+        return $fullName !== ''
+            ? sprintf('%s (%s)', $fullName, $username)
+            : $username;
+    }
+
+    /**
+     * @param mixed $value
+     * @return string
+     */
+    private static function scalarToString(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    /**
+     * @param Client|null $client
+     * @return array<int, array<string, mixed>> jstree payload — nodes outside the
+     *                    client's allowed-tool cap render disabled.
      */
     public function getTreeForRender(?Client $client): array
     {
@@ -72,11 +120,9 @@ class ConsentViewModel implements ArgumentInterface
     }
 
     /**
-     * Pre-serialised mage-init payload ready to drop into `data-mage-init`.
-     *
      * @param Client|null $client
      * @param array<int, string> $preTickedTools
-     * @return string
+     * @return string Serialized mage-init payload for `data-mage-init`.
      */
     public function getWidgetOptionsJson(?Client $client, array $preTickedTools): string
     {
@@ -102,9 +148,7 @@ class ConsentViewModel implements ArgumentInterface
     }
 
     /**
-     * Recursively disable any node not in the client's allowed-tool list.
-     * Group / root nodes are left enabled — disabling a leaf cascades the
-     * group's "any enabled child?" computation in the JS widget.
+     * Recursively disable leaves not in $allowedAclIds; group/root nodes stay enabled.
      *
      * @param array<int, array<string, mixed>> $nodes
      * @param array<string, true> $allowedAclIds

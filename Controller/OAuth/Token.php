@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Controller\OAuth;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\OAuthException;
 use Magebit\Mcp\Model\Auth\TokenHasher;
+use Magebit\Mcp\Model\Http\CorsResponder;
 use Magebit\Mcp\Model\OAuth\AccessTokenIssuer;
 use Magebit\Mcp\Model\OAuth\AuthCodeRepository;
 use Magebit\Mcp\Model\OAuth\Client;
@@ -21,6 +22,7 @@ use Magebit\Mcp\Model\OAuth\PkceVerifier;
 use Magebit\Mcp\Model\OAuth\RefreshTokenRotator;
 use Magebit\Mcp\Model\OAuth\ToolGrantResolver;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\App\Action\HttpOptionsActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
@@ -31,22 +33,18 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
- * `POST /mcp/oauth/token` — OAuth 2.1 token endpoint.
- *
- * Implements both the `authorization_code` (Task 19) and `refresh_token`
- * (Task 20) grants. `refresh_token` rotation is revoke-on-use: presenting
- * a refresh token mints a fresh access+refresh pair and invalidates the
- * one used to obtain it (per OAuth 2.1 §6.1).
- *
- * Supports both `client_secret_basic` (HTTP Basic Authorization header) and
- * `client_secret_post` (form-encoded `client_id` / `client_secret` fields)
- * client authentication, as advertised by the authorization-server metadata.
- *
- * Per RFC 6749 §5.2 errors are emitted as JSON via {@see OAuthErrorResponse},
- * with `WWW-Authenticate: Basic` added on `invalid_client`.
+ * `POST /mcp/oauth/token` — OAuth 2.1 token endpoint. Implements authorization_code
+ * and refresh_token grants (revoke-on-use rotation per §6.1); accepts both
+ * client_secret_basic and client_secret_post client authentication.
  */
-class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwareActionInterface
+class Token implements
+    HttpPostActionInterface,
+    HttpGetActionInterface,
+    HttpOptionsActionInterface,
+    CsrfAwareActionInterface
 {
+    private const ALLOWED_METHODS = 'POST, OPTIONS';
+
     /**
      * @param HttpRequest $request
      * @param HttpResponse $response
@@ -58,6 +56,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
      * @param RefreshTokenRotator $refreshTokenRotator
      * @param OAuthErrorResponse $errorResponse
      * @param ToolGrantResolver $toolGrantResolver
+     * @param CorsResponder $corsResponder
      * @param LoggerInterface $logger
      */
     public function __construct(
@@ -71,6 +70,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         private readonly RefreshTokenRotator $refreshTokenRotator,
         private readonly OAuthErrorResponse $errorResponse,
         private readonly ToolGrantResolver $toolGrantResolver,
+        private readonly CorsResponder $corsResponder,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -80,15 +80,24 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
      */
     public function execute(): ResponseInterface
     {
-        if ($this->request->getMethod() !== 'POST') {
+        $method = strtoupper((string) $this->request->getMethod());
+        if ($method === 'OPTIONS') {
+            return $this->corsResponder->emitPreflight($this->response, self::ALLOWED_METHODS);
+        }
+        if ($method !== 'POST') {
             $this->response->setHttpResponseCode(405);
-            $this->response->setHeader('Allow', 'POST', true);
+            $this->response->setHeader('Allow', self::ALLOWED_METHODS, true);
+            $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             $this->response->setBody('');
             return $this->response;
         }
 
         try {
             $client = $this->authenticateClient();
+            if ($client->isDisabled()) {
+                // Same wording as unknown-client — don't leak disabled-vs-rotated to a leaked secret holder.
+                throw new OAuthException('invalid_client', 'Unknown client.', 401);
+            }
             $grantType = $this->stringParam('grant_type');
 
             return match ($grantType) {
@@ -100,9 +109,11 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
                 ),
             };
         } catch (OAuthException $e) {
+            $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             return $this->errorResponse->emit($this->response, $e);
         } catch (\Throwable $e) {
             $this->logger->error('OAuth token endpoint failed.', ['exception' => $e]);
+            $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
             return $this->errorResponse->emit(
                 $this->response,
                 new OAuthException('server_error', 'Token endpoint error.', 500)
@@ -268,6 +279,7 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
         $this->response->setHeader('Content-Type', 'application/json', true);
         $this->response->setHeader('Cache-Control', 'no-store', true);
         $this->response->setHeader('Pragma', 'no-cache', true);
+        $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
         $this->response->setBody($body);
         return $this->response;
     }
@@ -283,10 +295,6 @@ class Token implements HttpPostActionInterface, HttpGetActionInterface, CsrfAwar
     }
 
     /**
-     * Opt out of form-key CSRF. The token endpoint is authenticated via the
-     * client's HTTP Basic / form-post credentials, which is the spec-mandated
-     * CSRF gate (a form-key cookie wouldn't even reach a confidential client).
-     *
      * @param RequestInterface $request
      * @return InvalidRequestException|null
      */

@@ -9,11 +9,19 @@
  */
 declare(strict_types=1);
 ?>
+<?php $isRotation = $block->getIsRotation(); ?>
 <div class="mcp-credentials">
-    <h1 class="mcp-credentials__title">OAuth client created</h1>
+    <h1 class="mcp-credentials__title">
+        <?= $isRotation ? 'Client secret rotated' : 'OAuth client created' ?>
+    </h1>
     <p class="mcp-credentials__lede">
-        <strong><?= $escaper->escapeHtml($block->getName()) ?></strong> is ready.
-        Copy these credentials now — the client secret is not retrievable later.
+        <?php if ($isRotation): ?>
+            <strong><?= $escaper->escapeHtml($block->getName()) ?></strong>'s secret has been regenerated.
+            The Client ID is unchanged. Copy the new secret now — it is not retrievable later.
+        <?php else: ?>
+            <strong><?= $escaper->escapeHtml($block->getName()) ?></strong> is ready.
+            Copy these credentials now — the client secret is not retrievable later.
+        <?php endif; ?>
     </p>
 
     <dl class="mcp-credentials__list">

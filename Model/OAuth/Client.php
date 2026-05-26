@@ -142,6 +142,97 @@ class Client extends AbstractModel implements ClientInterface
     }
 
     /**
+     * @return AuthMode
+     */
+    public function getAuthMode(): AuthMode
+    {
+        return AuthMode::fromStorage($this->getDataStringOrNull(self::AUTH_MODE));
+    }
+
+    /**
+     * @param AuthMode $mode
+     * @return self
+     */
+    public function setAuthMode(AuthMode $mode): self
+    {
+        $this->setData(self::AUTH_MODE, $mode->value);
+        return $this;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getServiceAdminUserId(): ?int
+    {
+        return $this->getDataIntOrNull(self::SERVICE_ADMIN_USER_ID, cast: true);
+    }
+
+    /**
+     * @param int|null $adminUserId
+     * @return self
+     */
+    public function setServiceAdminUserId(?int $adminUserId): self
+    {
+        $this->setData(self::SERVICE_ADMIN_USER_ID, $adminUserId);
+        return $this;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function getAllowedAdminUserIds(): array
+    {
+        return self::decodeIntList($this->getDataStringOrNull(self::ALLOWED_ADMIN_USER_IDS_JSON));
+    }
+
+    /**
+     * @param array<int, int> $userIds
+     * @return self
+     */
+    public function setAllowedAdminUserIds(array $userIds): self
+    {
+        $this->setData(self::ALLOWED_ADMIN_USER_IDS_JSON, self::encodeIntList($userIds));
+        return $this;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function getAllowedAdminRoleIds(): array
+    {
+        return self::decodeIntList($this->getDataStringOrNull(self::ALLOWED_ADMIN_ROLE_IDS_JSON));
+    }
+
+    /**
+     * @param array<int, int> $roleIds
+     * @return self
+     */
+    public function setAllowedAdminRoleIds(array $roleIds): self
+    {
+        $this->setData(self::ALLOWED_ADMIN_ROLE_IDS_JSON, self::encodeIntList($roleIds));
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDisabled(): bool
+    {
+        $raw = $this->getData(self::DISABLED);
+        return is_scalar($raw) && (int) $raw === 1;
+    }
+
+    /**
+     * @param bool $disabled
+     * @return self
+     */
+    public function setDisabled(bool $disabled): self
+    {
+        $this->setData(self::DISABLED, $disabled ? 1 : 0);
+        return $this;
+    }
+
+    /**
      * @return string|null
      */
     public function getCreatedAt(): ?string
@@ -184,5 +275,55 @@ class Client extends AbstractModel implements ClientInterface
             $out[] = $value;
         }
         return $out;
+    }
+
+    /**
+     * @param string|null $json
+     * @return array<int, int>
+     */
+    private static function decodeIntList(?string $json): array
+    {
+        if ($json === null || $json === '') {
+            return [];
+        }
+        $decoded = json_decode($json, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+        $out = [];
+        $seen = [];
+        foreach ($decoded as $value) {
+            if (!is_int($value) && !(is_string($value) && ctype_digit($value))) {
+                continue;
+            }
+            $int = (int) $value;
+            if ($int <= 0 || isset($seen[$int])) {
+                continue;
+            }
+            $seen[$int] = true;
+            $out[] = $int;
+        }
+        return $out;
+    }
+
+    /**
+     * @param array<int, int> $values
+     * @return string|null
+     */
+    private static function encodeIntList(array $values): ?string
+    {
+        $clean = [];
+        $seen = [];
+        foreach ($values as $value) {
+            if ($value <= 0 || isset($seen[$value])) {
+                continue;
+            }
+            $seen[$value] = true;
+            $clean[] = $value;
+        }
+        if ($clean === []) {
+            return null;
+        }
+        return json_encode($clean, JSON_THROW_ON_ERROR);
     }
 }

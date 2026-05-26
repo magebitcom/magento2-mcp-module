@@ -19,6 +19,8 @@ use Magento\Ui\Component\Listing\Columns\Column;
  */
 class TokenScopes extends Column
 {
+    private const INLINE_LIST_THRESHOLD = 3;
+
     /**
      * @param ContextInterface $context
      * @param UiComponentFactory $uiComponentFactory
@@ -74,14 +76,73 @@ class TokenScopes extends Column
         $names = [];
         foreach ($decoded as $value) {
             if (is_string($value) && $value !== '') {
-                $names[] = HtmlEscape::toString($this->escaper->escapeHtml($value));
+                $names[] = $value;
             }
         }
         if ($names === []) {
             return '<span class="mcp-audit-muted">(all granted)</span>';
         }
 
+        if (count($names) <= self::INLINE_LIST_THRESHOLD) {
+            return $this->renderInlineChips($names);
+        }
+        return $this->renderDomainSummary($names);
+    }
+
+    /**
+     * @param array<int, string> $names
+     * @return string
+     */
+    private function renderInlineChips(array $names): string
+    {
+        $escaped = array_map(
+            fn (string $n): string => HtmlEscape::toString($this->escaper->escapeHtml($n)),
+            $names
+        );
         $separator = '</code> <code class="mcp-audit-method">';
-        return '<code class="mcp-audit-method">' . implode($separator, $names) . '</code>';
+        return '<code class="mcp-audit-method">' . implode($separator, $escaped) . '</code>';
+    }
+
+    /**
+     * @param array<int, string> $names
+     * @return string
+     */
+    private function renderDomainSummary(array $names): string
+    {
+        $byDomain = $this->groupByDomain($names);
+
+        $countLabel = sprintf('%d tools', count($names));
+        $out = '<span class="mcp-scope-count">'
+            . HtmlEscape::toString($this->escaper->escapeHtml($countLabel))
+            . '</span>';
+
+        foreach ($byDomain as $domain => $tools) {
+            $tooltip = implode("\n", $tools);
+            $out .= ' <span class="mcp-scope-domain" title="'
+                . HtmlEscape::toString($this->escaper->escapeHtmlAttr($tooltip))
+                . '">'
+                . HtmlEscape::toString($this->escaper->escapeHtml((string) $domain))
+                . ' <em>('
+                . count($tools)
+                . ')</em></span>';
+        }
+        return $out;
+    }
+
+    /**
+     * @param array<int, string> $names
+     * @return array<string, array<int, string>>
+     */
+    private function groupByDomain(array $names): array
+    {
+        $byDomain = [];
+        foreach ($names as $tool) {
+            $dot = strpos($tool, '.');
+            $domain = $dot === false ? $tool : substr($tool, 0, $dot);
+            $byDomain[$domain] ??= [];
+            $byDomain[$domain][] = $tool;
+        }
+        ksort($byDomain);
+        return $byDomain;
     }
 }

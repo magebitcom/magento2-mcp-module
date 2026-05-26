@@ -98,6 +98,22 @@
                 <sortable>false</sortable>
             </settings>
         </column>
+        <column name="auth_mode" sortOrder="45" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <options class="Magebit\Mcp\Ui\Component\OAuthClient\Listing\Column\AuthModeOptions"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Mode</label>
+            </settings>
+        </column>
+        <column name="disabled" sortOrder="46" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <label translate="true">Disabled</label>
+            </settings>
+        </column>
         <column name="created_at"
                 sortOrder="50"
                 class="Magento\Ui\Component\Listing\Columns\Date"
