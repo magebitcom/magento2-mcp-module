@@ -71,6 +71,18 @@
         </arguments>
     </virtualType>
 
+    <!-- Admin grid data source for the prompts listing. -->
+    <virtualType name="Magebit\Mcp\Ui\Component\Listing\PromptCollection"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">magebit_mcp_prompt</argument>
+            <argument name="resourceModel" xsi:type="string">
+                Magebit\Mcp\Model\ResourceModel\Prompt\AdminPrompt
+            </argument>
+            <argument name="identifierName" xsi:type="string">id</argument>
+        </arguments>
+    </virtualType>
+
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
@@ -82,6 +94,9 @@
                 </item>
                 <item name="magebit_mcp_oauth_client_listing_data_source" xsi:type="string">
                     Magebit\Mcp\Ui\Component\Listing\OAuthClientCollection
+                </item>
+                <item name="magebit_mcp_prompt_listing_data_source" xsi:type="string">
+                    Magebit\Mcp\Ui\Component\Listing\PromptCollection
                 </item>
             </argument>
         </arguments>
@@ -241,6 +256,13 @@
         </arguments>
     </virtualType>
 
+    <virtualType name="Magebit\Mcp\Model\Adminhtml\PromptFormPersistence"
+                 type="Magebit\Mcp\Model\Adminhtml\FormDataPersistence">
+        <arguments>
+            <argument name="sessionKey" xsi:type="string">magebit_mcp_prompt_form_data</argument>
+        </arguments>
+    </virtualType>
+
     <type name="Magebit\Mcp\Block\Adminhtml\OAuthClient\Edit\Tab\Info">
         <arguments>
             <argument name="formDataPersistence" xsi:type="object">
@@ -281,6 +303,28 @@
         <arguments>
             <argument name="formDataPersistence" xsi:type="object">
                 Magebit\Mcp\Model\Adminhtml\TokenFormPersistence
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Block\Adminhtml\Prompt\Edit\Tab\Info">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\PromptFormPersistence
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Block\Adminhtml\Prompt\Edit\Tab\Arguments">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\PromptFormPersistence
+            </argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Controller\Adminhtml\Prompt\Save">
+        <arguments>
+            <argument name="formDataPersistence" xsi:type="object">
+                Magebit\Mcp\Model\Adminhtml\PromptFormPersistence
             </argument>
         </arguments>
     </type>

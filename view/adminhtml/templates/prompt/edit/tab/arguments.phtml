@@ -1,0 +1,137 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ *
+ * @var \Magebit\Mcp\Block\Adminhtml\Prompt\Edit\Tab\Arguments $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+declare(strict_types=1);
+
+$arguments = $block->getArgumentsForRender();
+?>
+<fieldset class="admin__fieldset magebit-mcp-prompt-arguments">
+    <legend class="admin__legend"><span><?= /* @noEscape */ __('Arguments') ?></span></legend>
+    <div class="admin__field admin__field-wide">
+        <div class="admin__field-control">
+            <p class="note">
+                <?= /* @noEscape */ __(
+                    'Declare the inputs the assistant will fill in before sending the prompt. Each'
+                    . ' argument can be referenced from the prompt body as'
+                ) ?>
+                <code>{{name}}</code>.
+                <?= /* @noEscape */ __(
+                    'Required arguments must be supplied at call time; optional ones substitute to an'
+                    . ' empty string when missing.'
+                ) ?>
+            </p>
+        </div>
+    </div>
+    <table class="data-table admin__control-table" id="magebit-mcp-prompt-arguments-table">
+        <thead>
+            <tr>
+                <th><?= /* @noEscape */ __('Name') ?></th>
+                <th><?= /* @noEscape */ __('Description') ?></th>
+                <th style="width:80px; text-align:center;"><?= /* @noEscape */ __('Required') ?></th>
+                <th style="width:80px;"></th>
+            </tr>
+        </thead>
+        <tbody id="magebit-mcp-prompt-arguments-tbody">
+        <?php foreach ($arguments as $index => $argument): ?>
+            <tr class="magebit-mcp-prompt-arguments-row">
+                <td>
+                    <input type="text"
+                           class="admin__control-text"
+                           name="arguments[<?= /* @noEscape */ (int) $index ?>][name]"
+                           value="<?= $escaper->escapeHtmlAttr($argument['name']) ?>"
+                           placeholder="<?= $escaper->escapeHtmlAttr(__('e.g. customer_name')) ?>"
+                           maxlength="64"/>
+                </td>
+                <td>
+                    <input type="text"
+                           class="admin__control-text"
+                           name="arguments[<?= /* @noEscape */ (int) $index ?>][description]"
+                           value="<?= $escaper->escapeHtmlAttr($argument['description']) ?>"
+                           placeholder="<?= $escaper->escapeHtmlAttr(__('What this input is for')) ?>"/>
+                </td>
+                <td style="text-align:center;">
+                    <input type="hidden"
+                           name="arguments[<?= /* @noEscape */ (int) $index ?>][required]"
+                           value="0"/>
+                    <input type="checkbox"
+                           class="admin__control-checkbox"
+                           name="arguments[<?= /* @noEscape */ (int) $index ?>][required]"
+                           value="1"
+                           <?= $argument['required'] ? 'checked="checked"' : '' ?>/>
+                </td>
+                <td>
+                    <button type="button"
+                            class="action-default scalable magebit-mcp-prompt-arguments-remove">
+                        <?= /* @noEscape */ __('Remove') ?>
+                    </button>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    <div class="admin__field" style="margin-top: 10px;">
+        <button type="button"
+                class="action-secondary"
+                id="magebit-mcp-prompt-arguments-add">
+            <span><?= /* @noEscape */ __('Add argument') ?></span>
+        </button>
+    </div>
+</fieldset>
+
+<template id="magebit-mcp-prompt-arguments-row-template">
+    <tr class="magebit-mcp-prompt-arguments-row">
+        <td>
+            <input type="text"
+                   class="admin__control-text"
+                   name="arguments[__INDEX__][name]"
+                   placeholder="<?= $escaper->escapeHtmlAttr(__('e.g. customer_name')) ?>"
+                   maxlength="64"/>
+        </td>
+        <td>
+            <input type="text"
+                   class="admin__control-text"
+                   name="arguments[__INDEX__][description]"
+                   placeholder="<?= $escaper->escapeHtmlAttr(__('What this input is for')) ?>"/>
+        </td>
+        <td style="text-align:center;">
+            <input type="hidden" name="arguments[__INDEX__][required]" value="0"/>
+            <input type="checkbox"
+                   class="admin__control-checkbox"
+                   name="arguments[__INDEX__][required]"
+                   value="1"/>
+        </td>
+        <td>
+            <button type="button"
+                    class="action-default scalable magebit-mcp-prompt-arguments-remove">
+                <?= /* @noEscape */ __('Remove') ?>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<script>
+require(['jquery'], function ($) {
+    var $tbody = $('#magebit-mcp-prompt-arguments-tbody');
+    var template = document.getElementById('magebit-mcp-prompt-arguments-row-template');
+    var nextIndex = $tbody.find('tr.magebit-mcp-prompt-arguments-row').length;
+
+    $('#magebit-mcp-prompt-arguments-add').on('click', function () {
+        if (!template) {
+            return;
+        }
+        var html = template.innerHTML.replace(/__INDEX__/g, String(nextIndex));
+        nextIndex += 1;
+        $tbody.append(html);
+    });
+
+    $tbody.on('click', '.magebit-mcp-prompt-arguments-remove', function () {
+        $(this).closest('tr.magebit-mcp-prompt-arguments-row').remove();
+    });
+});
+</script>

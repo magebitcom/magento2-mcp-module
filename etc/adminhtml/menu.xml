@@ -22,6 +22,13 @@
              parent="Magebit_Mcp::mcp"
              action="magebit_mcp/oauthclient/index"
              resource="Magebit_Mcp::mcp_oauth_clients"/>
+        <add id="Magebit_Mcp::mcp_prompts"
+             title="Prompts"
+             module="Magebit_Mcp"
+             sortOrder="17"
+             parent="Magebit_Mcp::mcp"
+             action="magebit_mcp/prompt/index"
+             resource="Magebit_Mcp::mcp_prompts"/>
         <add id="Magebit_Mcp::mcp_audit"
              title="Audit Log"
              module="Magebit_Mcp"

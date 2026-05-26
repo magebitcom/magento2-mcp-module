@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <update handle="styles"/>
+    <body>
+        <referenceContainer name="content">
+            <block class="Magento\Backend\Block\Template"
+                   name="magebit_mcp_prompt_intro"
+                   template="Magebit_Mcp::prompt/index/intro.phtml"
+                   before="-"/>
+            <uiComponent name="magebit_mcp_prompt_listing"/>
+        </referenceContainer>
+    </body>
+</page>

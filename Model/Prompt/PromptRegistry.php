@@ -8,29 +8,33 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Prompt;
 
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\PromptInterface;
 use Magebit\Mcp\Api\PromptRegistryInterface;
 use Magebit\Mcp\Model\Util\RegisteredEntries;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Throwable;
 
-/**
- * DI-array registry of MCP prompts. Validation is delegated to
- * {@see RegisteredEntries} so the same compile-time drift check fires for both
- * Prompts and Tools.
- */
 class PromptRegistry implements PromptRegistryInterface
 {
     /** @var array<string, PromptInterface> */
-    private array $prompts;
+    private array $staticPrompts;
+
+    /** @var array<string, PromptInterface>|null */
+    private ?array $merged = null;
 
     /**
+     * @param AdminPromptProvider $adminPromptProvider
+     * @param LoggerInterface $logger
      * @param array<string, PromptInterface> $prompts
-     * @return void
      */
-    public function __construct(array $prompts = [])
-    {
+    public function __construct(
+        private readonly AdminPromptProvider $adminPromptProvider,
+        private readonly LoggerInterface $logger,
+        array $prompts = []
+    ) {
         RegisteredEntries::assertValid($prompts, [PromptInterface::class], 'MCP prompt');
-        $this->prompts = $prompts;
+        $this->staticPrompts = $prompts;
     }
 
     /**
@@ -38,7 +42,7 @@ class PromptRegistry implements PromptRegistryInterface
      */
     public function all(): array
     {
-        return $this->prompts;
+        return $this->getMerged();
     }
 
     /**
@@ -46,7 +50,7 @@ class PromptRegistry implements PromptRegistryInterface
      */
     public function has(string $name): bool
     {
-        return isset($this->prompts[$name]);
+        return isset($this->getMerged()[$name]);
     }
 
     /**
@@ -54,9 +58,54 @@ class PromptRegistry implements PromptRegistryInterface
      */
     public function get(string $name): PromptInterface
     {
-        if (!isset($this->prompts[$name])) {
+        $merged = $this->getMerged();
+        if (!isset($merged[$name])) {
             throw NoSuchEntityException::singleField('name', $name);
         }
-        return $this->prompts[$name];
+        return $merged[$name];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function getStaticNames(): array
+    {
+        return array_keys($this->staticPrompts);
+    }
+
+    /**
+     * @return array<string, PromptInterface>
+     */
+    private function getMerged(): array
+    {
+        if ($this->merged !== null) {
+            return $this->merged;
+        }
+
+        $merged = $this->staticPrompts;
+        try {
+            $adminPrompts = $this->adminPromptProvider->getAll();
+        } catch (Throwable $e) {
+            // Persistence failure must not break the registry — `prompts/list`
+            // should still serve DI prompts. Log and continue.
+            $this->logger->warning('Admin prompt provider unavailable; serving DI prompts only.', [
+                'exception' => $e,
+            ]);
+            $this->merged = $merged;
+            return $this->merged;
+        }
+
+        foreach ($adminPrompts as $name => $prompt) {
+            if (isset($merged[$name])) {
+                $this->logger->warning('Admin prompt shadows a DI-registered prompt; keeping DI definition.', [
+                    'name' => $name,
+                ]);
+                continue;
+            }
+            $merged[$name] = $prompt;
+        }
+
+        $this->merged = $merged;
+        return $this->merged;
     }
 }

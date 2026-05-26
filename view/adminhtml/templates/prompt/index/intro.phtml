@@ -1,0 +1,30 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ *
+ * @var \Magento\Backend\Block\Template $block
+ */
+declare(strict_types=1);
+?>
+<div class="magebit-mcp-prompt-intro"
+     style="margin: 0 0 20px 0; padding: 16px 20px; background: #f5faff; border: 1px solid #cfe1f3; border-radius: 3px;">
+    <p style="margin: 0 0 8px 0; line-height: 1.5;">
+        <?= /* @noEscape */ __(
+            'Prompts are pre-written instructions you can add to the MCP assistant\'s'
+            . ' <strong>/-menu</strong>, similar to skills. Pick one, fill in any arguments it asks for, and the'
+            . ' assistant runs the workflow you described — for example "Update product price'
+            . '" or "Refresh the storefront after I make changes".'
+        ) ?>
+    </p>
+    <p style="margin: 0; line-height: 1.5; color: #666;">
+        <strong><?= /* @noEscape */ __('Heads up:') ?></strong>
+        <?= /* @noEscape */ __(
+            'Not every AI client supports prompts yet. Some'
+            . ' third-party MCP clients ignore the prompt menu and only surface tools. Prompts you'
+            . ' add here will quietly do nothing in those clients — they will not break the'
+            . ' connection.'
+        ) ?>
+    </p>
+</div>

@@ -276,6 +276,42 @@
         </index>
     </table>
 
+    <table name="magebit_mcp_prompt" resource="default" engine="innodb"
+           comment="Admin-managed MCP prompts (bridged into the registry at runtime)">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
+                comment="Prompt ID"/>
+        <column xsi:type="varchar" name="name" nullable="false" length="96"
+                comment="Canonical MCP prompt name (always begins with 'custom.')"/>
+        <column xsi:type="varchar" name="title" nullable="false" length="255"
+                comment="Store-owner-friendly label shown in MCP client menus"/>
+        <column xsi:type="varchar" name="description" nullable="true" length="512"
+                comment="One-line helper text rendered under the title"/>
+        <column xsi:type="text" name="body" nullable="false"
+                comment="Prompt body, sent verbatim as a single user-role message after {{name}} substitution"/>
+        <column xsi:type="text" name="arguments_json" nullable="true"
+                comment="JSON list of {name, description, required} arguments declared on the prompt"/>
+        <column xsi:type="smallint" name="requires_write" unsigned="true" nullable="false" default="0"
+                comment="When 1, the prompt is filtered out of prompts/list for read-only tokens"/>
+        <column xsi:type="smallint" name="is_active" unsigned="true" nullable="false" default="1"
+                comment="When 0, the prompt is hidden from MCP clients without losing the definition"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
+        <column xsi:type="timestamp" name="updated_at" on_update="true" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Last-update timestamp"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_PROMPT_NAME">
+            <column name="name"/>
+        </constraint>
+
+        <index referenceId="MAGEBIT_MCP_PROMPT_IS_ACTIVE" indexType="btree">
+            <column name="is_active"/>
+        </index>
+    </table>
+
     <table name="magebit_mcp_oauth_authorize_handoff" resource="default" engine="innodb"
            comment="Short-lived handoff between the public OAuth authorize endpoint (frontend) and the admin-area consent screen — keeps the admin URL out of the public AS-metadata document">
         <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"
