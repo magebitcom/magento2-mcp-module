@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Controller\Adminhtml\OAuthClient;
 
 use InvalidArgumentException;
+use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
 use Magebit\Mcp\Model\OAuth\AuthMode;
@@ -17,6 +18,7 @@ use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ClientCredentialIssuer;
 use Magebit\Mcp\Model\OAuth\ClientRepository;
 use Magebit\Mcp\Model\Adminhtml\FormDataPersistence;
+use Magebit\Mcp\Model\TokenRepository;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Backend\Model\View\Result\Page;
@@ -45,6 +47,8 @@ class Save extends Action implements HttpPostActionInterface
      * @param ToolRegistryInterface $toolRegistry
      * @param FormDataPersistence $formDataPersistence
      * @param UserCollectionFactory $userCollectionFactory
+     * @param TokenRepository $tokenRepository
+     * @param LoggerInterface $logger
      */
     public function __construct(
         Context $context,
@@ -52,7 +56,9 @@ class Save extends Action implements HttpPostActionInterface
         private readonly ClientRepository $clientRepository,
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly FormDataPersistence $formDataPersistence,
-        private readonly UserCollectionFactory $userCollectionFactory
+        private readonly UserCollectionFactory $userCollectionFactory,
+        private readonly TokenRepository $tokenRepository,
+        private readonly LoggerInterface $logger
     ) {
         parent::__construct($context);
     }
@@ -144,6 +150,8 @@ class Save extends Action implements HttpPostActionInterface
             return $redirect->setPath('*/*/index');
         }
 
+        $wasDisabled = $client->isDisabled();
+
         try {
             $client->setName($name);
             $client->setRedirectUris($redirectUris);
@@ -156,6 +164,34 @@ class Save extends Action implements HttpPostActionInterface
                 (string) __('Failed to update OAuth client: %1', $e->getMessage())
             );
             return $redirect->setPath('*/*/edit', ['id' => $editingId]);
+        }
+
+        // Symmetric with RotateSecret: flipping a client to disabled must also
+        // revoke its live bearer tokens. Without this, the admin-UI "Disabled"
+        // toggle only blocks new auth-code/refresh flows — every access token
+        // issued before the click keeps authenticating at /mcp until natural
+        // expiry. Failure here is surfaced as a warning so the save itself
+        // still reports success and the admin can retry revocation.
+        if ($auth->disabled && !$wasDisabled) {
+            try {
+                $revoked = $this->tokenRepository->revokeAllForClient($editingId);
+                $this->logger->info('OAuth client disabled — live tokens revoked.', [
+                    'client_id' => $client->getClientId(),
+                    'tokens_revoked' => $revoked,
+                ]);
+            } catch (Throwable $e) {
+                $this->logger->warning('OAuth client disable: token revocation failed.', [
+                    'client_id' => $client->getClientId(),
+                    'exception' => $e,
+                ]);
+                $this->messageManager->addWarningMessage(
+                    (string) __(
+                        'Client disabled, but revoking live tokens failed: %1. Retry via the listing'
+                        . ' or revoke individual tokens manually.',
+                        $e->getMessage()
+                    )
+                );
+            }
         }
 
         $this->messageManager->addSuccessMessage(

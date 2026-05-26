@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Model\Auth;
 
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\UnauthorizedException;
+use Magebit\Mcp\Model\OAuth\ClientRepository;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Throwable;
@@ -24,12 +25,14 @@ class TokenAuthenticator
      * @param TokenHasher $tokenHasher
      * @param TokenRepository $tokenRepository
      * @param AdminUserLookup $adminUserLookup
+     * @param ClientRepository $clientRepository
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly TokenHasher $tokenHasher,
         private readonly TokenRepository $tokenRepository,
         private readonly AdminUserLookup $adminUserLookup,
+        private readonly ClientRepository $clientRepository,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -74,6 +77,31 @@ class TokenAuthenticator
         if ((int) $admin->getIsActive() !== 1) {
             $this->logger->info('MCP auth rejected: admin user inactive.', ['token_id' => $token->getId()]);
             throw $this->reject();
+        }
+
+        // Safety net for OAuth-issued tokens. The admin-UI disable flow now
+        // also revokes live tokens, but this guards against any path that
+        // flips `disabled` without going through Save (CLI command, data
+        // patch, third-party plugin) — and closes the race between the row
+        // save and the revoke fan-out.
+        $oauthClientId = $token->getOAuthClientId();
+        if ($oauthClientId !== null) {
+            try {
+                $client = $this->clientRepository->getById($oauthClientId);
+            } catch (NoSuchEntityException) {
+                $this->logger->info(
+                    'MCP auth rejected: issuing OAuth client deleted.',
+                    ['token_id' => $token->getId()]
+                );
+                throw $this->reject();
+            }
+            if ($client->isDisabled()) {
+                $this->logger->info(
+                    'MCP auth rejected: issuing OAuth client disabled.',
+                    ['token_id' => $token->getId()]
+                );
+                throw $this->reject();
+            }
         }
 
         $tokenId = $token->getId();

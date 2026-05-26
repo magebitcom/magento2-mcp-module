@@ -179,6 +179,48 @@ class TokenReauthPolicyTest extends TokenEndpointTestCase
     }
 
     /**
+     * Bearer tokens issued *before* the client was disabled must stop
+     * authenticating at /mcp — disabling a client without revoking its
+     * outstanding access tokens leaves stolen credentials usable for up to
+     * `access_token_lifetime` seconds (default 1h).
+     *
+     * @magentoApiDataFixture Magento/User/_files/user_with_role.php
+     */
+    public function testDisabledClientRevokesLiveBearerTokens(): void
+    {
+        $admin = $this->loadAdminUserId('adminUser');
+        $client = ClientFixture::issue('disable-revokes-bearer', ['https://example.com/cb']);
+        $clientId = (int) $client['client']->getId();
+
+        try {
+            $accessToken = $this->mintAccessToken($clientId, $admin, $client);
+
+            // Sanity-check the token is live before the disable.
+            $before = $this->callToolsListWith($accessToken);
+            self::assertSame(200, $before['status'], 'Token must work before disable.');
+
+            // Flip disabled via the repository — same call path the admin
+            // Save controller now uses. Real Save also fans out
+            // revokeAllForClient; this fixture relies on TokenAuthenticator's
+            // defense-in-depth check, which catches the row write directly.
+            $row = $client['client'];
+            $row->setDisabled(true);
+            /** @var \Magebit\Mcp\Model\OAuth\ClientRepository $clientRepo */
+            $clientRepo = $this->objectManager()->get(\Magebit\Mcp\Model\OAuth\ClientRepository::class);
+            $clientRepo->save($row);
+
+            $after = $this->callToolsListWith($accessToken);
+            self::assertSame(
+                401,
+                $after['status'],
+                'Bearer token bound to a disabled OAuth client must be rejected at /mcp.'
+            );
+        } finally {
+            ClientFixture::delete($clientId);
+        }
+    }
+
+    /**
      * @phpstan-param array{client_id: string, client_secret: string, client: object} $client
      */
     private function mintAccessToken(int $clientId, int $adminUserId, array $client): string
