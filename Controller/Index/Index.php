@@ -86,7 +86,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             try {
                 $context = $this->authenticator->authenticate($this->header('Authorization'));
             } catch (UnauthorizedException $e) {
-                $metadataUrl = $this->urlBuilder->buildUrl('/.well-known/oauth-protected-resource');
+                $metadataUrl = $this->urlBuilder->getProtectedResourceWellKnownUrl();
                 $this->response->setHeader(
                     'WWW-Authenticate',
                     sprintf('Bearer realm="Magento MCP", resource_metadata="%s"', $metadataUrl),

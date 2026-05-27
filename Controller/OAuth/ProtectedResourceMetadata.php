@@ -54,12 +54,11 @@ class ProtectedResourceMetadata implements
             return $this->corsResponder->emitPreflight($this->response, self::ALLOWED_METHODS);
         }
 
-        $baseUrl = $this->urlBuilder->getBaseUrl();
-        $resourceUrl = $baseUrl . '/mcp';
+        $resourceUrl = $this->urlBuilder->getResourceUrl();
 
         $payload = [
             'resource' => $resourceUrl,
-            'authorization_servers' => [$baseUrl],
+            'authorization_servers' => [$this->urlBuilder->getBaseUrl()],
             'bearer_methods_supported' => ['header'],
             'scopes_supported' => Scope::allValues(),
             'resource_documentation' => $resourceUrl,

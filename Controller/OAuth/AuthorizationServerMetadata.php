@@ -58,8 +58,8 @@ class AuthorizationServerMetadata implements
 
         $payload = [
             'issuer' => $issuer,
-            'authorization_endpoint' => $issuer . '/mcp/oauth/authorize',
-            'token_endpoint' => $issuer . '/mcp/oauth/token',
+            'authorization_endpoint' => $this->urlBuilder->buildUrl('/mcp/oauth/authorize'),
+            'token_endpoint' => $this->urlBuilder->buildUrl('/mcp/oauth/token'),
             'response_types_supported' => ['code'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
             'code_challenge_methods_supported' => ['S256'],
@@ -69,7 +69,7 @@ class AuthorizationServerMetadata implements
             // S256 is the only advertised challenge method.
             'pkce_required' => true,
             'require_pushed_authorization_requests' => false,
-            'service_documentation' => $issuer . '/mcp',
+            'service_documentation' => $this->urlBuilder->getResourceUrl(),
         ];
 
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES);

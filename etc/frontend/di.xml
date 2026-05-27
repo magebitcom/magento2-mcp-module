@@ -23,4 +23,13 @@
             </argument>
         </arguments>
     </type>
+    <!--
+        Keep the OAuth discovery paths reachable at the authority root on stores
+        whose base URL carries a path (store code): exempt them from the
+        redirect-to-base check that RequestPreprocessor runs before routing.
+    -->
+    <type name="Magento\Store\Model\BaseUrlChecker">
+        <plugin name="magebit_mcp_well_known_redirect_exemption"
+                type="Magebit\Mcp\Plugin\Store\WellKnownRedirectExemption"/>
+    </type>
 </config>

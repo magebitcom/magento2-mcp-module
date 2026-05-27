@@ -32,8 +32,10 @@ class AuthTest extends McpTestCase
             'resource_metadata="',
             $response['headers']['www-authenticate']
         );
+        // RFC 9728 §3.1: .well-known is inserted directly after the authority,
+        // with the resource path appended after it — never behind a store-code path.
         self::assertStringContainsString(
-            '/mcp/oauth/protected-resource-metadata',
+            '/.well-known/oauth-protected-resource/mcp',
             $response['headers']['www-authenticate']
         );
     }

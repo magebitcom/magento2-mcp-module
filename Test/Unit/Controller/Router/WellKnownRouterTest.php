@@ -52,6 +52,21 @@ class WellKnownRouterTest extends TestCase
         self::assertSame($action, $this->router->match($this->request('/.well-known/oauth-authorization-server')));
     }
 
+    public function testMatchesAuthorizationServerMetadataWithIssuerSuffix(): void
+    {
+        // RFC 8414 §3 — the issuer path is appended to the .well-known prefix.
+        $action = $this->createMock(ActionInterface::class);
+        $this->routeConfig->method('getModulesByFrontName')->with('mcp')->willReturn(['Magebit_Mcp']);
+        $this->actionList->method('get')
+            ->with('Magebit_Mcp', '', 'oauth', 'authorizationservermetadata')
+            ->willReturn(AuthorizationServerMetadata::class);
+        $this->actionFactory->method('create')
+            ->with(AuthorizationServerMetadata::class)
+            ->willReturn($action);
+
+        self::assertSame($action, $this->router->match($this->request('/.well-known/oauth-authorization-server/lv')));
+    }
+
     public function testMatchesProtectedResourceMetadata(): void
     {
         $action = $this->createMock(ActionInterface::class);

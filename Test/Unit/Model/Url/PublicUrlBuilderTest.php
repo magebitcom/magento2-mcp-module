@@ -39,10 +39,7 @@ class PublicUrlBuilderTest extends TestCase
 
     public function testBuildUrlConcatenatesPathOntoBaseUrl(): void
     {
-        $store = $this->createMock(Store::class);
-        $store->method('getBaseUrl')->with(UrlInterface::URL_TYPE_WEB)
-            ->willReturn('https://example.com/');
-        $this->storeManager->method('getStore')->willReturn($store);
+        $this->withBaseUrl('https://example.com/');
 
         self::assertSame(
             'https://example.com/.well-known/oauth-protected-resource',
@@ -52,5 +49,101 @@ class PublicUrlBuilderTest extends TestCase
             'https://example.com/foo',
             $this->builder->buildUrl('foo')
         );
+    }
+
+    public function testGetAuthorityStripsPathComponent(): void
+    {
+        $this->withBaseUrl('https://example.com/lv/');
+        self::assertSame('https://example.com', $this->builder->getAuthority());
+    }
+
+    public function testGetAuthorityPreservesPort(): void
+    {
+        $this->withBaseUrl('https://example.com:8443/lv/');
+        self::assertSame('https://example.com:8443', $this->builder->getAuthority());
+    }
+
+    public function testGetAuthorityFallsBackOnMalformedBaseUrl(): void
+    {
+        // parse_url can't yield scheme+host — never emit an empty authority.
+        $this->withBaseUrl('not a url');
+        self::assertSame('not a url', $this->builder->getAuthority());
+    }
+
+    /**
+     * @dataProvider basePathProvider
+     * @param string $baseUrl
+     * @param string $expected
+     * @return void
+     */
+    public function testGetBasePath(string $baseUrl, string $expected): void
+    {
+        $this->withBaseUrl($baseUrl);
+        self::assertSame($expected, $this->builder->getBasePath());
+    }
+
+    /**
+     * @return array<string, array{string, string}>
+     */
+    public static function basePathProvider(): array
+    {
+        return [
+            'root' => ['https://example.com/', ''],
+            'store code' => ['https://example.com/lv/', 'lv'],
+            'subfolder' => ['https://example.com/shop/', 'shop'],
+        ];
+    }
+
+    public function testGetResourceUrlKeepsBasePath(): void
+    {
+        $this->withBaseUrl('https://example.com/lv/');
+        self::assertSame('https://example.com/lv/mcp', $this->builder->getResourceUrl());
+    }
+
+    public function testProtectedResourceWellKnownUrlInsertsAfterAuthority(): void
+    {
+        $this->withBaseUrl('https://example.com/lv/');
+        self::assertSame(
+            'https://example.com/.well-known/oauth-protected-resource/lv/mcp',
+            $this->builder->getProtectedResourceWellKnownUrl()
+        );
+    }
+
+    public function testProtectedResourceWellKnownUrlOnCleanBaseUrl(): void
+    {
+        $this->withBaseUrl('https://example.com/');
+        self::assertSame(
+            'https://example.com/.well-known/oauth-protected-resource/mcp',
+            $this->builder->getProtectedResourceWellKnownUrl()
+        );
+    }
+
+    public function testAuthServerWellKnownUrlAppendsBasePath(): void
+    {
+        $this->withBaseUrl('https://example.com/lv/');
+        self::assertSame(
+            'https://example.com/.well-known/oauth-authorization-server/lv',
+            $this->builder->getAuthServerWellKnownUrl()
+        );
+    }
+
+    public function testAuthServerWellKnownUrlOnCleanBaseUrl(): void
+    {
+        $this->withBaseUrl('https://example.com/');
+        self::assertSame(
+            'https://example.com/.well-known/oauth-authorization-server',
+            $this->builder->getAuthServerWellKnownUrl()
+        );
+    }
+
+    /**
+     * @param string $baseUrl
+     * @return void
+     */
+    private function withBaseUrl(string $baseUrl): void
+    {
+        $store = $this->createMock(Store::class);
+        $store->method('getBaseUrl')->with(UrlInterface::URL_TYPE_WEB)->willReturn($baseUrl);
+        $this->storeManager->method('getStore')->willReturn($store);
     }
 }

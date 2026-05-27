@@ -27,6 +27,7 @@ use Magento\Framework\App\RouterInterface;
 class WellKnownRouter implements RouterInterface
 {
     private const PATH_AUTHORIZATION_SERVER = '.well-known/oauth-authorization-server';
+    private const PATH_AUTHORIZATION_SERVER_PREFIX = '.well-known/oauth-authorization-server/';
     private const PATH_PROTECTED_RESOURCE = '.well-known/oauth-protected-resource';
     private const PATH_PROTECTED_RESOURCE_PREFIX = '.well-known/oauth-protected-resource/';
 
@@ -85,7 +86,9 @@ class WellKnownRouter implements RouterInterface
      */
     private function resolveAction(string $identifier): ?string
     {
-        if ($identifier === self::PATH_AUTHORIZATION_SERVER) {
+        if ($identifier === self::PATH_AUTHORIZATION_SERVER
+            || str_starts_with($identifier, self::PATH_AUTHORIZATION_SERVER_PREFIX)
+        ) {
             return self::ACTION_AUTHORIZATION_SERVER;
         }
         if ($identifier === self::PATH_PROTECTED_RESOURCE
