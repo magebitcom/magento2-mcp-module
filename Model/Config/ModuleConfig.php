@@ -34,6 +34,7 @@ class ModuleConfig
     public const XML_PATH_OAUTH_ACCESS_TOKEN_LIFETIME = 'magebit_mcp/oauth/access_token_lifetime';
     public const XML_PATH_OAUTH_REFRESH_TOKEN_LIFETIME_DAYS = 'magebit_mcp/oauth/refresh_token_lifetime_days';
     public const XML_PATH_OAUTH_REAUTH_BEHAVIOR = 'magebit_mcp/oauth/reauth_behavior';
+    public const XML_PATH_MODULE_UPDATES_ENABLED = 'magebit_mcp/module_updates/enabled';
 
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
     public const DEFAULT_RATE_LIMITING_RPM = 60;
@@ -249,5 +250,14 @@ class ModuleConfig
     public function getOAuthReauthBehavior(): string
     {
         return ReauthBehavior::normalize($this->scopeConfig->getValue(self::XML_PATH_OAUTH_REAUTH_BEHAVIOR));
+    }
+
+    /**
+     * Whether the daily Packagist update check + admin banner is active.
+     * @return bool
+     */
+    public function isModuleUpdateCheckEnabled(): bool
+    {
+        return $this->scopeConfig->isSetFlag(self::XML_PATH_MODULE_UPDATES_ENABLED);
     }
 }

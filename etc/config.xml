@@ -47,6 +47,9 @@ https://www.perplexity.ai</allowed_origins>
                 <refresh_token_lifetime_days>30</refresh_token_lifetime_days>
                 <reauth_behavior>allow_multiple</reauth_behavior>
             </oauth>
+            <module_updates>
+                <enabled>1</enabled>
+            </module_updates>
         </magebit_mcp>
     </default>
 </config>
