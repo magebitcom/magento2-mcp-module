@@ -196,6 +196,21 @@
                     </ul>]]></comment>
                 </field>
             </group>
+            <group id="module_updates" translate="label" type="text" sortOrder="60"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Module Update Notifications</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Check for MCP Module Updates</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[When enabled, a daily cron job
+                    (<code>magebit_mcp_check_module_updates</code>) asks
+                    <code>repo.packagist.org</code> whether newer stable releases of your installed
+                    Magebit MCP modules exist and shows an admin banner when one is available. Only
+                    public package names are looked up — no store data is sent. Flush cached results
+                    with <code>bin/magento cache:clean MAGEBIT_MCP_MODULE_UPDATES</code>.]]></comment>
+                </field>
+            </group>
         </section>
     </system>
 </config>

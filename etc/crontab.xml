@@ -8,5 +8,8 @@
         <job name="magebit_mcp_purge_oauth" instance="Magebit\Mcp\Cron\PurgeOAuthCodes" method="execute">
             <schedule>0 4 * * *</schedule>
         </job>
+        <job name="magebit_mcp_check_module_updates" instance="Magebit\Mcp\Cron\CheckModuleUpdates" method="execute">
+            <schedule>0 5 * * *</schedule>
+        </job>
     </group>
 </config>
