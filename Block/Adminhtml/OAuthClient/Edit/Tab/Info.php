@@ -100,11 +100,8 @@ class Info extends Generic implements TabInterface
         $form = $this->_formFactory->create();
         $form->setHtmlIdPrefix('magebit_mcp_oauth_client_');
 
-        if ($client !== null) {
-            $form->addField('id', 'hidden', ['name' => 'id'])
-                ->setValue((string) (int) $client->getId());
-        }
-
+        // The edit form's id rides on the action URL (see Edit::getFormActionUrl); a
+        // hidden field gets nulled out by AbstractForm::setValues().
         $fieldset = $form->addFieldset('base_fieldset', ['legend' => __('OAuth Client')]);
 
         if ($client === null) {

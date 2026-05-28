@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Controller\Adminhtml\OAuthClient;
 
 use InvalidArgumentException;
+use Magebit\Mcp\Api\Data\OAuth\ClientInterface;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
@@ -91,7 +92,7 @@ class Save extends Action implements HttpPostActionInterface
         $allowedTools = $this->extractAllowedTools($raw);
         $auth = $this->extractAuthorizationOptions($raw);
 
-        $idRaw = $raw['id'] ?? 0;
+        $idRaw = $request->getParam('id', 0);
         $editingId = is_scalar($idRaw) ? (int) $idRaw : 0;
 
         $authError = $this->validateAuthorizationOptions($auth);
@@ -307,6 +308,10 @@ class Save extends Action implements HttpPostActionInterface
      */
     private function extractAllowedTools(array $raw): array
     {
+        if (isset($raw['allow_all_tools']) && is_scalar($raw['allow_all_tools']) && (int) $raw['allow_all_tools'] === 1) {
+            return [ClientInterface::ALLOW_ALL_TOOLS_SENTINEL];
+        }
+
         $resourceIds = $raw['resource'] ?? [];
         if (!is_array($resourceIds) || $resourceIds === []) {
             return [];
@@ -346,10 +351,14 @@ class Save extends Action implements HttpPostActionInterface
      */
     private function preserveFormData(array $raw, array $allowedTools): void
     {
+        $allowAllToolsRaw = $raw['allow_all_tools'] ?? '0';
+        $allowAllTools = is_scalar($allowAllToolsRaw) && (int) $allowAllToolsRaw === 1 ? '1' : '0';
+
         $this->formDataPersistence->set([
             'name' => $raw['name'] ?? '',
             'redirect_uris' => $raw['redirect_uris'] ?? '',
             'allowed_tools' => $allowedTools,
+            'allow_all_tools' => $allowAllTools,
             'auth_mode' => $raw['auth_mode'] ?? AuthMode::PERSONAL->value,
             'service_admin_user_id' => $raw['service_admin_user_id'] ?? '',
             'allowed_admin_user_ids' => is_array($raw['allowed_admin_user_ids'] ?? null)

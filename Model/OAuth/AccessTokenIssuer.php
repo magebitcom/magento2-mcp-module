@@ -81,8 +81,11 @@ class AccessTokenIssuer
             ? null
             : array_values($toolNames);
 
+        // NULL toolNames is the OAuth-wildcard token (every tool the admin's role grants).
+        // Echo the maximal protocol scope so refreshes don't strip write access from a
+        // wildcard-issued client.
         $grantedScope = $normalizedTools === null
-            ? null
+            ? self::wildcardProtocolScope($allowWrites)
             : ($this->toolGrantResolver->summarizeScope($normalizedTools) ?: null);
 
         $token = $this->tokenFactory->create();
@@ -126,6 +129,17 @@ class AccessTokenIssuer
             refreshTokenId: $refreshTokenId,
             grantedScope: $grantedScope
         );
+    }
+
+    /**
+     * @param bool $allowWrites
+     * @return string Protocol scope summary for wildcard tokens.
+     */
+    private static function wildcardProtocolScope(bool $allowWrites): string
+    {
+        return $allowWrites
+            ? Scope::READ->value . ' ' . Scope::WRITE->value
+            : Scope::READ->value;
     }
 
     /**

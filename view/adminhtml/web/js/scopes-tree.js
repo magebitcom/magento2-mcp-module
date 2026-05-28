@@ -38,6 +38,8 @@ define([
             noAdminPlaceholderSelector: '',
             treeWrapperSelector: '',
             allowAllSelector: '',
+            allowAllFutureSelector: '',
+            allowAllFutureSectionSelector: '',
             resourceFieldName: 'resource[]',
             initialTree: [],
             initialSelection: []
@@ -46,10 +48,12 @@ define([
         _create: function () {
             this._bindToggleAllResources();
             this._bindAllowAllButton();
+            this._bindAllowAllFutureToggle();
             this._bindAdminUserChange();
             this._bindFormSubmitGuard();
             this._renderTree(this.options.initialTree || [], this.options.initialSelection || []);
             this._refreshAdminPlaceholder();
+            this._refreshAllowAllFutureSectionVisibility();
             this._syncSelections();
         },
 
@@ -200,6 +204,32 @@ define([
             });
         },
 
+        _bindAllowAllFutureToggle: function () {
+            var widget = this;
+            if (!this.options.allowAllFutureSelector) {
+                return;
+            }
+            $(document).on('change.mcpScopesTree', this.options.allowAllFutureSelector, function () {
+                widget._refreshAllowAllFutureSectionVisibility();
+                widget._syncSelections();
+            });
+        },
+
+        _isAllowAllFutureChecked: function () {
+            if (!this.options.allowAllFutureSelector) {
+                return false;
+            }
+            return $(this.options.allowAllFutureSelector).is(':checked');
+        },
+
+        _refreshAllowAllFutureSectionVisibility: function () {
+            if (!this.options.allowAllFutureSectionSelector) {
+                return;
+            }
+            $(this.options.allowAllFutureSectionSelector)
+                .toggleClass('no-display', this._isAllowAllFutureChecked());
+        },
+
         _bindFormSubmitGuard: function () {
             var widget = this;
             $(document).on('submit.mcpScopesTree', this.options.editFormSelector, function () {
@@ -249,6 +279,11 @@ define([
                 return;
             }
             form.find('input[name="' + this.options.resourceFieldName + '"]').remove();
+
+            // Wildcard mode wins — server collapses to ['*'] and ignores resource[].
+            if (this._isAllowAllFutureChecked()) {
+                return;
+            }
 
             var allResourcesField = this.options.allResourcesSelector
                 ? $(this.options.allResourcesSelector)

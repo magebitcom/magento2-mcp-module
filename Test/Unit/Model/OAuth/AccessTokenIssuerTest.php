@@ -100,7 +100,27 @@ class AccessTokenIssuerTest extends TestCase
         self::assertSame('mcp:read', $pair->grantedScope);
     }
 
-    public function testIssueLeavesGrantedScopeNullForCliTokens(): void
+    public function testIssueWithNullToolsAndReadOnlyEmitsReadScope(): void
+    {
+        $issuer = $this->buildIssuerWithNullTools();
+        $pair = $issuer->issue(7, 'Claude Web', 42, false, null);
+        self::assertSame('mcp:read', $pair->grantedScope);
+    }
+
+    public function testIssueWithNullToolsAndAllowWritesEmitsFullScope(): void
+    {
+        $issuer = $this->buildIssuerWithNullTools();
+        $pair = $issuer->issue(7, 'Claude Web', 42, true, null);
+        self::assertSame('mcp:read mcp:write', $pair->grantedScope);
+    }
+
+    /**
+     * Wildcard tokens skip the per-tool scope summary; the protocol echo is
+     * derived from the allow_writes flag alone.
+     *
+     * @return AccessTokenIssuer
+     */
+    private function buildIssuerWithNullTools(): AccessTokenIssuer
     {
         $token = $this->createMock(Token::class);
         $token->expects(self::once())->method('setScopes')->with(null);
@@ -134,7 +154,7 @@ class AccessTokenIssuerTest extends TestCase
         $resolver = $this->createMock(ToolGrantResolver::class);
         $resolver->expects(self::never())->method('summarizeScope');
 
-        $issuer = new AccessTokenIssuer(
+        return new AccessTokenIssuer(
             $tokenFactory,
             $tokenRepo,
             $refreshFactory,
@@ -144,9 +164,6 @@ class AccessTokenIssuerTest extends TestCase
             $config,
             $resolver
         );
-
-        $pair = $issuer->issue(7, 'Claude Web', 42, false, null);
-        self::assertNull($pair->grantedScope);
     }
 
     public function testIssueAllowsWritesWhenFlagged(): void

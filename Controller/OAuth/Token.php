@@ -218,14 +218,23 @@ class Token implements
         // admin's tick selection; trust it here. The OAuth-protocol scope echo on the
         // response is derived from the same tool list inside the issuer.
         $grantedTools = $authCode->getGrantedTools();
-        $allowWrites = $grantedTools !== null && $this->toolGrantResolver->hasWriteTool($grantedTools);
+        $isWildcardGrant = $grantedTools !== null && ToolGrantResolver::isWildcard($grantedTools);
+        // For wildcard grants the granted-tool list is gone — derive writes from the
+        // protocol scope the consent screen stored alongside it (a snapshot of what
+        // the admin could actually do at consent time).
+        $allowWrites = $isWildcardGrant
+            ? str_contains((string) $authCode->getScope(), 'mcp:write')
+            : ($grantedTools !== null && $this->toolGrantResolver->hasWriteTool($grantedTools));
+        // Wildcard grants collapse to NULL scopes on the token — runtime then treats
+        // every tool the admin's role permits as in-scope (future tools auto-apply).
+        $toolNamesForIssue = $isWildcardGrant ? null : $grantedTools;
 
         $pair = $this->accessTokenIssuer->issue(
             oauthClientId: $clientId,
             oauthClientName: $client->getName(),
             adminUserId: $authCode->getAdminUserId(),
             allowWrites: $allowWrites,
-            toolNames: $grantedTools
+            toolNames: $toolNamesForIssue
         );
 
         return $this->emitTokenResponse($pair, $pair->grantedScope);

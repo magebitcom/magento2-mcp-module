@@ -13,6 +13,7 @@ use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Controller\Adminhtml\OAuthClient\Edit as EditController;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
 use Magebit\Mcp\Model\Adminhtml\FormDataPersistence;
+use Magebit\Mcp\Model\OAuth\ToolGrantResolver;
 use Magento\Backend\Block\Template;
 use Magento\Backend\Block\Template\Context;
 use Magento\Backend\Block\Widget\Tab\TabInterface;
@@ -20,10 +21,9 @@ use Magento\Framework\Registry;
 use Magento\Framework\Serialize\Serializer\Json;
 
 /**
- * "Allowed Tools" tab — renders the same jstree picker as the Connections
- * (token) form, but admin-agnostic: every tool node is enabled. The stored
- * selection is the upper bound a client may request; the consent screen
- * narrows further at runtime against the consenting admin's role.
+ * "Allowed Tools" tab — admin-agnostic jstree picker (every node enabled).
+ * Stored selection is the upper bound; consent screen narrows it at runtime
+ * against the consenting admin's role.
  */
 class Scopes extends Template implements TabInterface
 {
@@ -123,8 +123,30 @@ class Scopes extends Template implements TabInterface
     }
 
     /**
-     * Bounced payload wins over the persisted client row — that's what makes
-     * a validation bounce restore the operator's last selection.
+     * Pre-tick state for the "Allow all current + future tools" checkbox —
+     * `true` when the loaded client (or a bounced form payload) currently
+     * stores the wildcard sentinel `['*']` in allowed_tools_json.
+     *
+     * @return bool
+     */
+    public function isAllowAllToolsChecked(): bool
+    {
+        $restored = $this->formDataPersistence->get();
+        if (is_array($restored) && isset($restored['allow_all_tools'])) {
+            $raw = $restored['allow_all_tools'];
+            return is_scalar($raw) && (int) $raw === 1;
+        }
+        $client = $this->registry->registry(EditController::REGISTRY_KEY);
+        if ($client instanceof ClientInterface) {
+            return ToolGrantResolver::isWildcard($client->getAllowedTools());
+        }
+        return false;
+    }
+
+    /**
+     * Bounced payload wins over the persisted row so validation bounces restore
+     * the operator's last selection. Wildcard returns `[]` — tree is irrelevant
+     * when "Allow all" is ticked.
      *
      * @return array<int, string>
      */
@@ -138,12 +160,13 @@ class Scopes extends Template implements TabInterface
                     $tools[] = $name;
                 }
             }
-            return $tools;
+            return ToolGrantResolver::isWildcard($tools) ? [] : $tools;
         }
 
         $client = $this->registry->registry(EditController::REGISTRY_KEY);
         if ($client instanceof ClientInterface) {
-            return $client->getAllowedTools();
+            $tools = $client->getAllowedTools();
+            return ToolGrantResolver::isWildcard($tools) ? [] : $tools;
         }
         return [];
     }

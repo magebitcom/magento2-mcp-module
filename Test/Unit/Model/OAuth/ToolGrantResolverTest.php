@@ -58,6 +58,87 @@ class ToolGrantResolverTest extends TestCase
         self::assertSame([], $resolver->intersect(['system.store.list'], [], $admin));
     }
 
+    public function testIsWildcardDetectsSentinel(): void
+    {
+        self::assertTrue(ToolGrantResolver::isWildcard(['*']));
+        self::assertFalse(ToolGrantResolver::isWildcard([]));
+        self::assertFalse(ToolGrantResolver::isWildcard(['system.store.list']));
+        self::assertFalse(ToolGrantResolver::isWildcard(['*', 'system.store.list']));
+    }
+
+    public function testWildcardClientCapExpandsToLiveRegistry(): void
+    {
+        $registry = $this->buildRegistry([
+            'system.store.list' => [WriteMode::READ, 'Mod::store_list'],
+            'catalog.product.get' => [WriteMode::READ, 'Mod::product_get'],
+            'sales.order.cancel' => [WriteMode::WRITE, 'Mod::order_cancel'],
+        ]);
+
+        $admin = $this->createMock(User::class);
+        $acl = $this->createMock(AclChecker::class);
+        $acl->method('isAllowed')->willReturn(true);
+
+        $resolver = new ToolGrantResolver($registry, $acl);
+
+        $granted = $resolver->intersect(
+            ['*'],
+            ['system.store.list', 'catalog.product.get', 'sales.order.cancel'],
+            $admin
+        );
+
+        self::assertSame(
+            ['system.store.list', 'catalog.product.get', 'sales.order.cancel'],
+            $granted
+        );
+    }
+
+    public function testWildcardClientCapGrantsOnlyTickedTools(): void
+    {
+        $registry = $this->buildRegistry([
+            'system.store.list' => [WriteMode::READ, 'Mod::store_list'],
+            'catalog.product.get' => [WriteMode::READ, 'Mod::product_get'],
+            'sales.order.cancel' => [WriteMode::WRITE, 'Mod::order_cancel'],
+        ]);
+
+        $admin = $this->createMock(User::class);
+        $acl = $this->createMock(AclChecker::class);
+        $acl->method('isAllowed')->willReturn(true);
+
+        $resolver = new ToolGrantResolver($registry, $acl);
+
+        // Admin only ticked one tool on the consent screen — wildcard cap doesn't
+        // bypass the admin's narrowing.
+        $granted = $resolver->intersect(['*'], ['catalog.product.get'], $admin);
+
+        self::assertSame(['catalog.product.get'], $granted);
+    }
+
+    public function testWildcardClientCapStillEnforcesAdminAcl(): void
+    {
+        $registry = $this->buildRegistry([
+            'system.store.list' => [WriteMode::READ, 'Mod::store_list'],
+            'sales.order.cancel' => [WriteMode::WRITE, 'Mod::order_cancel'],
+        ]);
+
+        $admin = $this->createMock(User::class);
+        $acl = $this->createMock(AclChecker::class);
+        $acl->method('isAllowed')->willReturnMap([
+            [$admin, 'Mod::store_list', true],
+            [$admin, 'Mod::order_cancel', false],
+        ]);
+
+        $resolver = new ToolGrantResolver($registry, $acl);
+
+        $granted = $resolver->intersect(
+            ['*'],
+            ['system.store.list', 'sales.order.cancel'],
+            $admin
+        );
+
+        // Wildcard doesn't bypass admin role — sales.order.cancel still gets dropped.
+        self::assertSame(['system.store.list'], $granted);
+    }
+
     public function testHasWriteToolDetectsWriteMode(): void
     {
         $registry = $this->buildRegistry([

@@ -12,6 +12,7 @@ use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
 use Magebit\Mcp\Model\OAuth\AuthMode;
 use Magebit\Mcp\Model\OAuth\Client;
+use Magebit\Mcp\Model\OAuth\ToolGrantResolver;
 use Magento\Backend\Model\Auth;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
@@ -188,9 +189,10 @@ class ConsentViewModel implements ArgumentInterface
         if ($allowedTools === []) {
             return [];
         }
+        $wildcard = ToolGrantResolver::isWildcard($allowedTools);
         $set = [];
         foreach ($this->toolRegistry->all() as $tool) {
-            if (in_array($tool->getName(), $allowedTools, true)) {
+            if ($wildcard || in_array($tool->getName(), $allowedTools, true)) {
                 $set[$tool->getAclResource()] = true;
             }
         }

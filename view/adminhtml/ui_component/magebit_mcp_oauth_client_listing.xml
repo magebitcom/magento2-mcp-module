@@ -98,6 +98,13 @@
                 <sortable>false</sortable>
             </settings>
         </column>
+        <column name="allowed_tools_summary" sortOrder="42" class="Magebit\Mcp\Ui\Component\OAuthClient\Listing\Column\AllowedToolsSummary">
+            <settings>
+                <label translate="true">Allowed Tools</label>
+                <sortable>false</sortable>
+                <filter>false</filter>
+            </settings>
+        </column>
         <column name="auth_mode" sortOrder="45" component="Magento_Ui/js/grid/columns/select">
             <settings>
                 <options class="Magebit\Mcp\Ui\Component\OAuthClient\Listing\Column\AuthModeOptions"/>

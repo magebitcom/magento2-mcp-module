@@ -27,6 +27,13 @@ interface ClientInterface
     public const CREATED_AT = 'created_at';
 
     /**
+     * Sentinel value stored as the sole entry of {@see ALLOWED_TOOLS_JSON} to
+     * mean "every tool currently registered, evaluated at consent time" —
+     * i.e. future tools auto-apply without re-editing the client.
+     */
+    public const ALLOW_ALL_TOOLS_SENTINEL = '*';
+
+    /**
      * @return int|null
      */
     public function getId(): ?int;

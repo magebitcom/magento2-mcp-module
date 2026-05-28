@@ -13,6 +13,8 @@ $widgetOptions = [
         'treeUrl' => $block->getResourceTreeUrl(),
         'editFormSelector' => '#edit_form',
         'allowAllSelector' => '[data-role="allow-all-tools"]',
+        'allowAllFutureSelector' => '[data-role="allow-all-future-tools"]',
+        'allowAllFutureSectionSelector' => '[data-role="specific-tools-section"]',
         'initialTree' => json_decode($block->getInitialTreeJson(), true),
         'initialSelection' => json_decode($block->getRestoredSelectionJson(), true),
     ],
@@ -27,7 +29,36 @@ $widgetOptions = [
         )) ?></span>
     </div>
 
-    <div class="field">
+    <div class="field field-allow-all-tools">
+        <label class="label" for="magebit_mcp_oauth_client_allow_all_tools">
+            <span><?= $block->escapeHtml(__('Allow All Tools')) ?></span>
+        </label>
+        <div class="control">
+            <div class="admin__field admin__field-option">
+                <input type="checkbox"
+                       id="magebit_mcp_oauth_client_allow_all_tools"
+                       class="admin__control-checkbox"
+                       name="allow_all_tools"
+                       value="1"
+                       data-role="allow-all-future-tools"
+                       <?= $block->isAllowAllToolsChecked() ? 'checked="checked"' : '' ?> />
+                <label class="admin__field-label" for="magebit_mcp_oauth_client_allow_all_tools">
+                    <span><?= $block->escapeHtml(__(
+                        'Grant every tool currently registered, plus any added later by satellite modules.'
+                    )) ?></span>
+                </label>
+            </div>
+            <div class="note">
+                <span><?= $block->escapeHtml(__(
+                    'Use this for trusted internal clients. New MCP tools become available the next'
+                    . ' time the admin completes an OAuth consent, with no re-edit needed.'
+                    . ' Each admin\'s own role still narrows what they can grant.'
+                )) ?></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="field" data-role="specific-tools-section">
         <label class="label">
             <span><?= $block->escapeHtml(__('Allowed Tools')) ?></span>
         </label>
@@ -36,7 +67,7 @@ $widgetOptions = [
                 <button type="button"
                         class="action-secondary"
                         data-role="allow-all-tools">
-                    <span><?= $block->escapeHtml(__('Allow All')) ?></span>
+                    <span><?= $block->escapeHtml(__('Tick All Current')) ?></span>
                 </button>
             </div>
             <div data-role="resource-tree-wrapper">

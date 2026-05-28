@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\OAuth;
 
+use Magebit\Mcp\Api\Data\OAuth\ClientInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -53,6 +54,9 @@ class ToolGrantResolver
         }
 
         $tools = $this->toolRegistry->all();
+        if (self::isWildcard($clientAllowedTools)) {
+            $clientAllowedTools = array_keys($tools);
+        }
         $granted = [];
         $seen = [];
         foreach ($clientAllowedTools as $toolName) {
@@ -125,5 +129,45 @@ class ToolGrantResolver
             $parts[] = Scope::WRITE->value;
         }
         return implode(' ', $parts);
+    }
+
+    /**
+     * `true` when the stored cap is the single-element wildcard list — i.e. the
+     * admin chose "allow all current + future tools" on the OAuth client form.
+     *
+     * @param array<int, string> $clientAllowedTools
+     * @return bool
+     */
+    public static function isWildcard(array $clientAllowedTools): bool
+    {
+        return count($clientAllowedTools) === 1
+            && ($clientAllowedTools[array_key_first($clientAllowedTools)] ?? null)
+                === ClientInterface::ALLOW_ALL_TOOLS_SENTINEL;
+    }
+
+    /**
+     * `true` when granted set covers every tool the admin's role permits —
+     * used to decide whether to forward the wildcard sentinel onto the issued
+     * token vs. snapshotting the explicit list.
+     *
+     * @param array<int, string> $grantedTools
+     * @param User $admin
+     * @return bool
+     */
+    public function grantsAllAdminAccessibleTools(array $grantedTools, User $admin): bool
+    {
+        $adminAccessible = [];
+        foreach ($this->toolRegistry->all() as $tool) {
+            if ($this->aclChecker->isAllowed($admin, $tool->getAclResource())) {
+                $adminAccessible[] = $tool->getName();
+            }
+        }
+        if ($adminAccessible === []) {
+            return false;
+        }
+        sort($adminAccessible);
+        $granted = array_values($grantedTools);
+        sort($granted);
+        return $granted === $adminAccessible;
     }
 }

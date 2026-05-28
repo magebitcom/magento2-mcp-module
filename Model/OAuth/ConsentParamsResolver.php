@@ -121,9 +121,10 @@ class ConsentParamsResolver
 
         $hintReadOnly = !in_array(Scope::WRITE, $requestedScopes, true);
         $tools = $this->toolRegistry->all();
+        $candidateNames = ToolGrantResolver::isWildcard($allowed) ? array_keys($tools) : $allowed;
 
         $out = [];
-        foreach ($allowed as $name) {
+        foreach ($candidateNames as $name) {
             if (!isset($tools[$name])) {
                 continue;
             }

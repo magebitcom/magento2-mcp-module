@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Controller\Adminhtml\Oauth;
 
+use Magebit\Mcp\Api\Data\OAuth\ClientInterface;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Exception\OAuthException;
 use Magebit\Mcp\Model\OAuth\AdminAuthorizationDecision;
@@ -230,7 +231,20 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
             ]);
         }
 
+        // When the client opts into "all current + future tools" and the admin accepts the
+        // maximal grant their role permits, forward the wildcard sentinel onto the auth
+        // code so the issued token is recorded as wildcard (NULL scopes_json) rather than
+        // a snapshot — new tools shipped by satellite modules then auto-apply. The OAuth
+        // protocol scope on the auth code stays the snapshot summary so the issued
+        // token's allow_writes flag reflects what the admin could actually do at consent
+        // time (a role elevation later still requires a fresh authorize flow).
+        $grantedToolsForIssue = $grantedTools;
         $grantedScopeString = $this->toolGrantResolver->summarizeScope($grantedTools);
+        if (ToolGrantResolver::isWildcard($client->getAllowedTools())
+            && $this->toolGrantResolver->grantsAllAdminAccessibleTools($grantedTools, $admin)
+        ) {
+            $grantedToolsForIssue = [ClientInterface::ALLOW_ALL_TOOLS_SENTINEL];
+        }
         if ($grantedScopeString === '') {
             $grantedScopeString = Scope::READ->value;
         }
@@ -256,7 +270,7 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
                     PkceVerifier::METHOD_S256
                 ),
                 scope: $grantedScopeString,
-                grantedTools: $grantedTools
+                grantedTools: $grantedToolsForIssue
             );
         } catch (OAuthException $e) {
             return $this->redirectToClient($redirectUri, [

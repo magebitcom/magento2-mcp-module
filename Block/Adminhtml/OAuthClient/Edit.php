@@ -78,10 +78,18 @@ class Edit extends Container
     }
 
     /**
+     * Edit-mode carries the id as a URL param so the Save controller routes to the
+     * update branch regardless of what the form fields POST. The hidden form field
+     * approach was lost by `AbstractForm::setValues()` nulling unmapped elements.
+     *
      * @return string
      */
     public function getFormActionUrl(): string
     {
+        $client = $this->registry->registry(EditController::REGISTRY_KEY);
+        if ($client instanceof ClientInterface) {
+            return $this->getUrl('magebit_mcp/oauthclient/save', ['id' => (int) $client->getId()]);
+        }
         return $this->getUrl('magebit_mcp/oauthclient/save');
     }
 
