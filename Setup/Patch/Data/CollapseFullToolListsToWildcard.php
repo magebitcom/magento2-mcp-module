@@ -14,13 +14,9 @@ use Magento\Framework\Setup\ModuleDataSetupInterface;
 use Magento\Framework\Setup\Patch\DataPatchInterface;
 
 /**
- * Collapses any OAuth client whose `allowed_tools_json` already lists every
- * currently-registered tool down to the wildcard sentinel `["*"]`. That way
- * pre-existing "tick everything" clients automatically pick up tools added
- * by satellite modules later, matching the new admin-form semantics.
- *
- * Rows that already store the wildcard and rows with an explicit subset are
- * left untouched.
+ * Collapses clients whose `allowed_tools_json` lists every currently-registered
+ * tool down to the wildcard sentinel `["*"]`, so pre-existing "tick everything"
+ * clients automatically inherit tools added by satellite modules later.
  */
 class CollapseFullToolListsToWildcard implements DataPatchInterface
 {

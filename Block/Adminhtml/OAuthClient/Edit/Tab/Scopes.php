@@ -21,10 +21,9 @@ use Magento\Framework\Registry;
 use Magento\Framework\Serialize\Serializer\Json;
 
 /**
- * "Allowed Tools" tab — renders the same jstree picker as the Connections
- * (token) form, but admin-agnostic: every tool node is enabled. The stored
- * selection is the upper bound a client may request; the consent screen
- * narrows further at runtime against the consenting admin's role.
+ * "Allowed Tools" tab — admin-agnostic jstree picker (every node enabled).
+ * Stored selection is the upper bound; consent screen narrows it at runtime
+ * against the consenting admin's role.
  */
 class Scopes extends Template implements TabInterface
 {
@@ -145,10 +144,9 @@ class Scopes extends Template implements TabInterface
     }
 
     /**
-     * Bounced payload wins over the persisted client row — that's what makes
-     * a validation bounce restore the operator's last selection. The wildcard
-     * sentinel returns `[]` here because the tree is irrelevant when the
-     * "Allow all" checkbox is ticked.
+     * Bounced payload wins over the persisted row so validation bounces restore
+     * the operator's last selection. Wildcard returns `[]` — tree is irrelevant
+     * when "Allow all" is ticked.
      *
      * @return array<int, string>
      */

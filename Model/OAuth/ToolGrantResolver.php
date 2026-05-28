@@ -146,10 +146,9 @@ class ToolGrantResolver
     }
 
     /**
-     * `true` when the granted set covers every tool the admin's role permits —
-     * the consent equivalent of "user accepted the full grant offered by the
-     * wildcard cap". Used to decide whether to forward the wildcard sentinel
-     * onto the issued token (vs. snapshotting the explicit list).
+     * `true` when granted set covers every tool the admin's role permits —
+     * used to decide whether to forward the wildcard sentinel onto the issued
+     * token vs. snapshotting the explicit list.
      *
      * @param array<int, string> $grantedTools
      * @param User $admin
