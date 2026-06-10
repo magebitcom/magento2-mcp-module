@@ -116,11 +116,14 @@ main {
   min-width: 0;
 }
 
-.check__label {
+.check__target {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--grey-06);
   margin: 0 0 4px;
   max-width: none;
+  overflow-wrap: anywhere;
 }
 
 .check__detail {

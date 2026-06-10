@@ -170,43 +170,43 @@
   var CHECKS = [
     {
       id: 'mcp-reachable',
-      label: 'The /mcp endpoint is reachable',
+      target: function (t) { return 'POST ' + t.mcp; },
       run: function (t) {
         return probeReachable(t.mcp, 'POST').then(function (r) {
           if (!r.reached) {
             return result('fail',
-              'Couldn’t reach ' + t.mcp + ' from this browser.',
-              'The host is unreachable — check DNS, the TLS certificate, and that the store is online and served over HTTPS.');
+              'Not reachable from this browser.',
+              'Check DNS, the TLS certificate, and that the store is online and served over HTTPS.');
           }
-          return result('pass', 'The host responded.');
+          return result('pass', 'Reachable — the host responded.');
         });
       }
     },
     {
       id: 'prm',
-      label: 'Protected-resource metadata is valid and points at this store',
+      target: function (t) { return 'GET ' + t.origin + '/.well-known/oauth-protected-resource'; },
       run: function (t) {
         return fetchJson(t.prm).then(function (res) {
           return checkMetadata(res, t,
             [['resource', 'resource'], ['authorization server', 'authorization_servers']],
-            function (d) { return 'Valid. resource = ' + (d.resource || '—'); });
+            function (d) { return 'Accessible and valid. resource = ' + (d.resource || '—'); });
         });
       }
     },
     {
       id: 'asm',
-      label: 'Authorization-server metadata is valid and points at this store',
+      target: function (t) { return 'GET ' + t.origin + '/.well-known/oauth-authorization-server'; },
       run: function (t) {
         return fetchJson(t.asm).then(function (res) {
           return checkMetadata(res, t,
             [['issuer', 'issuer'], ['authorization_endpoint', 'authorization_endpoint'], ['token_endpoint', 'token_endpoint']],
-            function (d) { return 'Valid. token_endpoint = ' + (d.token_endpoint || '—'); });
+            function (d) { return 'Accessible and valid. token_endpoint = ' + (d.token_endpoint || '—'); });
         });
       }
     },
     {
       id: 'token',
-      label: 'The OAuth token endpoint answers directly (no redirect, no auth wall)',
+      target: function (t) { return 'POST ' + t.token; },
       run: function (t) {
         return withTimeout(function (signal) {
           return fetch(t.token, {
@@ -227,7 +227,7 @@
           return res.json().then(function (json) {
             if (json && json.error) {
               return result('pass',
-                'The MCP app answered directly (OAuth error "' + json.error + '", expected for this empty probe).');
+                'Accessible — the MCP app responded with OAuth error "' + json.error + '" (expected for this empty probe; no redirect, no auth wall).');
             }
             return result('warn',
               'The endpoint answered, but not with a recognisable OAuth error.',
@@ -256,7 +256,7 @@
     return node;
   }
 
-  function renderRow(check) {
+  function renderRow(check, target) {
     var li = el('li', 'check');
     li.setAttribute('data-status', 'running');
     li.id = 'check-' + check.id;
@@ -266,7 +266,7 @@
     li.appendChild(badge);
 
     var body = el('div', 'check__body');
-    body.appendChild(el('p', 'check__label', check.label));
+    body.appendChild(el('p', 'check__target', check.target(target)));
     body.appendChild(el('p', 'check__detail', 'Running…'));
     li.appendChild(body);
     return li;
@@ -315,7 +315,7 @@
     var pending = CHECKS.length;
 
     CHECKS.forEach(function (check) {
-      var li = renderRow(check);
+      var li = renderRow(check, target);
       results.appendChild(li);
       Promise.resolve()
         .then(function () { return check.run(target); })
