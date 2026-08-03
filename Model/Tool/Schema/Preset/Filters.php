@@ -12,27 +12,31 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\ObjectBuilder;
 use Magebit\Mcp\Model\Tool\Schema\SchemaContribution;
 
 /**
- * Produces an open-bag `filters` object. Sub-properties are undeclared
- * because keys are resolved at runtime by the tool's SearchCriteriaBuilder;
- * emitted via {@see ObjectBuilder::rawProperty()}.
+ * Produces a `filters` object. With no `$properties`, it stays an open bag
+ * (keys resolved at runtime); given `$properties`, it also advertises typed
+ * sub-schemas while keeping additional keys allowed via {@see ObjectBuilder::rawProperty()}.
  */
 class Filters implements SchemaContribution
 {
     /**
      * @param string $description
+     * @param array<string, array<string, mixed>> $properties
      */
     private function __construct(
-        private readonly string $description
+        private readonly string $description,
+        private readonly array $properties
     ) {
     }
 
     /**
      * @param string $description
+     * @param array<string, array<string, mixed>> $properties Typed sub-schemas for
+     *        the filter keys the tool's SearchCriteriaBuilder supports.
      * @return self
      */
-    public static function describing(string $description): self
+    public static function describing(string $description, array $properties = []): self
     {
-        return new self($description);
+        return new self($description, $properties);
     }
 
     /**
@@ -40,9 +44,14 @@ class Filters implements SchemaContribution
      */
     public function applyTo(ObjectBuilder $object): void
     {
-        $object->rawProperty('filters', [
+        $schema = [
             'type' => 'object',
             'description' => $this->description,
-        ]);
+        ];
+        if ($this->properties !== []) {
+            $schema['properties'] = $this->properties;
+            $schema['additionalProperties'] = true; // filter-translator keys stay allowed
+        }
+        $object->rawProperty('filters', $schema);
     }
 }
