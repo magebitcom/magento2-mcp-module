@@ -168,7 +168,7 @@ Schema::object()
     ->toArray();
 ```
 
-Raw schemas still flow through `SchemaSanitizer` so stray composition keywords get stripped with a logged warning — prefer fixing the schema to taking the warning.
+Raw schemas still flow through `SchemaSanitizer` so stray composition keywords get stripped with a logged warning — prefer fixing the schema to taking the warning. Argument validation runs against this same sanitized schema — the one `tools/list` serves over the wire — so `oneOf` / `allOf` / `anyOf` are always stripped before validation and must not be relied on for enforcement.
 
 ## Step 2 — Declare the ACL resource
 

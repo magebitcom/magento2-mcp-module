@@ -240,7 +240,7 @@ class ToolsCallHandlerTest extends TestCase
         $tool->method('getInputSchema')->willReturn([
             'type' => 'object',
             'properties' => [
-                'page_size' => ['type' => 'integer'],
+                'store_id' => ['type' => 'integer'],
             ],
         ]);
 
@@ -293,14 +293,14 @@ class ToolsCallHandlerTest extends TestCase
             10,
             false,
             'tools/call',
-            ['name' => 'system.store.info', 'arguments' => ['page_size' => '50']]
+            ['name' => 'system.store.info', 'arguments' => ['store_id' => '50']]
         );
 
         $response = $handler->handle($request, new AuthenticatedContext($token, $adminUser));
 
         $this->assertNull($response->error);
-        $this->assertSame(['page_size' => 50], $receivedArgs);
-        $this->assertSame(['page_size' => 50], $auditContext->arguments);
+        $this->assertSame(['store_id' => 50], $receivedArgs);
+        $this->assertSame(['store_id' => 50], $auditContext->arguments);
     }
 
     /**
