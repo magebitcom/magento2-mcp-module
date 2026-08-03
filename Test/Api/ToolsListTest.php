@@ -21,6 +21,7 @@ class ToolsListTest extends McpTestCase
      * frontend rejects dots — the canonical identity stays internal.
      */
     private const REQUIRED_TOOLS = [
+        'system_whoami',
         'system_store_list',
         'system_store_info',
         'system_config_get',
@@ -39,8 +40,8 @@ class ToolsListTest extends McpTestCase
         self::assertIsArray($result);
         $tools = $result['tools'] ?? null;
         self::assertIsArray($tools);
-        self::assertGreaterThanOrEqual(13, count($tools), sprintf(
-            'Expected at least 13 tools; got %d.',
+        self::assertGreaterThanOrEqual(14, count($tools), sprintf(
+            'Expected at least 14 tools; got %d.',
             count($tools)
         ));
 

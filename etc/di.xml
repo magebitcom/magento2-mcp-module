@@ -45,6 +45,10 @@
          so the controller and the tools/call handler populate the same object. -->
     <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>
 
+    <!-- Populated immediately before tool dispatch so context-aware tools can
+         resolve the bearer identity without changing ToolInterface. -->
+    <type name="Magebit\Mcp\Model\Auth\AuthenticatedContextProvider" shared="true"/>
+
     <!-- Admin grid data source for the audit log listing. -->
     <virtualType name="Magebit\Mcp\Ui\Component\Listing\AuditLogCollection"
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
@@ -185,6 +189,9 @@
     <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
         <arguments>
             <argument name="tools" xsi:type="array">
+                <item name="system.whoami" xsi:type="object">
+                    Magebit\Mcp\Tool\System\WhoAmI
+                </item>
                 <item name="system.store.list" xsi:type="object">
                     Magebit\Mcp\Tool\System\StoreList
                 </item>
