@@ -83,6 +83,7 @@ class Save extends Action implements HttpPostActionInterface
             $this->messageManager->addErrorMessage((string) __('Missing form payload.'));
             return $redirect->setPath('*/*/new');
         }
+        /** @var array<string, mixed> $raw */
 
         try {
             $adminUserId = $this->extractAdminUserId($raw);

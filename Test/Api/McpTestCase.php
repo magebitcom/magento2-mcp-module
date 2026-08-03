@@ -164,7 +164,7 @@ abstract class McpTestCase extends TestCase
         $headers = [
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
-            'Origin' => $this->origin,
+            'Origin' => (string) $this->origin,
             'Mcp-Protocol-Version' => self::PROTOCOL_VERSION,
             // The request reaches nginx over plaintext on the internal docker
             // network, but Magento's `web/secure/base_url` is `https://…`, so a
@@ -197,7 +197,7 @@ abstract class McpTestCase extends TestCase
             throw new RuntimeException('Failed to JSON-encode request payload.');
         }
 
-        return $this->httpPost($this->endpoint, $body, $headers);
+        return $this->httpPost((string) $this->endpoint, $body, $headers);
     }
 
     /**
@@ -274,7 +274,11 @@ abstract class McpTestCase extends TestCase
             return null;
         }
         $decoded = json_decode($body, true);
-        return is_array($decoded) ? $decoded : null;
+        if (!is_array($decoded)) {
+            return null;
+        }
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
     }
 
     /**

@@ -48,7 +48,7 @@ class IndexerIdResolver
             );
         }
         if ($useAll) {
-            return array_values(array_map('strval', $available));
+            return array_map('strval', $available);
         }
 
         $raw = $arguments['indexer_id'];

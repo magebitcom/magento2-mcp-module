@@ -46,6 +46,7 @@ class ClientPreset implements ClientPresetInterface
 
         $clean = [];
         foreach ($redirectUris as $uri) {
+            // @phpstan-ignore function.alreadyNarrowedType
             if (is_string($uri) && trim($uri) !== '') {
                 $clean[] = trim($uri);
             }

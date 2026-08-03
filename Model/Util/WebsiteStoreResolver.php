@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Util;
 
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Api\StoreRepositoryInterface;
 
 /**
@@ -49,9 +48,6 @@ class WebsiteStoreResolver
         $known = array_fill_keys($ids, false);
         $stores = [];
         foreach ($this->storeRepository->getList() as $store) {
-            if (!$store instanceof StoreInterface) {
-                continue;
-            }
             $storeId = (int) $store->getId();
             if ($storeId === 0) {
                 continue;

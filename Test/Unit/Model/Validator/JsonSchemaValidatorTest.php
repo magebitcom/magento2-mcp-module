@@ -35,7 +35,7 @@ class JsonSchemaValidatorTest extends TestCase
 
         $this->validator->validate($schema, ['increment_id' => '000000001']);
 
-        $this->assertTrue(true);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testRejectsMissingRequiredField(): void
@@ -96,7 +96,7 @@ class JsonSchemaValidatorTest extends TestCase
 
         $this->validator->validate($schema, []);
 
-        $this->assertTrue(true);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testAcceptsNestedSchemaWithEmptyPropertiesObject(): void
@@ -113,7 +113,7 @@ class JsonSchemaValidatorTest extends TestCase
 
         $this->validator->validate($schema, ['filters' => (object) []]);
 
-        $this->assertTrue(true);
+        $this->expectNotToPerformAssertions();
     }
 
     public function testErrorsExposeStructuredDetails(): void

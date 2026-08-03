@@ -77,6 +77,7 @@ class StringBuilder extends PropertyBuilder
             throw new InvalidArgumentException('String enum must have at least one value.');
         }
         foreach ($values as $value) {
+            // @phpstan-ignore function.alreadyNarrowedType
             if (!is_string($value)) {
                 throw new InvalidArgumentException('String enum values must all be strings.');
             }

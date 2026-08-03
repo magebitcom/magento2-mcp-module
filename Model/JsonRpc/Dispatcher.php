@@ -28,6 +28,7 @@ class Dispatcher
     ) {
         $this->handlers = [];
         foreach ($handlers as $handler) {
+            // @phpstan-ignore instanceof.alwaysTrue
             if (!$handler instanceof HandlerInterface) {
                 throw new InvalidArgumentException(sprintf(
                     'MCP JSON-RPC handlers must implement %s, got %s.',
