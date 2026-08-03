@@ -51,6 +51,7 @@ class DataProvider extends AbstractDataProvider
             if (!is_array($row)) {
                 continue;
             }
+            /** @var array<string, mixed> $row */
             $items[] = $row;
         }
         return [
