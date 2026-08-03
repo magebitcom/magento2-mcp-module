@@ -96,10 +96,9 @@ class JsonSchemaValidator
     }
 
     /**
-     * PHP's json_decode(..., true) collapses `{}` to `[]`. Walk the data
-     * structure in parallel with the schema, restoring empty arrays to
-     * stdClass where the schema declares `type: object` — including objects
-     * nested inside array items.
+     * PHP's json_decode(..., true) collapses `{}` to `[]`. Restore empty arrays
+     * to stdClass wherever the schema declares `type: object`, recursing through
+     * object `properties` and array `items`.
      *
      * @param array<array-key, mixed> $schema
      * @param mixed $value
