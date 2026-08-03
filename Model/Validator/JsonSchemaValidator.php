@@ -35,7 +35,7 @@ class JsonSchemaValidator
     public function validate(array $schema, array $data): void
     {
         $schemaJson = json_encode($this->normaliseEmptyPropertyObjects($schema), JSON_UNESCAPED_SLASHES);
-        $dataJson = json_encode((object) $this->normaliseEmptyObjectData($schema, $data), JSON_UNESCAPED_SLASHES);
+        $dataJson = json_encode((object) $this->normaliseValue($schema, $data), JSON_UNESCAPED_SLASHES);
         if ($schemaJson === false || $dataJson === false) {
             throw new SchemaValidationException('Unable to encode schema or data as JSON.');
         }
@@ -96,33 +96,53 @@ class JsonSchemaValidator
     }
 
     /**
-     * PHP's json_decode(..., true) collapses `{}` to `[]`. Where the schema
-     * declares `type: object`, restore empty arrays to stdClass so opis sees
-     * the object the client actually sent.
+     * PHP's json_decode(..., true) collapses `{}` to `[]`. Walk the data
+     * structure in parallel with the schema, restoring empty arrays to
+     * stdClass where the schema declares `type: object` — including objects
+     * nested inside array items.
      *
      * @param array<array-key, mixed> $schema
-     * @param array<array-key, mixed> $data
-     * @return array<array-key, mixed>
+     * @param mixed $value
+     * @return mixed
      */
-    private function normaliseEmptyObjectData(array $schema, array $data): array
+    private function normaliseValue(array $schema, mixed $value): mixed
     {
-        $properties = $schema['properties'] ?? null;
-        if (!is_array($properties)) {
-            return $data;
+        // Non-array values pass through unchanged
+        if (!is_array($value)) {
+            return $value;
         }
-        foreach ($data as $key => $value) {
-            $propSchema = $properties[$key] ?? null;
-            if (!is_array($propSchema) || !is_array($value)) {
-                continue;
+
+        $types = (array) ($schema['type'] ?? []);
+
+        // If schema declares type: object, convert empty arrays to stdClass
+        if (in_array('object', $types, true)) {
+            if ($value === []) {
+                return new \stdClass();
             }
-            $types = (array) ($propSchema['type'] ?? []);
-            if (!in_array('object', $types, true)) {
-                continue;
+            // Recurse into properties
+            $properties = $schema['properties'] ?? null;
+            if (is_array($properties)) {
+                foreach ($value as $key => $itemValue) {
+                    $propSchema = $properties[$key] ?? null;
+                    if (is_array($propSchema)) {
+                        $value[$key] = $this->normaliseValue($propSchema, $itemValue);
+                    }
+                }
             }
-            $data[$key] = $value === []
-                ? new \stdClass()
-                : $this->normaliseEmptyObjectData($propSchema, $value);
+            return $value;
         }
-        return $data;
+
+        // If schema declares type: array with items schema, recurse over items
+        if (in_array('array', $types, true)) {
+            $itemsSchema = $schema['items'] ?? null;
+            if (is_array($itemsSchema)) {
+                return array_map(
+                    fn($item) => $this->normaliseValue($itemsSchema, $item),
+                    $value
+                );
+            }
+        }
+
+        return $value;
     }
 }

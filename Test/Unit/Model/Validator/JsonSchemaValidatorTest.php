@@ -162,4 +162,20 @@ class JsonSchemaValidatorTest extends TestCase
         $this->validator->validate($schema, ['outer' => ['inner' => []]]);
         $this->addToAssertionCount(1);
     }
+
+    public function testEmptyObjectInsideArrayItemsValidates(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'ranges' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'object'],
+                ],
+            ],
+        ];
+        // json_decode turns [{}, {}] into [[], []] — items must be restored to objects.
+        $this->validator->validate($schema, ['ranges' => [[], []]]);
+        $this->addToAssertionCount(1);
+    }
 }
