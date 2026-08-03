@@ -55,4 +55,11 @@ class ArgumentCoercerTest extends TestCase
         $out = $this->coercer->coerce($schema, ['n' => 'abc', 'extra' => '1']);
         self::assertSame(['n' => 'abc', 'extra' => '1'], $out);
     }
+
+    public function testOversizedIntegerStringIsLeftUntouched(): void
+    {
+        $schema = ['type' => 'object', 'properties' => ['n' => ['type' => 'integer']]];
+        $out = $this->coercer->coerce($schema, ['n' => '99999999999999999999999999']);
+        self::assertSame(['n' => '99999999999999999999999999'], $out);
+    }
 }

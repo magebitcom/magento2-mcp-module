@@ -58,8 +58,11 @@ class ArgumentCoercer
         if (!is_string($value)) {
             return $value;
         }
-        if (in_array('integer', $types, true) && preg_match('/^-?\d+$/', $value) === 1) {
-            return (int) $value;
+        if (in_array('integer', $types, true)) {
+            $int = filter_var($value, FILTER_VALIDATE_INT);
+            if ($int !== false) {
+                return $int;
+            }
         }
         if (in_array('number', $types, true) && is_numeric($value)) {
             return (float) $value;
