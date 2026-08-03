@@ -22,11 +22,14 @@ use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler;
 use Magebit\Mcp\Model\JsonRpc\Request;
+use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
+use Magebit\Mcp\Model\Validator\ArgumentCoercer;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\User\Model\User;
+use Opis\JsonSchema\Validator;
 use PHPUnit\Framework\TestCase;
 
 class ToolsCallHandlerTest extends TestCase
@@ -82,7 +85,9 @@ class ToolsCallHandlerTest extends TestCase
             $eventManager,
             $config,
             $auditContext,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer()
         );
 
         $request = new Request(
@@ -159,7 +164,9 @@ class ToolsCallHandlerTest extends TestCase
             $eventManager,
             $config,
             $auditContext,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer()
         );
 
         $request = new Request(
@@ -200,7 +207,9 @@ class ToolsCallHandlerTest extends TestCase
             $this->createMock(EventManager::class),
             $this->createMock(ModuleConfig::class),
             $auditContext,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer()
         );
 
         $request = new Request(
@@ -217,5 +226,100 @@ class ToolsCallHandlerTest extends TestCase
         // Audit row preserves the requested wire name so operators can see what
         // the client actually asked for, not a translated form.
         $this->assertSame('totally_unknown', $auditContext->toolName);
+    }
+
+    public function testCoercesStringifiedIntegerArgumentBeforeExecuteAndValidation(): void
+    {
+        // MCP bridges/clients frequently stringify typed values (e.g. "50" for an
+        // integer arg). The handler must coerce toward the sanitized wire schema
+        // before validation, so the call succeeds and execute() sees a real int.
+        $tool = $this->createMock(ToolInterface::class);
+        $tool->method('getName')->willReturn('system.store.info');
+        $tool->method('getAclResource')->willReturn('Magebit_Mcp::tool_system_store_info');
+        $tool->method('getWriteMode')->willReturn(WriteMode::READ);
+        $tool->method('getInputSchema')->willReturn([
+            'type' => 'object',
+            'properties' => [
+                'page_size' => ['type' => 'integer'],
+            ],
+        ]);
+
+        $receivedArgs = null;
+        $result = $this->createMock(ToolResultInterface::class);
+        $result->method('getContent')->willReturn([['type' => 'text', 'text' => 'ok']]);
+        $result->method('isError')->willReturn(false);
+        $result->method('getAuditSummary')->willReturn(['count' => 0]);
+        $tool->method('execute')
+            ->willReturnCallback(function (array $args) use (&$receivedArgs, $result) {
+                $receivedArgs = $args;
+                return $result;
+            });
+
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')
+            ->with('system.store.info')
+            ->willReturn('system.store.info');
+        $toolRegistry->method('get')->with('system.store.info')->willReturn($tool);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getScopes')->willReturn(null);
+        $token->method('getAllowWrites')->willReturn(false);
+
+        $adminUser = $this->createMock(User::class);
+        $adminUser->method('getId')->willReturn(1);
+
+        $aclChecker = $this->createMock(AclChecker::class);
+        $aclChecker->method('isAllowed')->willReturn(true);
+
+        $rateLimiter = $this->createMock(RateLimiterInterface::class);
+        $eventManager = $this->createMock(EventManager::class);
+        $config = $this->createMock(ModuleConfig::class);
+        $auditContext = new AuditContext();
+
+        $handler = new ToolsCallHandler(
+            $toolRegistry,
+            $aclChecker,
+            new JsonSchemaValidator(new Validator()),
+            $rateLimiter,
+            $eventManager,
+            $config,
+            $auditContext,
+            $this->createMock(LoggerInterface::class),
+            new ArgumentCoercer(),
+            new SchemaSanitizer($this->createMock(LoggerInterface::class))
+        );
+
+        $request = new Request(
+            10,
+            false,
+            'tools/call',
+            ['name' => 'system.store.info', 'arguments' => ['page_size' => '50']]
+        );
+
+        $response = $handler->handle($request, new AuthenticatedContext($token, $adminUser));
+
+        $this->assertNull($response->error);
+        $this->assertSame(['page_size' => 50], $receivedArgs);
+        $this->assertSame(['page_size' => 50], $auditContext->arguments);
+    }
+
+    /**
+     * @return ArgumentCoercer
+     */
+    private function stubArgumentCoercer(): ArgumentCoercer
+    {
+        $coercer = $this->createMock(ArgumentCoercer::class);
+        $coercer->method('coerce')->willReturnArgument(1);
+        return $coercer;
+    }
+
+    /**
+     * @return SchemaSanitizer
+     */
+    private function stubSchemaSanitizer(): SchemaSanitizer
+    {
+        $sanitizer = $this->createMock(SchemaSanitizer::class);
+        $sanitizer->method('sanitize')->willReturn(['type' => 'object']);
+        return $sanitizer;
     }
 }
