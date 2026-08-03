@@ -35,7 +35,9 @@ class ToolsListTest extends McpTestCase
         $this->assertJsonRpcSuccess($response);
         $body = $response['body'];
         self::assertIsArray($body);
-        $tools = $body['result']['tools'] ?? null;
+        $result = $body['result'] ?? null;
+        self::assertIsArray($result);
+        $tools = $result['tools'] ?? null;
         self::assertIsArray($tools);
         self::assertGreaterThanOrEqual(13, count($tools), sprintf(
             'Expected at least 13 tools; got %d.',

@@ -75,8 +75,8 @@ class JsonSchemaValidator
      * Empty PHP arrays at `properties` keys encode to `[]` (JSON array),
      * which Opis rejects. Convert to stdClass so they encode as `{}`.
      *
-     * @param array<string, mixed> $schema
-     * @return array<string, mixed>
+     * @param array<array-key, mixed> $schema
+     * @return array<array-key, mixed>
      */
     private function normaliseEmptyPropertyObjects(array $schema): array
     {

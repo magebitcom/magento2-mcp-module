@@ -61,7 +61,12 @@ class FormDataPersistence
         }
         $this->loaded = true;
         $raw = $this->backendSession->getData($this->sessionKey, true);
-        $this->cached = is_array($raw) ? $raw : null;
+        if (is_array($raw)) {
+            /** @var array<string, mixed> $raw */
+            $this->cached = $raw;
+        } else {
+            $this->cached = null;
+        }
         return $this->cached;
     }
 }

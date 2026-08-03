@@ -85,7 +85,6 @@ class ToolResourceTreeTest extends TestCase
 
         $this->assertCount(1, $tree);
         $group = $tree[0];
-        $this->assertIsArray($group);
         $this->assertSame('mcp_group_system', $group['id']);
         $this->assertIsArray($group['state']);
         $this->assertFalse($group['state']['disabled'], 'group is selectable when at least one child is enabled');
@@ -210,6 +209,7 @@ class ToolResourceTreeTest extends TestCase
             $id = isset($node['id']) && is_scalar($node['id']) ? (string) $node['id'] : '';
             $children = $node['children'] ?? null;
             if (is_array($children) && $children !== []) {
+                /** @var array<int, array<string, mixed>> $children */
                 $out += $this->indexLeavesById($children);
                 continue;
             }

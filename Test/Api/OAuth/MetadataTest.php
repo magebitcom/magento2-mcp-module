@@ -46,7 +46,9 @@ class MetadataTest extends McpTestCase
                 ->where('scope_id = ?', 0)
                 ->where('path = ?', 'web/url/redirect_to_base')
         );
-        $this->previousRedirectToBase = is_array($row) && isset($row['value']) ? (string) $row['value'] : null;
+        $this->previousRedirectToBase = is_array($row) && isset($row['value']) && is_scalar($row['value'])
+            ? (string) $row['value']
+            : null;
         $connection->insertOnDuplicate(
             $table,
             ['scope' => 'default', 'scope_id' => 0, 'path' => 'web/url/redirect_to_base', 'value' => '0']

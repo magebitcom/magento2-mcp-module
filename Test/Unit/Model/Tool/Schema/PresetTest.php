@@ -107,6 +107,7 @@ class PresetTest extends TestCase
         );
         self::assertSame('http://json-schema.org/draft-07/schema#', $schema['$schema']);
         self::assertSame('object', $schema['type']);
+        // @phpstan-ignore staticMethod.impossibleType
         self::assertFalse($schema['additionalProperties']);
         self::assertArrayNotHasKey('required', $schema);
     }

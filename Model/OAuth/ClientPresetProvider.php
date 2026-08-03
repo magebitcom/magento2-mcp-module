@@ -40,6 +40,7 @@ class ClientPresetProvider implements ClientPresetProviderInterface
         $seen = [self::CUSTOM_ID => true];
         $ordered = [$custom];
         foreach ($presets as $preset) {
+            // @phpstan-ignore instanceof.alwaysTrue
             if (!$preset instanceof ClientPresetInterface) {
                 throw new InvalidArgumentException(
                     'ClientPresetProvider only accepts ClientPresetInterface entries.'

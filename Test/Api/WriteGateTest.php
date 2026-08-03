@@ -42,7 +42,9 @@ class WriteGateTest extends McpTestCase
         $this->assertJsonRpcSuccess($response);
         $body = $response['body'];
         self::assertIsArray($body);
-        $tools = $body['result']['tools'] ?? null;
+        $result = $body['result'] ?? null;
+        self::assertIsArray($result);
+        $tools = $result['tools'] ?? null;
         self::assertIsArray($tools);
         $names = array_column($tools, 'name');
         self::assertNotContains('system.cache.flush', $names);

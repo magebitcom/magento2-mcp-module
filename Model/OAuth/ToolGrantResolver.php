@@ -45,6 +45,7 @@ class ToolGrantResolver
 
         $tickedIndex = [];
         foreach ($tickedTools as $name) {
+            // @phpstan-ignore function.alreadyNarrowedType
             if (is_string($name) && $name !== '') {
                 $tickedIndex[$name] = true;
             }
@@ -60,6 +61,7 @@ class ToolGrantResolver
         $granted = [];
         $seen = [];
         foreach ($clientAllowedTools as $toolName) {
+            // @phpstan-ignore function.alreadyNarrowedType
             if (!is_string($toolName) || $toolName === '' || isset($seen[$toolName])) {
                 continue;
             }

@@ -161,7 +161,9 @@ class TokenReauthPolicyTest extends TokenEndpointTestCase
             // Toggle disabled on the row.
             $row = $client['client'];
             $row->setDisabled(true);
-            $this->objectManager()->get(\Magebit\Mcp\Model\OAuth\ClientRepository::class)->save($row);
+            /** @var \Magebit\Mcp\Model\OAuth\ClientRepository $clientRepository */
+            $clientRepository = $this->objectManager()->get(\Magebit\Mcp\Model\OAuth\ClientRepository::class);
+            $clientRepository->save($row);
 
             $response = $this->postToken([
                 'grant_type' => 'authorization_code',

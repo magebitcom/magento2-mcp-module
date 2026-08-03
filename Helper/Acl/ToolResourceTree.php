@@ -107,9 +107,6 @@ class ToolResourceTree
             $children = $group['children'];
             $anyEnabled = false;
             foreach ($children as $childItem) {
-                if (!is_array($childItem)) {
-                    continue;
-                }
                 $childState = $childItem['state'] ?? null;
                 if (is_array($childState) && empty($childState['disabled'])) {
                     $anyEnabled = true;
@@ -154,14 +151,13 @@ class ToolResourceTree
     private function locateToolsNode(array $resources): ?array
     {
         foreach ($resources as $node) {
-            if (!is_array($node)) {
-                continue;
-            }
             if (($node['id'] ?? null) === self::ROOT_RESOURCE_ID) {
                 return $node;
             }
-            if (!empty($node['children']) && is_array($node['children'])) {
-                $found = $this->locateToolsNode($node['children']);
+            $children = $node['children'] ?? null;
+            if (is_array($children) && $children !== []) {
+                /** @var array<int, array<string, mixed>> $children */
+                $found = $this->locateToolsNode($children);
                 if ($found !== null) {
                     return $found;
                 }
@@ -208,6 +204,7 @@ class ToolResourceTree
                 if (!is_array($child)) {
                     continue;
                 }
+                /** @var array<string, mixed> $child */
                 $children[] = $this->mapNode($child, $aclRole, $allowAll);
             }
             $item['children'] = $children;
@@ -231,7 +228,7 @@ class ToolResourceTree
             return null;
         }
         $role = $user->getAclRole();
-        return is_string($role) && $role !== '' ? $role : null;
+        return $role !== '' ? $role : null;
     }
 
     /**

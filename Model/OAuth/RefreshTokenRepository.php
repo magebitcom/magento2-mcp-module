@@ -115,13 +115,7 @@ class RefreshTokenRepository
     {
         $collection = $this->collectionFactory->create();
         $collection->addFieldToFilter('parent_refresh_token_id', ['eq' => $parentId]);
-        $out = [];
-        foreach ($collection->getItems() as $item) {
-            if ($item instanceof RefreshToken) {
-                $out[] = $item;
-            }
-        }
-        return $out;
+        return array_values($collection->getItems());
     }
 
     /**

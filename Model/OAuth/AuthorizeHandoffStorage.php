@@ -117,18 +117,26 @@ class AuthorizeHandoffStorage
             return null;
         }
 
+        $id = is_scalar($row['id']) ? (int) $row['id'] : 0;
+        $paramsJson = isset($row['params_json']) && is_scalar($row['params_json'])
+            ? (string) $row['params_json']
+            : '';
+        $expiresAt = isset($row['expires_at']) && is_scalar($row['expires_at'])
+            ? (string) $row['expires_at']
+            : '';
+
         if ($deleteWhenFound) {
-            $connection->delete($table, ['id = ?' => (int) $row['id']]);
+            $connection->delete($table, ['id = ?' => $id]);
         }
 
-        if (isset($row['expires_at']) && (string) $row['expires_at'] < $this->now()) {
+        if ($expiresAt !== '' && $expiresAt < $this->now()) {
             return null;
         }
 
         return [
-            'id' => (int) $row['id'],
-            'params_json' => isset($row['params_json']) ? (string) $row['params_json'] : '',
-            'expires_at' => isset($row['expires_at']) ? (string) $row['expires_at'] : '',
+            'id' => $id,
+            'params_json' => $paramsJson,
+            'expires_at' => $expiresAt,
         ];
     }
 
@@ -145,7 +153,11 @@ class AuthorizeHandoffStorage
             return null;
         }
 
-        return is_array($decoded) ? $decoded : null;
+        if (!is_array($decoded)) {
+            return null;
+        }
+        /** @var array<string, mixed> $decoded */
+        return $decoded;
     }
 
     /**
