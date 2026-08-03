@@ -35,7 +35,7 @@ class JsonSchemaValidator
     public function validate(array $schema, array $data): void
     {
         $schemaJson = json_encode($this->normaliseEmptyPropertyObjects($schema), JSON_UNESCAPED_SLASHES);
-        $dataJson = json_encode((object) $data, JSON_UNESCAPED_SLASHES);
+        $dataJson = json_encode((object) $this->normaliseEmptyObjectData($schema, $data), JSON_UNESCAPED_SLASHES);
         if ($schemaJson === false || $dataJson === false) {
             throw new SchemaValidationException('Unable to encode schema or data as JSON.');
         }
@@ -93,5 +93,36 @@ class JsonSchemaValidator
             $out[$key] = $value;
         }
         return $out;
+    }
+
+    /**
+     * PHP's json_decode(..., true) collapses `{}` to `[]`. Where the schema
+     * declares `type: object`, restore empty arrays to stdClass so opis sees
+     * the object the client actually sent.
+     *
+     * @param array<array-key, mixed> $schema
+     * @param array<array-key, mixed> $data
+     * @return array<array-key, mixed>
+     */
+    private function normaliseEmptyObjectData(array $schema, array $data): array
+    {
+        $properties = $schema['properties'] ?? null;
+        if (!is_array($properties)) {
+            return $data;
+        }
+        foreach ($data as $key => $value) {
+            $propSchema = $properties[$key] ?? null;
+            if (!is_array($propSchema) || !is_array($value)) {
+                continue;
+            }
+            $types = (array) ($propSchema['type'] ?? []);
+            if (!in_array('object', $types, true)) {
+                continue;
+            }
+            $data[$key] = $value === []
+                ? new \stdClass()
+                : $this->normaliseEmptyObjectData($propSchema, $value);
+        }
+        return $data;
     }
 }
