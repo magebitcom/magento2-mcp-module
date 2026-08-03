@@ -24,7 +24,9 @@ use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
+use Magebit\Mcp\Model\Validator\ArgumentCoercer;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Exception\LocalizedException;
@@ -55,6 +57,8 @@ class ToolsCallHandler implements HandlerInterface
      * @param ModuleConfig $config
      * @param AuditContext $auditContext
      * @param LoggerInterface $logger
+     * @param ArgumentCoercer $argumentCoercer
+     * @param SchemaSanitizer $schemaSanitizer
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -64,7 +68,9 @@ class ToolsCallHandler implements HandlerInterface
         private readonly EventManager $eventManager,
         private readonly ModuleConfig $config,
         private readonly AuditContext $auditContext,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ArgumentCoercer $argumentCoercer,
+        private readonly SchemaSanitizer $schemaSanitizer
     ) {
     }
 
@@ -87,11 +93,17 @@ class ToolsCallHandler implements HandlerInterface
         }
         [$tool, $args] = $resolution;
 
+        // Coerce toward the sanitized wire schema — the exact representation the
+        // client saw on `tools/list` — so validation and execute() agree on shape.
+        $schema = $this->schemaSanitizer->sanitize($tool->getName(), $tool->getInputSchema());
+        $args = $this->argumentCoercer->coerce($schema, $args);
+        $this->auditContext->arguments = $args;
+
         foreach ([
             fn (): ?Response => $this->checkTokenScope($request, $context, $tool),
             fn (): ?Response => $this->checkAcl($request, $context, $tool),
             fn (): ?Response => $this->checkWriteGate($request, $context, $tool),
-            fn (): ?Response => $this->validateInputSchema($request, $tool, $args),
+            fn (): ?Response => $this->validateInputSchema($request, $schema, $args),
             fn (): ?Response => $this->checkRateLimit($request, $context, $tool),
         ] as $gate) {
             $response = $gate();
@@ -213,14 +225,14 @@ class ToolsCallHandler implements HandlerInterface
 
     /**
      * @param Request $request
-     * @param ToolInterface $tool
+     * @param array<string, mixed> $schema
      * @param array<string, mixed> $args
      * @return Response|null
      */
-    private function validateInputSchema(Request $request, ToolInterface $tool, array $args): ?Response
+    private function validateInputSchema(Request $request, array $schema, array $args): ?Response
     {
         try {
-            $this->schemaValidator->validate($tool->getInputSchema(), $args);
+            $this->schemaValidator->validate($schema, $args);
         } catch (SchemaValidationException $e) {
             return $this->fail(
                 $request,

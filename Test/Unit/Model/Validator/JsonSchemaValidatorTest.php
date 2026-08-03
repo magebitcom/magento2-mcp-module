@@ -133,4 +133,49 @@ class JsonSchemaValidatorTest extends TestCase
             $this->assertNotEmpty($e->getErrors(), 'Formatted errors array should not be empty.');
         }
     }
+
+    public function testEmptyObjectArgumentValidates(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'filters' => ['type' => 'object', 'description' => 'x'],
+            ],
+            'additionalProperties' => false,
+        ];
+        // json_decode($body, true) turns {} into [] — must not be rejected.
+        $this->validator->validate($schema, ['filters' => []]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testNestedEmptyObjectArgumentValidates(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'outer' => [
+                    'type' => 'object',
+                    'properties' => ['inner' => ['type' => 'object']],
+                ],
+            ],
+        ];
+        $this->validator->validate($schema, ['outer' => ['inner' => []]]);
+        $this->addToAssertionCount(1);
+    }
+
+    public function testEmptyObjectInsideArrayItemsValidates(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'ranges' => [
+                    'type' => 'array',
+                    'items' => ['type' => 'object'],
+                ],
+            ],
+        ];
+        // json_decode turns [{}, {}] into [[], []] — items must be restored to objects.
+        $this->validator->validate($schema, ['ranges' => [[], []]]);
+        $this->addToAssertionCount(1);
+    }
 }

@@ -34,6 +34,16 @@ class ToolsCallSchemaTest extends McpTestCase
         self::assertArrayHasKey('errors', $error['data']);
     }
 
+    public function testStringifiedIntegerArgumentIsCoerced(): void
+    {
+        // `system.store.info` declares `store_id: integer` — MCP bridges that
+        // stringify typed values (e.g. Claude.ai) must not be rejected at the
+        // schema gate once coercion runs ahead of validation.
+        $response = $this->toolsCall('system.store.info', ['store_id' => '1']);
+
+        $this->assertJsonRpcSuccess($response);
+    }
+
     public function testUnknownToolReturnsToolNotFound(): void
     {
         $response = $this->toolsCall('does.not.exist');
