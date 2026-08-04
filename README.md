@@ -36,7 +36,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - A PII-redacting audit log with configurable retention
 - Per-(admin, tool) rate limiting
 - An origin allowlist with sensible defaults for major AI clients
-- Core tools for the authenticated identity, cache types, indexers, store views, system configuration values and admin notifications
+- Core tools for the authenticated identity, cache types, indexers, store views, system configuration values, admin notifications and scheduled-job diagnostics (`system.cron.status`, so the AI can answer "why didn't that run automatically?")
 - MCP prompt support (see examples in [Prompt/System](Prompt/System/) directory)
 
 ## Quick start

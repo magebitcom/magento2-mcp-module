@@ -40,6 +40,8 @@
                                       title="Tool: Set Indexer Mode" sortOrder="120"/>
                             <resource id="Magebit_Mcp::tool_system_notification_list"
                                       title="Tool: List Admin Notifications" sortOrder="130"/>
+                            <resource id="Magebit_Mcp::tool_system_cron_status"
+                                      title="Tool: Cron Status" sortOrder="150"/>
                         </resource>
                         <resource id="Magebit_Mcp::config" title="MCP Configuration" sortOrder="40"/>
                     </resource>

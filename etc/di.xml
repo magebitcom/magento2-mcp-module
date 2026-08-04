@@ -231,6 +231,9 @@
                 <item name="system.notification.list" xsi:type="object">
                     Magebit\Mcp\Tool\System\Notification\NotificationList
                 </item>
+                <item name="system.cron.status" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Cron\Status
+                </item>
             </argument>
         </arguments>
     </type>
