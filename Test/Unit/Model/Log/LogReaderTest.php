@@ -194,6 +194,158 @@ class LogReaderTest extends TestCase
         self::assertSame(2, $result['match_count']);
     }
 
+    public function testGrepNeverCountsMoreMatchesThanTheCapWhenContextIsRequested(): void
+    {
+        // Every line matches, so each one lands inside the trailing context of
+        // the previous match — the state the cap used to be unable to escape.
+        $path = $this->write('system.log', str_repeat("ERROR boom\n", 200));
+
+        $result = $this->reader->grep($path, 'ERROR', true, 5, 3);
+
+        self::assertSame(5, $result['match_count']);
+        self::assertCount(5, array_filter(array_column($result['lines'], 'match')));
+        self::assertTrue($result['truncated']);
+        self::assertSame('max_matches', $result['stop_reason']);
+    }
+
+    /**
+     * @dataProvider contextWidthProvider
+     * @param int $contextLines
+     * @return void
+     */
+    public function testGrepHonoursTheCapAtEveryContextWidth(int $contextLines): void
+    {
+        $path = $this->write('system.log', str_repeat("ERROR boom\n", 200));
+
+        $result = $this->reader->grep($path, 'ERROR', true, 5, $contextLines);
+
+        self::assertSame(5, $result['match_count']);
+        self::assertLessThanOrEqual(5, $result['match_count']);
+        self::assertCount(5, array_filter(array_column($result['lines'], 'match')));
+    }
+
+    /**
+     * @phpstan-return array<string, array{int}>
+     * @return array
+     */
+    public static function contextWidthProvider(): array
+    {
+        return [
+            'no context' => [0],
+            'one line' => [1],
+            'two lines' => [2],
+            'three lines' => [3],
+            'five lines' => [5],
+        ];
+    }
+
+    public function testGrepStopsRatherThanReportingAMatchingLineAsContext(): void
+    {
+        // Line 3 matches but the cap is spent; labelling it `match: false` would
+        // be a lie, and counting it would break the cap, so the scan ends.
+        $path = $this->write('system.log', "ERROR one\nplain\nERROR two\nplain\n");
+
+        $result = $this->reader->grep($path, 'ERROR', true, 1, 2);
+
+        self::assertSame(1, $result['match_count']);
+        self::assertSame([1, 2], array_column($result['lines'], 'line'));
+        self::assertSame([true, false], array_column($result['lines'], 'match'));
+        self::assertSame('max_matches', $result['stop_reason']);
+        foreach ($result['lines'] as $line) {
+            self::assertSame($line['match'], str_contains($line['text'], 'ERROR'));
+        }
+    }
+
+    public function testGrepStillEmitsTrailingContextForTheFinalCountedMatch(): void
+    {
+        $lines = [];
+        for ($i = 1; $i <= 20; $i++) {
+            $lines[] = ($i === 3 || $i === 10) ? 'ERROR here' : 'plain ' . $i;
+        }
+        $path = $this->write('system.log', implode("\n", $lines) . "\n");
+
+        $result = $this->reader->grep($path, 'ERROR', true, 2, 2);
+
+        self::assertSame(2, $result['match_count']);
+        self::assertSame([1, 2, 3, 4, 5, 8, 9, 10, 11, 12], array_column($result['lines'], 'line'));
+        self::assertSame([3, 10], array_column(
+            array_values(array_filter($result['lines'], static fn (array $l): bool => $l['match'])),
+            'line'
+        ));
+        self::assertSame('max_matches', $result['stop_reason']);
+    }
+
+    public function testGrepEmitsEachLineOnceWhenCappedContextWindowsOverlap(): void
+    {
+        // Matches every other line: with two lines of context the windows of
+        // neighbouring matches overlap on both sides.
+        $lines = [];
+        for ($i = 1; $i <= 40; $i++) {
+            $lines[] = $i % 2 === 1 ? 'ERROR ' . $i : 'plain ' . $i;
+        }
+        $path = $this->write('system.log', implode("\n", $lines) . "\n");
+
+        $result = $this->reader->grep($path, 'ERROR', true, 3, 2);
+
+        $numbers = array_column($result['lines'], 'line');
+        self::assertSame(3, $result['match_count']);
+        self::assertSame(array_values(array_unique($numbers)), $numbers);
+        self::assertSame($numbers, array_values(array_filter($numbers, static fn (int $n): bool => $n > 0)));
+        $sorted = $numbers;
+        sort($sorted);
+        self::assertSame($sorted, $numbers);
+    }
+
+    public function testGrepClampsLeadingContextAtTheStartOfTheFile(): void
+    {
+        $path = $this->write('system.log', "ERROR first\nb\nc\n");
+
+        $result = $this->reader->grep($path, 'ERROR', true, 10, 3);
+
+        self::assertSame([1, 2, 3], array_column($result['lines'], 'line'));
+        self::assertSame(1, $result['match_count']);
+        self::assertSame('eof', $result['stop_reason']);
+        self::assertFalse($result['truncated']);
+    }
+
+    public function testGrepClampsTrailingContextAtTheEndOfTheFile(): void
+    {
+        $path = $this->write('system.log', "a\nb\nc\nd\nERROR last\n");
+
+        $result = $this->reader->grep($path, 'ERROR', true, 10, 3);
+
+        self::assertSame([2, 3, 4, 5], array_column($result['lines'], 'line'));
+        self::assertSame([false, false, false, true], array_column($result['lines'], 'match'));
+        self::assertSame(1, $result['match_count']);
+        self::assertSame('eof', $result['stop_reason']);
+        self::assertFalse($result['truncated']);
+    }
+
+    public function testGrepWithoutContextIsUnchangedByTheCap(): void
+    {
+        $path = $this->write('system.log', str_repeat("ERROR boom\n", 50));
+
+        $result = $this->reader->grep($path, 'ERROR', true, 5, 0);
+
+        self::assertSame(5, $result['match_count']);
+        self::assertSame([1, 2, 3, 4, 5], array_column($result['lines'], 'line'));
+        self::assertSame([true, true, true, true, true], array_column($result['lines'], 'match'));
+        self::assertTrue($result['truncated']);
+        self::assertSame('max_matches', $result['stop_reason']);
+    }
+
+    public function testGrepDoesNotCountAMatchItCouldNotEmit(): void
+    {
+        // The output budget cuts the scan mid-match; the dropped line must not
+        // survive in the count.
+        $path = $this->write('system.log', str_repeat('ERROR ' . str_repeat('q', 2000) . "\n", 1000));
+
+        $result = $this->reader->grep($path, 'ERROR', true, 1000, 0);
+
+        self::assertSame('output_limit', $result['stop_reason']);
+        self::assertCount($result['match_count'], array_filter(array_column($result['lines'], 'match')));
+    }
+
     public function testGrepTruncatesAPathologicallyLongMatchingLine(): void
     {
         $path = $this->write('system.log', 'ERROR ' . str_repeat('z', 50000) . "\n");

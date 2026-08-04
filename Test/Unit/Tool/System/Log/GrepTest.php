@@ -148,6 +148,22 @@ class GrepTest extends TestCase
         self::assertSame('max_matches', $payload['stop_reason']);
     }
 
+    public function testNeverReportsMoreMatchesThanTheCapAllowsWithContextLines(): void
+    {
+        $payload = $this->execute([
+            'file' => 'system.log',
+            'contains' => 'failed',
+            'max_matches' => 1,
+            'context_lines' => 5,
+        ]);
+
+        self::assertLessThanOrEqual($payload['max_matches'], $payload['match_count']);
+        self::assertSame(1, $payload['match_count']);
+        self::assertCount(1, array_filter(array_column($payload['matches'], 'match')));
+        self::assertTrue($payload['truncated']);
+        self::assertSame('max_matches', $payload['stop_reason']);
+    }
+
     public function testReportsTheAppliedCaps(): void
     {
         $payload = $this->execute(['file' => 'system.log', 'contains' => 'noise']);

@@ -182,8 +182,8 @@ class LogReader
      * @param string $path
      * @param string $needle
      * @param bool $caseSensitive
-     * @param int $maxMatches
-     * @param int $contextLines
+     * @param int $maxMatches Hard cap on matches; `match_count` never exceeds it.
+     * @param int $contextLines Lines emitted either side of a match; never counted as matches.
      * @phpstan-return array{
      *     lines: list<array{line: int, text: string, match: bool}>,
      *     match_count: int,
@@ -297,6 +297,14 @@ class LogReader
                     $text = rtrim($rawLine, "\r");
                     $isMatch = $this->contains($text, $needle, $caseSensitive);
 
+                    // Reachable only while trailing context is still draining:
+                    // the cap is spent, so this line can neither be counted nor
+                    // emitted as context without mislabelling a real match.
+                    if ($isMatch && $matchCount >= $maxMatches) {
+                        $stop = self::STOP_MAX_MATCHES;
+                        break 2;
+                    }
+
                     $emit = [];
                     if ($isMatch) {
                         foreach ($before as $buffered) {
@@ -324,6 +332,12 @@ class LogReader
                         $cost = strlen($capped) + 1;
                         if ($out !== [] && $outputBytes + $cost > self::MAX_OUTPUT_BYTES) {
                             $stop = self::STOP_OUTPUT_LIMIT;
+                            // A match is emitted last in its batch, so running
+                            // out of budget anywhere in the batch means the
+                            // matching line never left — don't report it.
+                            if ($isMatch) {
+                                $matchCount--;
+                            }
                             break 3;
                         }
                         $outputBytes += $cost;
