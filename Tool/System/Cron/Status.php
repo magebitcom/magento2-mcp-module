@@ -20,8 +20,11 @@ use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magento\Cron\Model\ConfigInterface;
 use Magento\Cron\Model\Schedule;
+use Magento\Cron\Observer\ProcessCronQueueObserver;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Store\Model\ScopeInterface;
 use stdClass;
 
 /**
@@ -45,8 +48,14 @@ class Status implements ToolInterface
     private const DEFAULT_HISTORY_LIMIT = 5;
     private const MAX_HISTORY_LIMIT = 50;
 
-    /** Upper bound on how far back any query reaches, in days. */
-    private const HISTORY_WINDOW_DAYS = 30;
+    /**
+     * Upper bound on how far back any query reaches, in days. This is a cost
+     * bound only — Magento's own history cleanup prunes far more aggressively,
+     * so the real limit on what can be reported is the per-group retention.
+     */
+    private const QUERY_WINDOW_DAYS = 30;
+
+    private const CONFIG_PATH_TEMPLATE = 'system/cron/%s/%s';
 
     /** Hard ceiling on detail rows pulled for the per-job timeline. */
     private const MAX_HISTORY_ROWS = 1000;
@@ -61,11 +70,13 @@ class Status implements ToolInterface
     /**
      * @param ConfigInterface $cronConfig
      * @param ScheduleReader $scheduleReader
+     * @param ScopeConfigInterface $scopeConfig
      * @param DateTime $dateTime
      */
     public function __construct(
         private readonly ConfigInterface $cronConfig,
         private readonly ScheduleReader $scheduleReader,
+        private readonly ScopeConfigInterface $scopeConfig,
         private readonly DateTime $dateTime
     ) {
     }
@@ -97,10 +108,26 @@ class Status implements ToolInterface
             . 'indexes never refreshing. Reports whether cron is running at all '
             . '(`alive`), and per job: when it last succeeded, when it last '
             . 'failed and why, how many runs are queued (`pending`) or in '
-            . 'flight (`running`), whether a run is hung (`stuck`) and whether '
-            . 'the job was never queued at all (`never_scheduled`). All '
-            . 'timestamps are ISO-8601 in UTC. `alive` is always measured over '
-            . 'every job, even when `group` or `job_code` narrows the report.';
+            . 'flight (`running`), and whether a run is hung (`stuck`). '
+            . 'CRITICAL — Magento deletes its own schedule history very '
+            . 'quickly: successful runs survive only `retention.success_minutes` '
+            . 'per group (60 by default) and upcoming runs are created only '
+            . '`retention.schedule_ahead_minutes` in advance (4-20 by default). '
+            . 'So `no_run_history: true` and `last_success_at: null` mean "no '
+            . 'rows survive for this job right now" — they are NOT evidence '
+            . 'that the job never ran or that its schedule is missing. For any '
+            . 'job that runs less often than that retention window (hourly, '
+            . 'nightly, weekly) this is the normal healthy state for most of '
+            . 'the day. Never report a broken or missing schedule on that basis '
+            . 'alone: if `alive` is true, cron itself is running, and the '
+            . 'per-group `retention` numbers tell you how far back the evidence '
+            . 'can possibly reach. Treat `stuck`, a non-null `last_error_at`, '
+            . 'and a growing `pending` count as the real failure signals. '
+            . 'All timestamps are ISO-8601 in UTC. `alive` is always measured '
+            . 'over every job, even when `group` or `job_code` narrows the '
+            . 'report; raising `stuck_threshold_minutes` past a group\'s '
+            . '`success_minutes` cannot widen it, because older success rows '
+            . 'have already been deleted.';
     }
 
     /**
@@ -182,7 +209,7 @@ class Status implements ToolInterface
         );
 
         $now = $this->dateTime->gmtTimestamp();
-        $since = gmdate(self::DB_DATE_FORMAT, $now - (self::HISTORY_WINDOW_DAYS * 86400));
+        $since = gmdate(self::DB_DATE_FORMAT, $now - (self::QUERY_WINDOW_DAYS * 86400));
         $stuckCutoff = $now - ($thresholdMinutes * 60);
 
         $configuredJobs = $this->configuredJobs();
@@ -219,19 +246,19 @@ class Status implements ToolInterface
         $summary = [
             'failing' => 0,
             'stuck' => 0,
-            'never_scheduled' => 0,
+            'no_run_history' => 0,
         ];
         foreach ($scoped as $job) {
             $summary['failing'] += $job['error'] > 0 ? 1 : 0;
             $summary['stuck'] += $job['stuck'] ? 1 : 0;
-            $summary['never_scheduled'] += $job['never_scheduled'] ? 1 : 0;
+            $summary['no_run_history'] += $job['no_run_history'] ? 1 : 0;
         }
 
         $payload = [
             'alive' => $alive,
             'checked_at' => gmdate(DATE_ATOM, $now),
             'stuck_threshold_minutes' => $thresholdMinutes,
-            'history_window_days' => self::HISTORY_WINDOW_DAYS,
+            'query_window_days' => self::QUERY_WINDOW_DAYS,
             'groups' => $groups === [] ? new stdClass() : $groups,
             'jobs' => $this->sortForOutput($scoped),
             'summary' => $summary,
@@ -249,7 +276,7 @@ class Status implements ToolInterface
                 'jobs' => count($scoped),
                 'failing' => $summary['failing'],
                 'stuck' => $summary['stuck'],
-                'never_scheduled' => $summary['never_scheduled'],
+                'no_run_history' => $summary['no_run_history'],
             ]
         );
     }
@@ -364,7 +391,7 @@ class Status implements ToolInterface
             'missed' => $this->runCount($statuses, Schedule::STATUS_MISSED),
             'error' => $this->runCount($statuses, Schedule::STATUS_ERROR),
             'stuck' => $oldestRunningTs !== null && $oldestRunningTs < $stuckCutoff,
-            'never_scheduled' => $statuses === [],
+            'no_run_history' => $statuses === [],
             'recent' => [],
             'last_success_ts' => $this->toTimestamp($lastSuccessAt),
         ];
@@ -398,6 +425,16 @@ class Status implements ToolInterface
         // every real group, even when `job_code` already shrank the set to one.
         $knownGroups = $this->knownGroups($jobs);
 
+        // Validated before the job filter narrows the set, so a real group is
+        // never reported as unknown just because `job_code` excluded it.
+        if ($group !== null && !in_array($group, $knownGroups, true)) {
+            throw new LocalizedException(__(
+                'Unknown cron group "%1". Known groups: %2.',
+                $group,
+                implode(', ', $knownGroups)
+            ));
+        }
+
         if ($jobCode !== null) {
             if (!isset($jobs[$jobCode])) {
                 throw new LocalizedException(__(
@@ -405,7 +442,17 @@ class Status implements ToolInterface
                     $jobCode
                 ));
             }
-            $jobs = [$jobCode => $jobs[$jobCode]];
+            $jobGroup = $jobs[$jobCode]['group'] ?? null;
+            if ($group !== null && $jobGroup !== $group) {
+                throw new LocalizedException(__(
+                    'Cron job "%1" is in group "%2", not "%3".',
+                    $jobCode,
+                    is_string($jobGroup) ? $jobGroup : self::UNKNOWN_GROUP,
+                    $group
+                ));
+            }
+
+            return [$jobCode => $jobs[$jobCode]];
         }
 
         if ($group === null) {
@@ -417,13 +464,6 @@ class Status implements ToolInterface
             if (($job['group'] ?? null) === $group) {
                 $filtered[$code] = $job;
             }
-        }
-        if ($filtered === []) {
-            throw new LocalizedException(__(
-                'Unknown cron group "%1". Known groups: %2.',
-                $group,
-                implode(', ', $knownGroups)
-            ));
         }
 
         return $filtered;
@@ -550,7 +590,7 @@ class Status implements ToolInterface
                 'error' => 0,
                 'stuck' => 0,
                 'failing' => 0,
-                'never_scheduled' => 0,
+                'no_run_history' => 0,
                 'last_success_at' => null,
                 'alive' => false,
                 'last_success_ts' => null,
@@ -563,7 +603,7 @@ class Status implements ToolInterface
             }
             $groups[$group]['stuck'] += ($job['stuck'] ?? false) === true ? 1 : 0;
             $groups[$group]['failing'] += ($job['error'] ?? 0) > 0 ? 1 : 0;
-            $groups[$group]['never_scheduled'] += ($job['never_scheduled'] ?? false) === true ? 1 : 0;
+            $groups[$group]['no_run_history'] += ($job['no_run_history'] ?? false) === true ? 1 : 0;
 
             $successTs = $job['last_success_ts'] ?? null;
             $currentTs = $groups[$group]['last_success_ts'];
@@ -577,6 +617,7 @@ class Status implements ToolInterface
             $successTs = $data['last_success_ts'];
             $groups[$group]['alive'] = is_int($successTs) && $successTs >= $stuckCutoff;
             unset($groups[$group]['last_success_ts']);
+            $groups[$group]['retention'] = $this->groupRetention((string) $group);
         }
         ksort($groups);
 
@@ -584,8 +625,54 @@ class Status implements ToolInterface
     }
 
     /**
-     * Problems first — stuck, then failing, then never scheduled — so a client
-     * reading top-down sees the answer before the healthy noise.
+     * How long this group's rows survive Magento's own history cleanup, and how
+     * far ahead it queues runs — without these, an absent history is unreadable.
+     *
+     * @param string $group
+     * @phpstan-return array{
+     *     success_minutes: int,
+     *     failure_minutes: int,
+     *     schedule_ahead_minutes: int
+     * }|null
+     * @return array|null
+     */
+    private function groupRetention(string $group): ?array
+    {
+        $success = $this->cronGroupSetting($group, ProcessCronQueueObserver::XML_PATH_HISTORY_SUCCESS);
+        $failure = $this->cronGroupSetting($group, ProcessCronQueueObserver::XML_PATH_HISTORY_FAILURE);
+        $ahead = $this->cronGroupSetting($group, ProcessCronQueueObserver::XML_PATH_SCHEDULE_AHEAD_FOR);
+
+        // Orphan jobs bucket under a group that has no crontab entry, so there
+        // is no retention policy to report rather than a misleading zero.
+        if ($success === null && $failure === null && $ahead === null) {
+            return null;
+        }
+
+        return [
+            'success_minutes' => $success ?? 0,
+            'failure_minutes' => $failure ?? 0,
+            'schedule_ahead_minutes' => $ahead ?? 0,
+        ];
+    }
+
+    /**
+     * @param string $group
+     * @param string $field
+     * @return int|null
+     */
+    private function cronGroupSetting(string $group, string $field): ?int
+    {
+        $value = $this->scopeConfig->getValue(
+            sprintf(self::CONFIG_PATH_TEMPLATE, $group, $field),
+            ScopeInterface::SCOPE_STORE
+        );
+
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    /**
+     * Problems first — stuck, then failing, then jobs with no surviving history
+     * — so a client reading top-down sees the answer before the healthy noise.
      *
      * @phpstan-param array<string, array<string, mixed>> $jobs
      * @param array $jobs
@@ -599,7 +686,7 @@ class Status implements ToolInterface
             $rank = static fn (array $job): int => match (true) {
                 ($job['stuck'] ?? false) === true => 0,
                 ($job['error'] ?? 0) > 0 => 1,
-                ($job['never_scheduled'] ?? false) === true => 2,
+                ($job['no_run_history'] ?? false) === true => 2,
                 default => 3,
             };
             $code = static fn (array $job): string => is_string($job['job_code'] ?? null)

@@ -15,8 +15,9 @@ use Magento\Framework\DB\Sql\Expression;
 
 /**
  * Read-only `cron_schedule` access for the cron diagnostics tool. Every query is
- * bounded by a history window and shaped to hit the table's
- * (job_code, status, scheduled_at) index instead of walking the whole table.
+ * bounded by a time window. The aggregate has no `job_code` predicate, so it is
+ * an index-ordered group scan over (job_code, status, scheduled_at) — no sort,
+ * but not a range seek; the two detail queries do seek on the leading column.
  */
 class ScheduleReader
 {

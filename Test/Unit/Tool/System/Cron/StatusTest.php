@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\Cron\ScheduleReader;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Tool\System\Cron\Status;
 use Magento\Cron\Model\ConfigInterface;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -33,17 +34,52 @@ class StatusTest extends TestCase
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private ScheduleReader&MockObject $scheduleReader;
 
+    /**
+     * @phpstan-var ScopeConfigInterface&MockObject
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
+    private ScopeConfigInterface&MockObject $scopeConfig;
+
     private Status $tool;
 
     protected function setUp(): void
     {
         $this->cronConfig = $this->createMock(ConfigInterface::class);
         $this->scheduleReader = $this->createMock(ScheduleReader::class);
+        $this->scopeConfig = $this->createMock(ScopeConfigInterface::class);
+
+        // Magento seeds these from each module's cron_groups.xml, so they read
+        // back as strings — 60 / 4320 / 20 are the shipped `default` values.
+        $this->scopeConfig->method('getValue')->willReturnCallback(
+            static fn (mixed $path): ?string => match ($path) {
+                'system/cron/default/history_success_lifetime' => '60',
+                'system/cron/default/history_failure_lifetime' => '4320',
+                'system/cron/default/schedule_ahead_for' => '20',
+                'system/cron/index/history_success_lifetime' => '60',
+                'system/cron/index/history_failure_lifetime' => '4320',
+                'system/cron/index/schedule_ahead_for' => '4',
+                default => null,
+            }
+        );
 
         $dateTime = $this->createMock(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn($this->ts(self::NOW));
 
-        $this->tool = new Status($this->cronConfig, $this->scheduleReader, $dateTime);
+        $this->tool = new Status($this->cronConfig, $this->scheduleReader, $this->scopeConfig, $dateTime);
+    }
+
+    public function testDescriptionRefusesToClaimAMissingHistoryMeansTheJobNeverRan(): void
+    {
+        // Magento keeps success rows for only `history_success_lifetime` (60
+        // minutes by default), so an absent history is the normal state for any
+        // job that runs less often than that. The description is the only place
+        // the model learns this, so the wording is part of the contract.
+        $description = $this->tool->getDescription();
+
+        self::assertStringContainsString('no_run_history', $description);
+        self::assertStringContainsString('never ran', $description);
+        self::assertStringContainsString('retention', $description);
+        self::assertStringNotContainsString('never queued', $description);
     }
 
     public function testMetadataMatchesConventions(): void
@@ -75,6 +111,8 @@ class StatusTest extends TestCase
         self::assertTrue($payload['alive']);
         self::assertSame('2026-08-04T12:00:00+00:00', $payload['checked_at']);
         self::assertSame(60, $payload['stuck_threshold_minutes']);
+        self::assertSame(30, $payload['query_window_days']);
+        self::assertArrayNotHasKey('history_window_days', $payload);
 
         $jobs = $this->jobsByCode($payload);
         self::assertSame([
@@ -90,7 +128,7 @@ class StatusTest extends TestCase
             'missed' => 0,
             'error' => 0,
             'stuck' => false,
-            'never_scheduled' => false,
+            'no_run_history' => false,
             'recent' => [],
         ], $jobs['catalog_product_alert']);
 
@@ -105,7 +143,7 @@ class StatusTest extends TestCase
         self::assertSame('unknown', $jobs['orphan_job']['group']);
 
         self::assertSame(
-            ['failing' => 1, 'stuck' => 1, 'never_scheduled' => 1],
+            ['failing' => 1, 'stuck' => 1, 'no_run_history' => 1],
             $payload['summary']
         );
     }
@@ -184,7 +222,7 @@ class StatusTest extends TestCase
         self::assertFalse($payload['alive']);
     }
 
-    public function testNeverScheduledListsConfiguredJobsAbsentFromTheTable(): void
+    public function testNoRunHistoryFlagsConfiguredJobsWithNoSurvivingRows(): void
     {
         $this->stubConfig();
         $this->stubTotals();
@@ -193,9 +231,9 @@ class StatusTest extends TestCase
 
         $jobs = $this->jobsByCode($this->execute([]));
 
-        self::assertTrue($jobs['unused_job']['never_scheduled']);
+        self::assertTrue($jobs['unused_job']['no_run_history']);
         self::assertNull($jobs['unused_job']['last_success_at']);
-        self::assertFalse($jobs['catalog_product_alert']['never_scheduled']);
+        self::assertFalse($jobs['catalog_product_alert']['no_run_history']);
     }
 
     public function testGroupsCarryPerGroupAliveAndCounts(): void
@@ -218,14 +256,53 @@ class StatusTest extends TestCase
             'error' => 1,
             'stuck' => 0,
             'failing' => 1,
-            'never_scheduled' => 1,
+            'no_run_history' => 1,
             'last_success_at' => '2026-08-04T11:30:09+00:00',
             'alive' => true,
+            'retention' => [
+                'success_minutes' => 60,
+                'failure_minutes' => 4320,
+                'schedule_ahead_minutes' => 20,
+            ],
         ], $groups['default']);
 
         self::assertIsArray($groups['index']);
         self::assertFalse($groups['index']['alive']);
         self::assertSame(1, $groups['index']['stuck']);
+    }
+
+    public function testGroupRetentionComesFromTheCronGroupConfiguration(): void
+    {
+        // Without these numbers the model cannot tell "pruned" from "never ran",
+        // which is the whole reason a null last_success_at is not a diagnosis.
+        $this->stubConfig();
+        $this->stubTotals();
+        $this->stubErrors();
+        $this->scheduleReader->method('fetchRecentRuns')->willReturn([]);
+
+        $groups = $this->execute([])['groups'];
+        self::assertIsArray($groups);
+        self::assertIsArray($groups['index']);
+
+        self::assertSame([
+            'success_minutes' => 60,
+            'failure_minutes' => 4320,
+            'schedule_ahead_minutes' => 4,
+        ], $groups['index']['retention']);
+    }
+
+    public function testUnconfiguredGroupHasNoRetentionToReport(): void
+    {
+        $this->stubConfig();
+        $this->stubTotals();
+        $this->stubErrors();
+        $this->scheduleReader->method('fetchRecentRuns')->willReturn([]);
+
+        $groups = $this->execute([])['groups'];
+        self::assertIsArray($groups);
+        self::assertIsArray($groups['unknown']);
+
+        self::assertNull($groups['unknown']['retention']);
     }
 
     public function testGroupFilterNarrowsTheReportButKeepsAliveGlobal(): void
@@ -255,14 +332,30 @@ class StatusTest extends TestCase
         $this->tool->execute(['group' => 'nope']);
     }
 
-    public function testGroupErrorListsEveryGroupEvenWhenJobCodeAlreadyNarrowed(): void
+    public function testUnknownGroupErrorListsEveryKnownGroup(): void
     {
         $this->stubConfig();
         $this->stubTotals();
         $this->stubErrors();
 
         $this->expectException(LocalizedException::class);
-        $this->expectExceptionMessage('Known groups: default, index, unknown.');
+        $this->expectExceptionMessage('Unknown cron group "nope". Known groups: default, index, unknown.');
+
+        $this->tool->execute(['group' => 'nope']);
+    }
+
+    public function testContradictoryGroupAndJobCodeExplainTheRealGroup(): void
+    {
+        // A known group must never be reported as unknown just because the
+        // job_code filter had already narrowed the set away from it.
+        $this->stubConfig();
+        $this->stubTotals();
+        $this->stubErrors();
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage(
+            'Cron job "sales_clean_quotes" is in group "default", not "index".'
+        );
 
         $this->tool->execute(['group' => 'index', 'job_code' => 'sales_clean_quotes']);
     }
@@ -277,7 +370,7 @@ class StatusTest extends TestCase
         $payload = $this->execute(['job_code' => 'sales_clean_quotes']);
 
         self::assertSame(['sales_clean_quotes'], array_keys($this->jobsByCode($payload)));
-        self::assertSame(['failing' => 1, 'stuck' => 0, 'never_scheduled' => 0], $payload['summary']);
+        self::assertSame(['failing' => 1, 'stuck' => 0, 'no_run_history' => 0], $payload['summary']);
     }
 
     public function testUnknownJobCodeRaisesLocalizedException(): void
@@ -439,7 +532,7 @@ class StatusTest extends TestCase
             'jobs' => 5,
             'failing' => 1,
             'stuck' => 1,
-            'never_scheduled' => 1,
+            'no_run_history' => 1,
         ], $summary);
     }
 
@@ -454,7 +547,7 @@ class StatusTest extends TestCase
 
         self::assertFalse($payload['alive']);
         self::assertSame([], $payload['jobs']);
-        self::assertSame(['failing' => 0, 'stuck' => 0, 'never_scheduled' => 0], $payload['summary']);
+        self::assertSame(['failing' => 0, 'stuck' => 0, 'no_run_history' => 0], $payload['summary']);
     }
 
     /**
