@@ -97,6 +97,7 @@ class LogReader
         $bytesRead = 0;
         $byteLimitReached = false;
         $buffer = '';
+        $newlineCount = 0;
 
         try {
             $this->fileDriver->fileSeek($handle, 0, SEEK_END);
@@ -122,9 +123,13 @@ class LogReader
                 }
                 $buffer = $chunk . $buffer;
                 $bytesRead += strlen($chunk);
+                // Counted per chunk and accumulated, rather than recounting the
+                // whole (growing) buffer every iteration — that used to make
+                // this loop O(chunks²) as the buffer approached the tail cap.
+                $newlineCount += substr_count($chunk, "\n");
                 // One more than requested: the first line in the buffer is
                 // partial whenever the read did not reach the file start.
-                if (substr_count($buffer, "\n") > $lines) {
+                if ($newlineCount > $lines) {
                     break;
                 }
             }

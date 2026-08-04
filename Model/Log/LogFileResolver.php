@@ -39,11 +39,18 @@ use Magento\Framework\Filesystem\Driver\File as FileDriver;
  * layout; driver-level failures are re-thrown generically for the same reason.
  * The base directory always comes from {@see DirectoryList} rather than a
  * hardcoded path, so an install that relocates `var/log` stays correct.
+ *
+ * Accepted residual risk: canonicalisation defeats symlinks, but a *hard* link
+ * inside `var/log` pointing at a file outside it resolves inside the prefix
+ * and would pass, as would a symlink swapped in between resolve and open
+ * (TOCTOU) — Magento's File driver exposes no fd-based stat to close that
+ * window. Both require pre-existing write access to `var/log`, so this is
+ * post-compromise amplification, not a primary attack vector.
  */
 class LogFileResolver
 {
     /** Plain `*.log`, plus logrotate's numeric suffix (`system.log.1`). */
-    private const FILE_NAME_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]*\.log(?:\.[0-9]{1,3})?$/';
+    private const FILE_NAME_PATTERN = '/^[A-Za-z0-9][A-Za-z0-9._-]*\.log(?:\.[0-9]{1,3})?$/D';
 
     private const MAX_NAME_LENGTH = 255;
 
@@ -141,10 +148,12 @@ class LogFileResolver
 
     /**
      * Every readable log file in the log directory, name-sorted. A missing or
-     * unreadable log directory lists as empty rather than raising.
+     * unreadable log directory lists as empty rather than raising. `truncated`
+     * is true when more than {@see MAX_LISTED_FILES} exist, so a client can
+     * tell the inventory was cut rather than reading it as the whole story.
      *
-     * @phpstan-return list<array{file: string, size_bytes: int, modified_at: string}>
-     * @return array[]
+     * @phpstan-return array{files: list<array{file: string, size_bytes: int, modified_at: string}>, truncated: bool}
+     * @return array
      */
     public function listFiles(): array
     {
@@ -152,7 +161,7 @@ class LogFileResolver
             $prefix = $this->logDirectoryPrefix();
             $entries = $this->fileDriver->readDirectory(rtrim($prefix, DIRECTORY_SEPARATOR));
         } catch (LocalizedException | FileSystemException) {
-            return [];
+            return ['files' => [], 'truncated' => false];
         }
 
         $names = [];
@@ -173,8 +182,10 @@ class LogFileResolver
         sort($names, SORT_STRING);
 
         $files = [];
+        $truncated = false;
         foreach ($names as $name) {
             if (count($files) >= self::MAX_LISTED_FILES) {
+                $truncated = true;
                 break;
             }
             // Reuse the full containment check so a symlink out of the log
@@ -194,7 +205,7 @@ class LogFileResolver
             ];
         }
 
-        return $files;
+        return ['files' => $files, 'truncated' => $truncated];
     }
 
     /**
@@ -256,7 +267,12 @@ class LogFileResolver
      */
     private function logDirectoryPrefix(): string
     {
-        /** @var mixed $configured Annotated `string`; unknown codes yield null. */
+        /**
+         * @var mixed $configured Annotated `string`; in practice `getPath()`
+         *     throws `FileSystemException` for an unrecognised code rather
+         *     than returning null, but the `is_string()` guard below is kept
+         *     as harmless belt-and-braces.
+         */
         $configured = $this->directoryList->getPath(AppDirectoryList::LOG);
         $directory = is_string($configured) && $configured !== ''
             ? $this->realPath($configured)

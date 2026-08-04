@@ -292,19 +292,20 @@ class LogFileResolverTest extends TestCase
         mkdir($this->logDir . '/subdir');
         file_put_contents($this->logDir . '/subdir/nested.log', "nested\n");
 
-        $files = $this->resolver->listFiles();
-        $names = array_column($files, 'file');
+        $listing = $this->resolver->listFiles();
+        $names = array_column($listing['files'], 'file');
 
         self::assertSame(['exception.log', 'system.log', 'system.log.1'], $names);
         self::assertNotContains('env.php', $names);
         self::assertNotContains('subdir', $names);
         self::assertNotContains('nested.log', $names);
+        self::assertFalse($listing['truncated']);
     }
 
     public function testListFilesReportsSizeAndModificationTime(): void
     {
         $files = [];
-        foreach ($this->resolver->listFiles() as $entry) {
+        foreach ($this->resolver->listFiles()['files'] as $entry) {
             $files[$entry['file']] = $entry;
         }
 
@@ -322,7 +323,7 @@ class LogFileResolverTest extends TestCase
             'Test needs symlink support.'
         );
 
-        $names = array_column($this->resolver->listFiles(), 'file');
+        $names = array_column($this->resolver->listFiles()['files'], 'file');
 
         self::assertNotContains('escape.log', $names);
     }
@@ -334,7 +335,30 @@ class LogFileResolverTest extends TestCase
             new FileDriver()
         );
 
-        self::assertSame([], $resolver->listFiles());
+        self::assertSame(['files' => [], 'truncated' => false], $resolver->listFiles());
+    }
+
+    public function testListFilesReportsTruncationWhenTheDirectoryHoldsMoreFilesThanTheCap(): void
+    {
+        $reflection = new \ReflectionClass(LogFileResolver::class);
+        $cap = $reflection->getConstant('MAX_LISTED_FILES');
+        self::assertIsInt($cap);
+
+        for ($i = 0; $i <= $cap; $i++) {
+            file_put_contents($this->logDir . sprintf('/extra%04d.log', $i), "x\n");
+        }
+
+        $listing = $this->resolver->listFiles();
+
+        self::assertTrue($listing['truncated']);
+        self::assertCount($cap, $listing['files']);
+    }
+
+    public function testListFilesReportsNoTruncationWhenUnderTheCap(): void
+    {
+        $listing = $this->resolver->listFiles();
+
+        self::assertFalse($listing['truncated']);
     }
 
     /**

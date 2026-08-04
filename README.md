@@ -36,7 +36,9 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - A PII-redacting audit log with configurable retention
 - Per-(admin, tool) rate limiting
 - An origin allowlist with sensible defaults for major AI clients
-- Core tools for the authenticated identity, cache types, indexers, store views, system configuration values, admin notifications, scheduled-job diagnostics (`system.cron.status`, so the AI can answer "why didn't that run automatically?") and read-only log diagnostics (`system.log.list` / `system.log.tail` / `system.log.grep`, so the AI can read `var/log` without shell access — basename-only, `.log` files only, with bounded reads)
+- Core tools for the authenticated identity, cache types, indexers, store views, system configuration values and admin notifications
+- Scheduled-job diagnostics (`system.cron.status`), so the AI can answer "why didn't that run automatically?" — per-job last success/error, stuck-job detection, and per-group retention. Absent run history is not evidence a job never ran: Magento prunes successful cron rows aggressively (60 minutes by default), so `no_run_history` is normal for most of the day on any job that doesn't run every few minutes
+- Read-only log diagnostics (`system.log.list` / `system.log.tail` / `system.log.grep`), so the AI can read `var/log` without shell access — basename-only, `.log` files only. Every read is bounded (line and match caps, a total byte budget) and never loads a whole file. Log lines routinely contain customer PII, tokens, or credentials, so grant the underlying tool ACLs to admin roles accordingly
 - MCP prompt support (see examples in [Prompt/System](Prompt/System/) directory)
 
 ## Quick start

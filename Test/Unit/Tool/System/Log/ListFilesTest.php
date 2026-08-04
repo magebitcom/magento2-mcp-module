@@ -67,6 +67,23 @@ class ListFilesTest extends TestCase
         self::assertSame(['exception.log', 'system.log'], array_column($payload['files'], 'file'));
         self::assertSame(5, $payload['files'][0]['size_bytes']);
         self::assertArrayHasKey('modified_at', $payload['files'][0]);
+        self::assertFalse($payload['truncated']);
+    }
+
+    public function testExecuteReportsTruncationWhenTheDirectoryHoldsMoreFilesThanTheCap(): void
+    {
+        $reflection = new \ReflectionClass(LogFileResolver::class);
+        $cap = $reflection->getConstant('MAX_LISTED_FILES');
+        self::assertIsInt($cap);
+
+        for ($i = 0; $i <= $cap; $i++) {
+            file_put_contents($this->dir . sprintf('/extra%04d.log', $i), "x\n");
+        }
+
+        $payload = $this->execute();
+
+        self::assertTrue($payload['truncated']);
+        self::assertSame($cap, $payload['file_count']);
     }
 
     public function testAuditSummaryRecordsOnlyTheCount(): void
@@ -84,7 +101,8 @@ class ListFilesTest extends TestCase
     /**
      * @phpstan-return array{
      *     files: list<array{file: string, size_bytes: int, modified_at: string}>,
-     *     file_count: int
+     *     file_count: int,
+     *     truncated: bool
      * }
      * @return array
      */
@@ -99,7 +117,7 @@ class ListFilesTest extends TestCase
 
         /**
          * @phpstan-var array{files: list<array{file: string, size_bytes: int,
-         *     modified_at: string}>, file_count: int} $decoded
+         *     modified_at: string}>, file_count: int, truncated: bool} $decoded
          */
         return $decoded;
     }

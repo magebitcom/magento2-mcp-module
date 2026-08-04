@@ -65,7 +65,9 @@ class ListFiles implements ToolInterface
             . 'of the same log, so prefer the un-numbered file for recent events. '
             . 'A large, recently written file usually means errors are still '
             . 'being produced. Sizes are bytes; `modified_at` is ISO-8601 UTC. '
-            . 'Only files inside the log directory are ever listed or readable.';
+            . 'Only files inside the log directory are ever listed or readable. '
+            . '`truncated: true` means the log directory holds more files than '
+            . 'this listing\'s cap — some files are not shown.';
     }
 
     /**
@@ -105,11 +107,13 @@ class ListFiles implements ToolInterface
      */
     public function execute(array $arguments): ToolResultInterface
     {
-        $files = $this->logFileResolver->listFiles();
+        $listing = $this->logFileResolver->listFiles();
+        $files = $listing['files'];
 
         $json = json_encode([
             'files' => $files,
             'file_count' => count($files),
+            'truncated' => $listing['truncated'],
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
             throw new LocalizedException(__('Failed to encode the log file listing as JSON.'));
