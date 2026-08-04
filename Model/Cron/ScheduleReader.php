@@ -14,10 +14,9 @@ use Magento\Framework\DB\Select;
 use Magento\Framework\DB\Sql\Expression;
 
 /**
- * Read-only `cron_schedule` access for the cron diagnostics tool. Every query is
- * bounded by a time window. The aggregate has no `job_code` predicate, so it is
- * an index-ordered group scan over (job_code, status, scheduled_at) — no sort,
- * but not a range seek; the two detail queries do seek on the leading column.
+ * Read-only, time-window-bounded `cron_schedule` access for the cron diagnostics
+ * tool. The aggregate has no `job_code` predicate, so it is an index-ordered
+ * group scan — no sort, but not a range seek; the detail queries do seek.
  */
 class ScheduleReader
 {

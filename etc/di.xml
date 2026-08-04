@@ -234,6 +234,15 @@
                 <item name="system.cron.status" xsi:type="object">
                     Magebit\Mcp\Tool\System\Cron\Status
                 </item>
+                <item name="system.log.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Log\ListFiles
+                </item>
+                <item name="system.log.tail" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Log\Tail
+                </item>
+                <item name="system.log.grep" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Log\Grep
+                </item>
             </argument>
         </arguments>
     </type>

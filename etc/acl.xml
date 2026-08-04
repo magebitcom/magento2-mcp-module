@@ -42,6 +42,12 @@
                                       title="Tool: List Admin Notifications" sortOrder="130"/>
                             <resource id="Magebit_Mcp::tool_system_cron_status"
                                       title="Tool: Cron Status" sortOrder="150"/>
+                            <resource id="Magebit_Mcp::tool_system_log_list"
+                                      title="Tool: List Log Files" sortOrder="160"/>
+                            <resource id="Magebit_Mcp::tool_system_log_tail"
+                                      title="Tool: Tail Log File" sortOrder="170"/>
+                            <resource id="Magebit_Mcp::tool_system_log_grep"
+                                      title="Tool: Search Log File" sortOrder="180"/>
                         </resource>
                         <resource id="Magebit_Mcp::config" title="MCP Configuration" sortOrder="40"/>
                     </resource>
