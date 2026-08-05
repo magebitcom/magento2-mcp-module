@@ -58,7 +58,10 @@ class WhoAmI implements ToolInterface
     public function getDescription(): string
     {
         return 'Return the Magento administrator and MCP connection authenticated '
-            . 'for this request, including whether write tools are currently allowed.';
+            . 'for this request, including whether write tools are currently allowed. '
+            . 'Call this first whenever a request says "me", "my" or "mine" (e.g. '
+            . '"my orders", "tickets assigned to me") so you can substitute the real '
+            . 'admin identity instead of guessing.';
     }
 
     /**
@@ -104,8 +107,10 @@ class WhoAmI implements ToolInterface
         $allowWrites = $this->config->isAllowWrites() && $context->token->getAllowWrites();
         $payload = [
             'admin_user_id' => $adminUserId,
-            'username' => (string) $context->adminUser->getUsername(),
-            'email' => (string) $context->adminUser->getEmail(),
+            'username' => $this->stringOrEmpty($context->adminUser->getUsername()),
+            'email' => $this->stringOrEmpty($context->adminUser->getEmail()),
+            'firstname' => $this->stringOrEmpty($context->adminUser->getFirstName()),
+            'lastname' => $this->stringOrEmpty($context->adminUser->getLastName()),
             'token_name' => $context->token->getName(),
             'allow_writes' => $allowWrites,
         ];
@@ -119,5 +124,16 @@ class WhoAmI implements ToolInterface
             'admin_user_id' => $adminUserId,
             'allow_writes' => $allowWrites,
         ]);
+    }
+
+    /**
+     * Admin user getters are untyped AbstractModel reads — normalize to string.
+     *
+     * @param mixed $value
+     * @return string
+     */
+    private function stringOrEmpty(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
     }
 }

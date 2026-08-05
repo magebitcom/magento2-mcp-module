@@ -39,6 +39,8 @@ class WhoAmITest extends McpTestCase
         self::assertSame('adminUser', $payload['username'] ?? null);
         self::assertIsString($payload['email'] ?? null);
         self::assertStringContainsString('@', $payload['email']);
+        self::assertIsString($payload['firstname'] ?? null);
+        self::assertIsString($payload['lastname'] ?? null);
         self::assertIsString($payload['token_name'] ?? null);
         self::assertStringStartsWith('api-functional adminUser @ ', $payload['token_name']);
         self::assertIsBool($payload['allow_writes'] ?? null);

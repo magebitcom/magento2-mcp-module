@@ -54,8 +54,10 @@ class WhoAmITest extends TestCase
             ->disableOriginalConstructor()
             ->getMock();
         $adminUser->method('getId')->willReturn(42);
-        $adminUser->method('getUsername')->willReturn('junaid');
-        $adminUser->method('getEmail')->willReturn('junaid@example.com');
+        $adminUser->method('getUsername')->willReturn('jdoe');
+        $adminUser->method('getEmail')->willReturn('john.doe@example.com');
+        $adminUser->method('getFirstName')->willReturn('John');
+        $adminUser->method('getLastName')->willReturn('Doe');
         $this->contextProvider->set(new AuthenticatedContext($token, $adminUser));
 
         $config = $this->createMock(ModuleConfig::class);
@@ -65,14 +67,49 @@ class WhoAmITest extends TestCase
         $payload = $this->decodeContent($result->getContent());
 
         self::assertSame(42, $payload['admin_user_id']);
-        self::assertSame('junaid', $payload['username']);
-        self::assertSame('junaid@example.com', $payload['email']);
+        self::assertSame('jdoe', $payload['username']);
+        self::assertSame('john.doe@example.com', $payload['email']);
+        self::assertSame('John', $payload['firstname']);
+        self::assertSame('Doe', $payload['lastname']);
         self::assertSame('Claude Web', $payload['token_name']);
         self::assertTrue($payload['allow_writes']);
         self::assertSame([
             'admin_user_id' => 42,
             'allow_writes' => true,
         ], $result->getAuditSummary());
+    }
+
+    public function testDescriptionTellsTheClientWhenToResolveFirstPerson(): void
+    {
+        $description = (new WhoAmI($this->contextProvider, $this->createMock(ModuleConfig::class)))
+            ->getDescription();
+
+        self::assertStringContainsString('"me"', $description);
+        self::assertStringContainsString('"my"', $description);
+    }
+
+    public function testUnsetPersonalNamesDegradeToEmptyStrings(): void
+    {
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getName')->willReturn('Read only');
+        $token->method('getAllowWrites')->willReturn(false);
+
+        $adminUser = $this->getMockBuilder(User::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $adminUser->method('getId')->willReturn(7);
+        $adminUser->method('getUsername')->willReturn('operator');
+        $adminUser->method('getEmail')->willReturn('operator@example.com');
+        $adminUser->method('getFirstName')->willReturn(null);
+        $adminUser->method('getLastName')->willReturn(null);
+        $this->contextProvider->set(new AuthenticatedContext($token, $adminUser));
+
+        $result = (new WhoAmI($this->contextProvider, $this->createMock(ModuleConfig::class)))
+            ->execute([]);
+        $payload = $this->decodeContent($result->getContent());
+
+        self::assertSame('', $payload['firstname']);
+        self::assertSame('', $payload['lastname']);
     }
 
     /**
