@@ -52,7 +52,6 @@ class WhoAmITest extends TestCase
 
         $adminUser = $this->getMockBuilder(User::class)
             ->disableOriginalConstructor()
-            ->addMethods(['getUsername', 'getEmail'])
             ->getMock();
         $adminUser->method('getId')->willReturn(42);
         $adminUser->method('getUsername')->willReturn('junaid');
@@ -91,7 +90,6 @@ class WhoAmITest extends TestCase
 
         $adminUser = $this->getMockBuilder(User::class)
             ->disableOriginalConstructor()
-            ->addMethods(['getUsername', 'getEmail'])
             ->getMock();
         $adminUser->method('getId')->willReturn(7);
         $adminUser->method('getUsername')->willReturn('operator');
