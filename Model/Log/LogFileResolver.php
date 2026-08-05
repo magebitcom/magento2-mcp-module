@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Log;
 
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\Framework\App\Filesystem\DirectoryList as AppDirectoryList;
 use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Exception\LocalizedException;
@@ -22,6 +23,8 @@ use Magento\Framework\Filesystem\Driver\File as FileDriver;
  * is an arbitrary-file read (`app/etc/env.php` carries the DB credentials and
  * the crypt key). The defence is layered:
  *
+ * 0. An operator allowlist, checked before any filesystem call so a refusal
+ *    cannot be used to probe for what exists. Rotated `.log.N` follows its base.
  * 1. Type and syntax, before any filesystem call — a basename only. Null bytes,
  *    `/`, `\`, `..` and anything not matching {@see FILE_NAME_PATTERN} (`*.log`
  *    or a numerically rotated `*.log.N`) are rejected outright, so no crafted
@@ -57,13 +60,21 @@ class LogFileResolver
     /** Hard ceiling on how many files a single listing reports. */
     private const MAX_LISTED_FILES = 500;
 
+    /** logrotate's numeric suffix — `system.log.1` is the same log as `system.log`. */
+    private const ROTATION_SUFFIX_PATTERN = '/\.[0-9]{1,3}$/D';
+
+    /** @var array<string, true>|null Memoised allowlist lookup for this request. */
+    private ?array $allowed = null;
+
     /**
      * @param DirectoryList $directoryList
      * @param FileDriver $fileDriver
+     * @param ModuleConfig $moduleConfig
      */
     public function __construct(
         private readonly DirectoryList $directoryList,
-        private readonly FileDriver $fileDriver
+        private readonly FileDriver $fileDriver,
+        private readonly ModuleConfig $moduleConfig
     ) {
     }
 
@@ -117,6 +128,16 @@ class LogFileResolver
     public function resolve(mixed $file): string
     {
         $name = $this->normalize($file);
+        // Before the filesystem, so a refusal cannot reveal whether the file exists.
+        if (!$this->isAllowed($name)) {
+            throw new LocalizedException(__(
+                'Log file "%1" is not on the list of log files this server may read. '
+                . 'An administrator sets that list under Stores → Configuration → Magebit → '
+                . 'MCP Server → Log Tools.',
+                $this->describe($name)
+            ));
+        }
+
         $prefix = $this->logDirectoryPrefix();
 
         $resolved = $this->realPath($prefix . $name);
@@ -175,7 +196,7 @@ class LogFileResolver
             if (str_contains($name, '/') || str_contains($name, DIRECTORY_SEPARATOR)) {
                 continue;
             }
-            if (preg_match(self::FILE_NAME_PATTERN, $name) === 1) {
+            if (preg_match(self::FILE_NAME_PATTERN, $name) === 1 && $this->isAllowed($name)) {
                 $names[] = $name;
             }
         }
@@ -206,6 +227,30 @@ class LogFileResolver
         }
 
         return ['files' => $files, 'truncated' => $truncated];
+    }
+
+    /**
+     * Allowing `system.log` also allows `system.log.1`, but only that base.
+     *
+     * @param string $name Already through {@see normalize()}.
+     * @return bool
+     */
+    private function isAllowed(string $name): bool
+    {
+        if ($this->allowed === null) {
+            $this->allowed = [];
+            foreach ($this->moduleConfig->getAllowedLogFiles() as $entry) {
+                $this->allowed[$entry] = true;
+            }
+        }
+
+        if (isset($this->allowed[$name])) {
+            return true;
+        }
+
+        $base = preg_replace(self::ROTATION_SUFFIX_PATTERN, '', $name);
+
+        return is_string($base) && $base !== $name && isset($this->allowed[$base]);
     }
 
     /**

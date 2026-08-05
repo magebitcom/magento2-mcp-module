@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Tool\System\Log;
 
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\Log\LogFileResolver;
 use Magebit\Mcp\Model\Log\LogReader;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -37,7 +38,7 @@ class GrepTest extends TestCase
         $directoryList = $this->createMock(DirectoryList::class);
         $directoryList->method('getPath')->with(AppDirectoryList::LOG)->willReturn($this->dir);
 
-        $this->tool = new Grep(new LogFileResolver($directoryList, new FileDriver()), new LogReader(new FileDriver()));
+        $this->tool = new Grep(new LogFileResolver($directoryList, new FileDriver(), $this->allowAllFixtures()), new LogReader(new FileDriver()));
     }
 
     protected function tearDown(): void
@@ -309,4 +310,14 @@ class GrepTest extends TestCase
         rmdir($path);
     }
 
+    /**
+     * @return ModuleConfig
+     */
+    private function allowAllFixtures(): ModuleConfig
+    {
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getAllowedLogFiles')->willReturn(['system.log', 'exception.log']);
+
+        return $config;
+    }
 }

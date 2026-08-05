@@ -50,6 +50,15 @@ https://www.perplexity.ai</allowed_origins>
             <module_updates>
                 <enabled>1</enabled>
             </module_updates>
+            <log_tools>
+                <!-- Magento's own logs only; anything else is an explicit operator decision. -->
+                <allowed_files># One log file name per line. Lines starting with # are ignored.
+# Only the files listed here can be read; rotated copies (system.log.1) follow their base name.
+system.log
+exception.log
+debug.log
+cron.log</allowed_files>
+            </log_tools>
         </magebit_mcp>
     </default>
 </config>

@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\Log\LogFileResolver;
 use Magento\Framework\App\Filesystem\DirectoryList as AppDirectoryList;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem\DirectoryList;
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
 use PHPUnit\Framework\TestCase;
 
@@ -27,6 +28,21 @@ class LogFileResolverTest extends TestCase
     private string $logDir;
 
     private string $outsideDir;
+
+    /**
+     * Sandbox fixture names, so these cases exercise containment not the allowlist.
+     *
+     * @var list<string>
+     */
+    private const SANDBOX_ALLOWLIST = [
+        'system.log',
+        'exception.log',
+        'escape.log',
+        'leak.log',
+        'directory.log',
+        'nested.log',
+        'nosuchfile.log',
+    ];
 
     private LogFileResolver $resolver;
 
@@ -48,7 +64,11 @@ class LogFileResolverTest extends TestCase
         file_put_contents($this->logDir . '/env.php', "<?php return ['db' => 'secret'];\n");
         file_put_contents($this->outsideDir . '/secret.log', "credentials\n");
 
-        $this->resolver = new LogFileResolver($this->directoryList($this->logDir), new FileDriver());
+        $this->resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig(self::SANDBOX_ALLOWLIST)
+        );
     }
 
     protected function tearDown(): void
@@ -131,7 +151,8 @@ class LogFileResolverTest extends TestCase
         // back a name: nothing here may depend on the log directory resolving.
         $resolver = new LogFileResolver(
             $this->directoryList($this->sandbox . DIRECTORY_SEPARATOR . 'nope'),
-            new FileDriver()
+            new FileDriver(),
+            $this->moduleConfig(self::SANDBOX_ALLOWLIST)
         );
 
         self::assertSame('exception.log', $resolver->normalize('exception.log'));
@@ -247,7 +268,8 @@ class LogFileResolverTest extends TestCase
     {
         $resolver = new LogFileResolver(
             $this->directoryList($this->sandbox . DIRECTORY_SEPARATOR . 'nope'),
-            new FileDriver()
+            new FileDriver(),
+            $this->moduleConfig(self::SANDBOX_ALLOWLIST)
         );
 
         $this->expectException(LocalizedException::class);
@@ -332,7 +354,8 @@ class LogFileResolverTest extends TestCase
     {
         $resolver = new LogFileResolver(
             $this->directoryList($this->sandbox . DIRECTORY_SEPARATOR . 'nope'),
-            new FileDriver()
+            new FileDriver(),
+            $this->moduleConfig(self::SANDBOX_ALLOWLIST)
         );
 
         self::assertSame(['files' => [], 'truncated' => false], $resolver->listFiles());
@@ -344,11 +367,18 @@ class LogFileResolverTest extends TestCase
         $cap = $reflection->getConstant('MAX_LISTED_FILES');
         self::assertIsInt($cap);
 
+        $allowed = [];
         for ($i = 0; $i <= $cap; $i++) {
-            file_put_contents($this->logDir . sprintf('/extra%04d.log', $i), "x\n");
+            $name = sprintf('extra%04d.log', $i);
+            file_put_contents($this->logDir . DIRECTORY_SEPARATOR . $name, "x\n");
+            $allowed[] = $name;
         }
 
-        $listing = $this->resolver->listFiles();
+        $listing = (new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig($allowed)
+        ))->listFiles();
 
         self::assertTrue($listing['truncated']);
         self::assertCount($cap, $listing['files']);
@@ -359,6 +389,115 @@ class LogFileResolverTest extends TestCase
         $listing = $this->resolver->listFiles();
 
         self::assertFalse($listing['truncated']);
+    }
+
+    public function testRefusesAFileThatIsNotOnTheAllowlist(): void
+    {
+        $resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig(['system.log'])
+        );
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessageMatches('/not on the list of log files/');
+
+        $resolver->resolve('exception.log');
+    }
+
+    public function testAnEmptyAllowlistRefusesEveryFile(): void
+    {
+        $resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig([])
+        );
+
+        $this->expectException(LocalizedException::class);
+
+        $resolver->resolve('system.log');
+    }
+
+    public function testAllowlistRefusalDoesNotRevealWhetherTheFileExists(): void
+    {
+        $resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig(['system.log'])
+        );
+
+        $present = null;
+        $absent = null;
+        try {
+            $resolver->resolve('exception.log');
+        } catch (LocalizedException $e) {
+            $present = $e->getMessage();
+        }
+        try {
+            $resolver->resolve('nosuchfile.log');
+        } catch (LocalizedException $e) {
+            $absent = $e->getMessage();
+        }
+
+        self::assertNotNull($present);
+        self::assertSame(
+            str_replace('exception.log', 'X', (string) $present),
+            str_replace('nosuchfile.log', 'X', (string) $absent)
+        );
+    }
+
+    public function testAllowingABaseNameAlsoAllowsItsRotatedFiles(): void
+    {
+        $resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig(['system.log'])
+        );
+
+        self::assertSame(
+            $this->logDir . DIRECTORY_SEPARATOR . 'system.log.1',
+            $resolver->resolve('system.log.1')
+        );
+    }
+
+    public function testRotationToleranceDoesNotLeakAcrossDifferentFiles(): void
+    {
+        file_put_contents($this->logDir . '/payments.log.2', "card\n");
+        $resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig(['system.log'])
+        );
+
+        $this->expectException(LocalizedException::class);
+
+        $resolver->resolve('payments.log.2');
+    }
+
+    public function testListFilesShowsOnlyAllowedFiles(): void
+    {
+        $resolver = new LogFileResolver(
+            $this->directoryList($this->logDir),
+            new FileDriver(),
+            $this->moduleConfig(['system.log'])
+        );
+
+        $names = array_column($resolver->listFiles()['files'], 'file');
+
+        self::assertSame(['system.log', 'system.log.1'], $names);
+        self::assertNotContains('exception.log', $names);
+    }
+
+    /**
+     * @param list<string> $allowed
+     * @return ModuleConfig
+     */
+    private function moduleConfig(array $allowed): ModuleConfig
+    {
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getAllowedLogFiles')->willReturn($allowed);
+
+        return $config;
     }
 
     /**

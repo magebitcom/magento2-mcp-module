@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Tool\System\Log;
 
+use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\Log\LogFileResolver;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Tool\System\Log\ListFiles;
@@ -33,7 +34,7 @@ class ListFilesTest extends TestCase
         $directoryList = $this->createMock(DirectoryList::class);
         $directoryList->method('getPath')->with(AppDirectoryList::LOG)->willReturn($this->dir);
 
-        $this->tool = new ListFiles(new LogFileResolver($directoryList, new FileDriver()));
+        $this->tool = new ListFiles(new LogFileResolver($directoryList, new FileDriver(), $this->allowAllFixtures()));
     }
 
     protected function tearDown(): void
@@ -76,9 +77,18 @@ class ListFilesTest extends TestCase
         $cap = $reflection->getConstant('MAX_LISTED_FILES');
         self::assertIsInt($cap);
 
+        $allowed = [];
         for ($i = 0; $i <= $cap; $i++) {
-            file_put_contents($this->dir . sprintf('/extra%04d.log', $i), "x\n");
+            $name = sprintf('extra%04d.log', $i);
+            file_put_contents($this->dir . DIRECTORY_SEPARATOR . $name, "x\n");
+            $allowed[] = $name;
         }
+
+        $directoryList = $this->createMock(DirectoryList::class);
+        $directoryList->method('getPath')->with(AppDirectoryList::LOG)->willReturn($this->dir);
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getAllowedLogFiles')->willReturn($allowed);
+        $this->tool = new ListFiles(new LogFileResolver($directoryList, new FileDriver(), $config));
 
         $payload = $this->execute();
 
@@ -143,4 +153,14 @@ class ListFilesTest extends TestCase
         rmdir($path);
     }
 
+    /**
+     * @return ModuleConfig
+     */
+    private function allowAllFixtures(): ModuleConfig
+    {
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getAllowedLogFiles')->willReturn(['system.log', 'exception.log']);
+
+        return $config;
+    }
 }

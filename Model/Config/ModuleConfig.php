@@ -35,6 +35,7 @@ class ModuleConfig
     public const XML_PATH_OAUTH_REFRESH_TOKEN_LIFETIME_DAYS = 'magebit_mcp/oauth/refresh_token_lifetime_days';
     public const XML_PATH_OAUTH_REAUTH_BEHAVIOR = 'magebit_mcp/oauth/reauth_behavior';
     public const XML_PATH_MODULE_UPDATES_ENABLED = 'magebit_mcp/module_updates/enabled';
+    public const XML_PATH_LOG_ALLOWED_FILES = 'magebit_mcp/log_tools/allowed_files';
 
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
     public const DEFAULT_RATE_LIMITING_RPM = 60;
@@ -180,6 +181,30 @@ class ModuleConfig
             $origins[] = $line;
         }
         return $origins;
+    }
+
+    /**
+     * Log file names the `system.log.*` tools may read; empty means none.
+     *
+     * @return list<string>
+     */
+    public function getAllowedLogFiles(): array
+    {
+        $raw = $this->scopeConfig->getValue(self::XML_PATH_LOG_ALLOWED_FILES);
+        if (!is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        $files = [];
+        foreach (preg_split('/\r\n|\r|\n/', $raw) ?: [] as $line) {
+            $line = trim($line, " \t`\"'");
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+            $files[] = $line;
+        }
+
+        return array_values(array_unique($files));
     }
 
     /**
