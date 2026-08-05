@@ -18,6 +18,7 @@ use Magebit\Mcp\Exception\RateLimitedException;
 use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\Auth\AuthenticatedContextProvider;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
@@ -56,6 +57,7 @@ class ToolsCallHandler implements HandlerInterface
      * @param EventManager $eventManager
      * @param ModuleConfig $config
      * @param AuditContext $auditContext
+     * @param AuthenticatedContextProvider $authenticatedContextProvider
      * @param LoggerInterface $logger
      * @param ArgumentCoercer $argumentCoercer
      * @param SchemaSanitizer $schemaSanitizer
@@ -68,6 +70,7 @@ class ToolsCallHandler implements HandlerInterface
         private readonly EventManager $eventManager,
         private readonly ModuleConfig $config,
         private readonly AuditContext $auditContext,
+        private readonly AuthenticatedContextProvider $authenticatedContextProvider,
         private readonly LoggerInterface $logger,
         private readonly ArgumentCoercer $argumentCoercer,
         private readonly SchemaSanitizer $schemaSanitizer
@@ -281,6 +284,7 @@ class ToolsCallHandler implements HandlerInterface
         ToolInterface $tool,
         array $args
     ): Response {
+        $this->authenticatedContextProvider->set($context);
         $this->eventManager->dispatch('magebit_mcp_tool_call_before', [
             'tool' => $tool,
             'arguments' => $args,

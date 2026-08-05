@@ -196,6 +196,27 @@
                     </ul>]]></comment>
                 </field>
             </group>
+            <group id="log_tools" translate="label" type="text" sortOrder="55"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Log Tools</label>
+                <field id="allowed_files" translate="label comment" type="textarea" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Readable Log Files</label>
+                    <comment><![CDATA[<p><strong>The <code>system.log.*</code> tools can read these
+                    files and no others</strong>, and will not list a file that is not here. One bare
+                    file name per line — no directory part. Blank lines and lines starting with
+                    <code>#</code> are ignored. A rotated copy is covered by its base name, so
+                    <code>system.log</code> also permits <code>system.log.1</code>.</p>
+                    <p><strong>Empty means no log is readable at all.</strong> The shipped default
+                    lists Magento's own logs. A third-party module that writes its own log file stays
+                    unreadable until you add it here, because only you know which of those record
+                    payment data, API tokens or credentials.</p>
+                    <p>Note that this list controls <em>which files</em> are readable, not what is in
+                    them: any module using Magento's default logger writes into
+                    <code>system.log</code> and <code>debug.log</code>, so those two can still carry
+                    third-party data. Remove them if that matters more than the diagnostics.</p>]]></comment>
+                </field>
+            </group>
             <group id="module_updates" translate="label" type="text" sortOrder="60"
                    showInDefault="1" showInWebsite="0" showInStore="0">
                 <label>Module Update Notifications</label>

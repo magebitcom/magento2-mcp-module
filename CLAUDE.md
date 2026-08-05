@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this module is
 
-Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`); this repo ships only the core `system.store.list`, `system.store.info`, `system.config.get` tools.
+Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpReportTools`); this repo ships its own set of 18 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), and read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`).
 
 The repo is checked out as a Magento module at `app/code/Magebit/Mcp`. The Magento root is `/var/www/demo` — Composer, `bin/magento`, and `vendor/bin/*` all run from there, not from this directory. Read the root `README.md` for protocol-level detail and client-onboarding snippets — this file complements it with architecture and workflow notes.
 

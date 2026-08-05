@@ -17,6 +17,7 @@ use Magebit\Mcp\Api\ToolResultInterface;
 use Magebit\Mcp\Exception\RateLimitedException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\Auth\AuthenticatedContextProvider;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
@@ -85,6 +86,7 @@ class ToolsCallHandlerTest extends TestCase
             $eventManager,
             $config,
             $auditContext,
+            new AuthenticatedContextProvider(),
             $this->createMock(LoggerInterface::class),
             $this->stubArgumentCoercer(),
             $this->stubSchemaSanitizer()
@@ -155,6 +157,7 @@ class ToolsCallHandlerTest extends TestCase
         $eventManager = $this->createMock(EventManager::class);
         $config = $this->createMock(ModuleConfig::class);
         $auditContext = new AuditContext();
+        $authenticatedContextProvider = new AuthenticatedContextProvider();
 
         $handler = new ToolsCallHandler(
             $toolRegistry,
@@ -164,6 +167,7 @@ class ToolsCallHandlerTest extends TestCase
             $eventManager,
             $config,
             $auditContext,
+            $authenticatedContextProvider,
             $this->createMock(LoggerInterface::class),
             $this->stubArgumentCoercer(),
             $this->stubSchemaSanitizer()
@@ -176,14 +180,13 @@ class ToolsCallHandlerTest extends TestCase
             ['name' => 'system_store_list', 'arguments' => []]
         );
 
-        $response = $handler->handle(
-            $request,
-            new AuthenticatedContext($token, $adminUser)
-        );
+        $authenticatedContext = new AuthenticatedContext($token, $adminUser);
+        $response = $handler->handle($request, $authenticatedContext);
 
         $this->assertNull($response->error);
         $this->assertNotNull($response->result);
         $this->assertSame('system.store.list', $auditContext->toolName);
+        $this->assertSame($authenticatedContext, $authenticatedContextProvider->get());
     }
 
     public function testReturnsToolNotFoundWhenWireNameDoesNotResolve(): void
@@ -207,6 +210,7 @@ class ToolsCallHandlerTest extends TestCase
             $this->createMock(EventManager::class),
             $this->createMock(ModuleConfig::class),
             $auditContext,
+            new AuthenticatedContextProvider(),
             $this->createMock(LoggerInterface::class),
             $this->stubArgumentCoercer(),
             $this->stubSchemaSanitizer()
@@ -284,6 +288,7 @@ class ToolsCallHandlerTest extends TestCase
             $eventManager,
             $config,
             $auditContext,
+            new AuthenticatedContextProvider(),
             $this->createMock(LoggerInterface::class),
             new ArgumentCoercer(),
             new SchemaSanitizer($this->createMock(LoggerInterface::class))
