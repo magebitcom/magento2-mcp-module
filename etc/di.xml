@@ -41,6 +41,26 @@
         </arguments>
     </type>
 
+    <type name="Magebit\Mcp\Model\Config\ConfigWritePolicy">
+        <arguments>
+            <!-- Protected prefixes are DI-injected, not admin config: weakening them requires
+                 filesystem write plus setup:di:compile, so neither an admin session nor the MCP
+                 surface itself can widen this. Satellites may extend it by merging more entries. -->
+            <argument name="protectedPrefixes" xsi:type="array">
+                <item name="web_unsecure" xsi:type="string">web/unsecure</item>
+                <item name="web_secure" xsi:type="string">web/secure</item>
+                <item name="admin" xsi:type="string">admin</item>
+                <item name="payment" xsi:type="string">payment</item>
+                <item name="system" xsi:type="string">system</item>
+                <item name="dev" xsi:type="string">dev</item>
+                <item name="oauth" xsi:type="string">oauth</item>
+                <!-- Without this the tool is a one-call privilege escalation: it would add itself
+                     to its own allowlist, flip allow_writes, or widen the db_tools table list. -->
+                <item name="magebit_mcp" xsi:type="string">magebit_mcp</item>
+            </argument>
+        </arguments>
+    </type>
+
     <!-- Request-scoped audit context — a single shared instance per HTTP request
          so the controller and the tools/call handler populate the same object. -->
     <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>
