@@ -124,12 +124,13 @@ class ConfigStructureWiringTest extends TestCase
 
         $found = [];
         $base = dirname(__DIR__, 4);
+        /** @var iterable<string, \SplFileInfo> $files */
         $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base));
         foreach ($files as $file) {
             if (!$file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
-            $path = (string) $file->getPathname();
+            $path = $file->getPathname();
             if (str_contains($path, '/Test/')) {
                 continue;
             }
