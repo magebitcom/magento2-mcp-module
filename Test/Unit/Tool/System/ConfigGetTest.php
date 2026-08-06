@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Tool\System;
 
+use Magebit\Mcp\Model\Config\SensitiveFieldGuard;
 use Magebit\Mcp\Tool\System\ConfigGet;
 use Magento\Config\Model\Config\Structure;
 use Magento\Config\Model\Config\Structure\Element\Field;
@@ -36,7 +37,7 @@ class ConfigGetTest extends TestCase
     {
         $this->scopeConfig = $this->createMock(ScopeConfigInterface::class);
         $this->configStructure = $this->createMock(Structure::class);
-        $this->tool = new ConfigGet($this->scopeConfig, $this->configStructure);
+        $this->tool = new ConfigGet($this->scopeConfig, new SensitiveFieldGuard($this->configStructure));
     }
 
     public function testGroupPathIsRejected(): void
