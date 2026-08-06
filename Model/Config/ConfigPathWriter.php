@@ -224,10 +224,10 @@ class ConfigPathWriter
             return null;
         }
 
-        // Byte-for-byte what Config::getFieldPath() reads, off the same cached flyweight — so a
-        // plugin that synthesises a config_path is seen here too. Magento_Paypal ships one for
-        // every field under payment_<country>, and the raw structure array it never touches
-        // reports those paths as writing to themselves.
+        // Byte-for-byte what Config::getFieldPath() reads, off the same flyweight, so the check and
+        // the save that follows it always agree. Interception is per-area and this module's route is
+        // not adminhtml, so an adminhtml-only plugin is invisible to both alike — Magento_Paypal's
+        // payment_<country> rewrite is why those sections are protected in di.xml instead.
         $element = $this->configStructure->getElement($path);
         $configPath = $element instanceof Field ? (string) $element->getConfigPath() : '';
 

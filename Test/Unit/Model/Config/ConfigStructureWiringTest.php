@@ -91,6 +91,14 @@ class ConfigStructureWiringTest extends TestCase
         ];
     }
 
+    public function testTheProxyVirtualTypeWrapsTheAdminhtmlStructure(): void
+    {
+        $node = $this->node(self::STRUCTURE . 'Proxy');
+
+        $this->assertSame('Magento\Config\Model\Config\Structure\Proxy', (string) $node['type']);
+        $this->assertSame(self::STRUCTURE, $this->argument($node, 'instanceName'));
+    }
+
     /**
      * @dataProvider structureConsumerProvider
      * @param string $class
@@ -98,6 +106,48 @@ class ConfigStructureWiringTest extends TestCase
      */
     public function testEveryStructureConsumerGetsTheAdminhtmlStructure(string $class): void
     {
-        $this->assertSame(self::STRUCTURE, $this->argument($this->node($class), 'configStructure'));
+        $this->assertSame(
+            self::STRUCTURE . 'Proxy',
+            $this->argument($this->node($class), 'configStructure')
+        );
+    }
+
+    /**
+     * Every constructor in the module asking for a Structure must be wired, or it silently receives
+     * the empty frontend one — the bug this wiring exists to prevent.
+     *
+     * @return void
+     */
+    public function testNoStructureConsumerIsLeftUnwired(): void
+    {
+        $wired = array_map(static fn (array $row): string => $row[0], self::structureConsumerProvider());
+
+        $found = [];
+        $base = dirname(__DIR__, 4);
+        $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($base));
+        foreach ($files as $file) {
+            if (!$file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+            $path = (string) $file->getPathname();
+            if (str_contains($path, '/Test/')) {
+                continue;
+            }
+            $source = (string) file_get_contents($path);
+            if (!preg_match('/^\s*(?:private|protected|public)?\s*(?:readonly\s+)?Structure\s+\$/m', $source)
+                || !str_contains($source, 'use Magento\Config\Model\Config\Structure;')
+            ) {
+                continue;
+            }
+            $found[] = 'Magebit\Mcp\\' . str_replace(
+                '/',
+                '\\',
+                substr($path, strlen($base) + 1, -4)
+            );
+        }
+
+        sort($found);
+        sort($wired);
+        $this->assertSame($wired, $found, 'A class takes a Structure but has no di.xml wiring.');
     }
 }

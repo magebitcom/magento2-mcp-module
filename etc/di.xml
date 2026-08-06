@@ -57,6 +57,23 @@
                 <!-- Without this the tool is a one-call privilege escalation: it would add itself
                      to its own allowlist, flip allow_writes, or widen the db_tools table list. -->
                 <item name="magebit_mcp" xsi:type="string">magebit_mcp</item>
+                <!-- Magento_Paypal's country alias sections. In the admin UI a plugin rewrites their
+                     fields onto payment/*; that plugin is adminhtml-only, so on this module's route
+                     a write would land in a row Magento never reads. Protected so neither the
+                     redirect nor the dead row is reachable. -->
+                <item name="payment_all_paypal" xsi:type="string">payment_all_paypal</item>
+                <item name="payment_au" xsi:type="string">payment_au</item>
+                <item name="payment_ca" xsi:type="string">payment_ca</item>
+                <item name="payment_de" xsi:type="string">payment_de</item>
+                <item name="payment_es" xsi:type="string">payment_es</item>
+                <item name="payment_fr" xsi:type="string">payment_fr</item>
+                <item name="payment_gb" xsi:type="string">payment_gb</item>
+                <item name="payment_hk" xsi:type="string">payment_hk</item>
+                <item name="payment_it" xsi:type="string">payment_it</item>
+                <item name="payment_jp" xsi:type="string">payment_jp</item>
+                <item name="payment_nz" xsi:type="string">payment_nz</item>
+                <item name="payment_other" xsi:type="string">payment_other</item>
+                <item name="payment_us" xsi:type="string">payment_us</item>
             </argument>
         </arguments>
     </type>
@@ -87,10 +104,22 @@
         </arguments>
     </virtualType>
 
+    <!-- Structure::__construct pulls the whole 9 MB structure eagerly, which is why Magento wraps it
+         for its own consumers. Both of ours sit on the eager path from the MCP controller, so
+         without this every request pays for it — including ones that never read config. -->
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlProxy"
+                 type="Magento\Config\Model\Config\Structure\Proxy">
+        <arguments>
+            <argument name="instanceName" xsi:type="string">
+                Magebit\Mcp\Model\Config\Structure\Adminhtml
+            </argument>
+        </arguments>
+    </virtualType>
+
     <type name="Magebit\Mcp\Model\Config\SensitiveFieldGuard">
         <arguments>
             <argument name="configStructure" xsi:type="object">
-                Magebit\Mcp\Model\Config\Structure\Adminhtml
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlProxy
             </argument>
         </arguments>
     </type>
@@ -100,7 +129,7 @@
     <type name="Magebit\Mcp\Model\Config\ConfigPathWriter">
         <arguments>
             <argument name="configStructure" xsi:type="object">
-                Magebit\Mcp\Model\Config\Structure\Adminhtml
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlProxy
             </argument>
         </arguments>
     </type>
