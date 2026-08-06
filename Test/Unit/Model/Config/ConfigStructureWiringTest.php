@@ -88,15 +88,36 @@ class ConfigStructureWiringTest extends TestCase
         return [
             'sensitive field guard' => ['Magebit\Mcp\Model\Config\SensitiveFieldGuard'],
             'config path writer' => ['Magebit\Mcp\Model\Config\ConfigPathWriter'],
+            'config set tool' => ['Magebit\Mcp\Tool\System\ConfigSet'],
         ];
     }
 
-    public function testTheProxyVirtualTypeWrapsTheAdminhtmlStructure(): void
+    public function testTheLazyVirtualTypeWrapsTheAdminhtmlStructure(): void
     {
-        $node = $this->node(self::STRUCTURE . 'Proxy');
+        $node = $this->node(self::STRUCTURE . 'Lazy');
 
         $this->assertSame('Magento\Config\Model\Config\Structure\Proxy', (string) $node['type']);
         $this->assertSame(self::STRUCTURE, $this->argument($node, 'instanceName'));
+    }
+
+    /**
+     * The compiler resolves every di.xml name ending in "Proxy" as a generated proxy class, so a
+     * virtual type named that way fails setup:di:compile outright.
+     *
+     * @return void
+     */
+    public function testNoVirtualTypeIsNamedWithAProxySuffix(): void
+    {
+        $names = [];
+        foreach ($this->di?->xpath('//virtualType') ?: [] as $virtualType) {
+            $names[] = (string) $virtualType['name'];
+        }
+
+        $this->assertNotEmpty($names);
+        $this->assertSame([], array_values(array_filter(
+            $names,
+            static fn (string $name): bool => str_ends_with($name, 'Proxy')
+        )));
     }
 
     /**
@@ -107,7 +128,7 @@ class ConfigStructureWiringTest extends TestCase
     public function testEveryStructureConsumerGetsTheAdminhtmlStructure(string $class): void
     {
         $this->assertSame(
-            self::STRUCTURE . 'Proxy',
+            self::STRUCTURE . 'Lazy',
             $this->argument($this->node($class), 'configStructure')
         );
     }

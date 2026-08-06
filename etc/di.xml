@@ -106,8 +106,10 @@
 
     <!-- Structure::__construct pulls the whole 9 MB structure eagerly, which is why Magento wraps it
          for its own consumers. Both of ours sit on the eager path from the MCP controller, so
-         without this every request pays for it — including ones that never read config. -->
-    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlProxy"
+         without this every request pays for it — including ones that never read config.
+         The name must NOT end in "Proxy": setup:di:compile reads any such di.xml reference as a
+         generated proxy and fails the whole compile on "Invalid proxy class" for a virtual type. -->
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy"
                  type="Magento\Config\Model\Config\Structure\Proxy">
         <arguments>
             <argument name="instanceName" xsi:type="string">
@@ -119,7 +121,7 @@
     <type name="Magebit\Mcp\Model\Config\SensitiveFieldGuard">
         <arguments>
             <argument name="configStructure" xsi:type="object">
-                Magebit\Mcp\Model\Config\Structure\AdminhtmlProxy
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
             </argument>
         </arguments>
     </type>
@@ -129,7 +131,15 @@
     <type name="Magebit\Mcp\Model\Config\ConfigPathWriter">
         <arguments>
             <argument name="configStructure" xsi:type="object">
-                Magebit\Mcp\Model\Config\Structure\AdminhtmlProxy
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Tool\System\ConfigSet">
+        <arguments>
+            <argument name="configStructure" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
             </argument>
         </arguments>
     </type>
@@ -293,6 +303,9 @@
                 </item>
                 <item name="system.config.get" xsi:type="object">
                     Magebit\Mcp\Tool\System\ConfigGet
+                </item>
+                <item name="system.config.set" xsi:type="object">
+                    Magebit\Mcp\Tool\System\ConfigSet
                 </item>
                 <item name="system.cache.list" xsi:type="object">
                     Magebit\Mcp\Tool\System\Cache\CacheList
