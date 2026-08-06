@@ -88,7 +88,6 @@ class ConfigStructureWiringTest extends TestCase
         return [
             'sensitive field guard' => ['Magebit\Mcp\Model\Config\SensitiveFieldGuard'],
             'config path writer' => ['Magebit\Mcp\Model\Config\ConfigPathWriter'],
-            'config set tool' => ['Magebit\Mcp\Tool\System\ConfigSet'],
         ];
     }
 

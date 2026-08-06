@@ -13,9 +13,6 @@ use Magebit\Mcp\Model\Config\ConfigWritePolicy;
 use Magebit\Mcp\Model\Config\SensitiveFieldGuard;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Tool\System\ConfigSet;
-use Magento\Config\Model\Config\Structure;
-use Magento\Config\Model\Config\Structure\Element\Field;
-use Magento\Config\Model\Config\Structure\Element\Group;
 use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Framework\Exception\LocalizedException;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -32,9 +29,6 @@ class ConfigSetTest extends TestCase
     /** @var ConfigPathWriter&MockObject */
     private ConfigPathWriter $writer;
 
-    /** @var Structure&MockObject */
-    private Structure $structure;
-
     /**
      * @return void
      */
@@ -43,7 +37,6 @@ class ConfigSetTest extends TestCase
         $this->policy = $this->createMock(ConfigWritePolicy::class);
         $this->guard = $this->createMock(SensitiveFieldGuard::class);
         $this->writer = $this->createMock(ConfigPathWriter::class);
-        $this->structure = $this->createMock(Structure::class);
     }
 
     /**
@@ -51,7 +44,19 @@ class ConfigSetTest extends TestCase
      */
     private function tool(): ConfigSet
     {
-        return new ConfigSet($this->policy, $this->guard, $this->writer, $this->structure);
+        return new ConfigSet($this->policy, $this->guard, $this->writer);
+    }
+
+    /**
+     * @param string|null $resource
+     * @return Section&MockObject
+     */
+    private function section(?string $resource): Section
+    {
+        $section = $this->createMock(Section::class);
+        $section->method('getAttribute')->with('resource')->willReturn($resource);
+
+        return $section;
     }
 
     /**
@@ -62,7 +67,7 @@ class ConfigSetTest extends TestCase
     private function openEveryOtherGate(): void
     {
         $this->guard->method('rejectionFor')->willReturn(null);
-        $this->structure->method('getElementByConfigPath')->willReturn($this->createMock(Field::class));
+        $this->writer->method('sectionFor')->willReturn($this->section('Magento_Tax::config_tax'));
         $this->writer->method('currentValue')->willReturn('shipping');
     }
 
@@ -100,7 +105,7 @@ class ConfigSetTest extends TestCase
 
     public function testSensitiveFieldIsRefusedEvenWhenThePolicyAllowsIt(): void
     {
-        $this->structure->method('getElementByConfigPath')->willReturn($this->createMock(Field::class));
+        $this->writer->method('sectionFor')->willReturn($this->section('Magento_Tax::config_tax'));
         $this->writer->method('currentValue')->willReturn(null);
         $this->guard->method('rejectionFor')->willReturn('field_type_sensitive');
         $this->writer->expects($this->never())->method('write');
@@ -110,33 +115,76 @@ class ConfigSetTest extends TestCase
         $this->tool()->execute(['path' => 'some/group/token', 'value' => 'x']);
     }
 
-    public function testPathAbsentFromSystemXmlIsRefused(): void
+    /**
+     * The writer owns the system.xml, redirect, file-upload and env-lock refusals; the tool must let
+     * their messages through rather than restating them.
+     *
+     * @return void
+     */
+    public function testAWriterRefusalReachesTheCallerUnchanged(): void
     {
-        $this->guard->method('rejectionFor')->willReturn(null);
-        $this->structure->method('getElementByConfigPath')->willReturn(null);
-        $this->writer->method('currentValue')->willReturn(null);
-        $this->writer->expects($this->never())->method('write');
+        $this->openEveryOtherGate();
+        $this->writer->method('write')->willThrowException(
+            new LocalizedException(__('is not declared as a field in system.xml'))
+        );
 
         $this->expectException(LocalizedException::class);
-        $this->expectExceptionMessage('has no field in system.xml');
+        $this->expectExceptionMessage('is not declared as a field in system.xml');
         $this->tool()->execute(['path' => 'custom/group/threshold', 'value' => 'x']);
     }
 
     /**
-     * A Group or Section resolves to a sub-tree, not a writable leaf, so `!== null` is not enough.
+     * Section::isAllowed() is false for a section with no <resource>, so the admin UI refuses it for
+     * every role. The contextual gate reads [] as "no gate", so execute() has to make the refusal.
      *
      * @return void
      */
-    public function testNonFieldElementIsRefused(): void
+    public function testASectionThatDeclaresNoAdminResourceIsRefused(): void
     {
         $this->guard->method('rejectionFor')->willReturn(null);
-        $this->structure->method('getElementByConfigPath')->willReturn($this->createMock(Group::class));
+        $this->writer->method('sectionFor')->willReturn($this->section(null));
         $this->writer->method('currentValue')->willReturn(null);
         $this->writer->expects($this->never())->method('write');
 
         $this->expectException(LocalizedException::class);
-        $this->expectExceptionMessage('has no field in system.xml');
-        $this->tool()->execute(['path' => 'tax/calculation/x', 'value' => 'x']);
+        $this->expectExceptionMessage('declares no admin permission');
+        $this->tool()->execute([
+            'path' => 'web_api/graphql/include_dynamic_attributes_as_entity_type_fields',
+            'value' => '1',
+        ]);
+    }
+
+    /**
+     * A blank <resource> is the same hole as a missing one, and returns [] from the same helper.
+     *
+     * @return void
+     */
+    public function testASectionWithABlankAdminResourceIsRefused(): void
+    {
+        $this->guard->method('rejectionFor')->willReturn(null);
+        $this->writer->method('sectionFor')->willReturn($this->section(''));
+        $this->writer->method('currentValue')->willReturn(null);
+        $this->writer->expects($this->never())->method('write');
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage('declares no admin permission');
+        $this->tool()->execute(['path' => 'custom/group/field', 'value' => '1']);
+    }
+
+    /**
+     * An unresolvable section is not a permission hole — the writer refuses the path outright, with
+     * a better message than this gate could give.
+     *
+     * @return void
+     */
+    public function testAnUnresolvableSectionIsLeftToTheWriter(): void
+    {
+        $this->guard->method('rejectionFor')->willReturn(null);
+        $this->writer->method('sectionFor')->willReturn(null);
+        $this->writer->method('currentValue')->willReturn(null);
+        $this->writer->expects($this->once())->method('write');
+
+        $this->tool()->execute(['path' => 'custom/group/field', 'value' => '1']);
     }
 
     public function testAPermittedWriteReportsTheOldAndNewValue(): void

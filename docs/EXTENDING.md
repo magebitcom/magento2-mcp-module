@@ -224,7 +224,7 @@ What the dispatcher does with the return value:
 - **Every** entry must pass `AclChecker::isAllowed()` for the calling admin's role. The first failure short-circuits with `-32004 FORBIDDEN` and the message *"Your admin role does not permit the Magento section this call targets."*
 - The gate runs **after** the tool's own ACL and any underlying ACL, and **before** input-schema validation. Arguments are coerced but not yet validated, so `$arguments['path']` may be missing, an `int`, or an array — narrow before use, as above.
 - **Never throw.** A throw, a blank string, or a non-string entry is treated as a hard deny (`-32004`, with the distinct message *"Could not determine which Magento permission this call requires…"*) and logged to `var/log/magebit_mcp.log`. `['']` is **not** equivalent to `[]`.
-- `[]` means "no extra gate" — the call proceeds on the strength of the tool's own ACL alone. Return it only when the tool itself refuses that input in `execute()`; otherwise the gate silently disappears.
+- `[]` means "no extra gate" — the call proceeds on the strength of the tool's own ACL alone. Return it only when the tool itself refuses that input in `execute()`; otherwise the gate silently disappears. `Tool/System/ConfigSet` is the worked example: it returns `[]` for a config section that declares no `<resource>` (resolution must not throw), and `execute()` refuses that path outright, exactly as `Structure\Element\Section::isAllowed()` refuses it in the admin UI.
 - The resolver is called **once per tool call** with no caching in the dispatcher. Memoise inside your implementation if resolution is expensive.
 
 ## Step 3 — Register the tool with the MCP registry

@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Config;
 
 use Magebit\Mcp\Model\Util\ConfigPathFormat;
+use Magento\Config\Model\Config\Backend\File;
 use Magento\Config\Model\Config\Reader\Source\Deployed\SettingChecker;
 use Magento\Config\Model\Config\Structure;
 use Magento\Config\Model\Config\Structure\Element\Field;
@@ -26,6 +27,8 @@ use Magento\Store\Model\ScopeInterface;
 class ConfigPathWriter
 {
     private const MIN_SEGMENTS = 3;
+
+    private const FILE_FIELD_TYPES = ['image', 'file'];
 
     private const SCOPE_TYPES = [
         ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
@@ -91,14 +94,11 @@ class ConfigPathWriter
         }
 
         $this->assertNotRedirected($path, $stored);
+        $this->assertNotFileUpload($path);
         $this->assertNotLocked($path, $scope, $scopeCode);
 
-        // Config is DI-wired to the plain area-scoped Structure, which is empty outside adminhtml.
-        // Handing it the same instance the checks above used is what keeps the redirect resolution
-        // and the save that follows it from resolving against two different structures.
-        //
-        // setSection()/setGroups()/... are DataObject __call magic, not declared methods; seeding
-        // the same keys through the factory is equivalent and actually mockable.
+        // Handing Config the same structure keeps these checks and the save that follows from
+        // resolving against two different ones; the data keys are what setSection()/setGroups() set.
         $this->configFactory->create([
             'configStructure' => $this->configStructure,
             'data' => [
@@ -182,6 +182,47 @@ class ConfigPathWriter
     }
 
     /**
+     * Backend\File::beforeSave() reads $_FILES only: handed a plain string it unsets the value, so
+     * the row is left untouched or created NULL while save() still returns cleanly.
+     *
+     * @param string $path
+     * @return void
+     * @throws LocalizedException
+     */
+    private function assertNotFileUpload(string $path): void
+    {
+        $element = $this->configStructure->getElement($path);
+        if (!$element instanceof Field || !$this->isFileUploadField($element)) {
+            return;
+        }
+
+        throw new LocalizedException(
+            __(
+                'Config path "%1" takes a file upload, so a plain value would be discarded while the '
+                . 'save still reported success. Set it through Stores > Configuration.',
+                $this->pathFormat->forMessage($path)
+            )
+        );
+    }
+
+    /**
+     * The backend model is the reliable signal; the declared type is the secondary catch, since a
+     * third-party field may carry either one alone.
+     *
+     * @param Field $field
+     * @return bool
+     */
+    private function isFileUploadField(Field $field): bool
+    {
+        $backend = $field->getAttribute('backend_model');
+        if (is_string($backend) && $backend !== '' && is_a(ltrim($backend, '\\'), File::class, true)) {
+            return true;
+        }
+
+        return in_array(strtolower((string) $field->getType()), self::FILE_FIELD_TYPES, true);
+    }
+
+    /**
      * A path pinned in app/etc/env.php or by a CONFIG__* variable is skipped by _processGroup() and
      * save() still returns cleanly — the tool would report a change that never happened.
      *
@@ -193,9 +234,8 @@ class ConfigPathWriter
      */
     private function assertNotLocked(string $path, string $scope, ?string $scopeCode): void
     {
-        // _processGroup() probes with Config::getScopeCode(), which is resolved. The env-variable
-        // branch of isReadOnly() uses the code verbatim, so an id would probe CONFIG__WEBSITES__1__…
-        // while the lock is CONFIG__WEBSITES__BASE__… and the write would be skipped in silence.
+        // _processGroup() probes with a resolved scope code and isReadOnly() uses it verbatim, so an
+        // id would probe CONFIG__WEBSITES__1__… while the lock is …__BASE__… and be skipped in silence.
         $code = $scope === ScopeConfigInterface::SCOPE_TYPE_DEFAULT
             ? null
             : $this->scopeCodeResolver->resolve($scope, $scopeCode);
@@ -225,9 +265,7 @@ class ConfigPathWriter
         }
 
         // Byte-for-byte what Config::getFieldPath() reads, off the same flyweight, so the check and
-        // the save that follows it always agree. Interception is per-area and this module's route is
-        // not adminhtml, so an adminhtml-only plugin is invisible to both alike — Magento_Paypal's
-        // payment_<country> rewrite is why those sections are protected in di.xml instead.
+        // the save always agree. Adminhtml-only plugins are invisible to both — hence the di.xml list.
         $element = $this->configStructure->getElement($path);
         $configPath = $element instanceof Field ? (string) $element->getConfigPath() : '';
 

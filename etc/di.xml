@@ -136,14 +136,6 @@
         </arguments>
     </type>
 
-    <type name="Magebit\Mcp\Tool\System\ConfigSet">
-        <arguments>
-            <argument name="configStructure" xsi:type="object">
-                Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
-            </argument>
-        </arguments>
-    </type>
-
     <!-- Request-scoped audit context — a single shared instance per HTTP request
          so the controller and the tools/call handler populate the same object. -->
     <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>

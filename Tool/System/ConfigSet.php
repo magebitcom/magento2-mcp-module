@@ -19,15 +19,14 @@ use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
-use Magento\Config\Model\Config\Structure;
-use Magento\Config\Model\Config\Structure\Element\Field;
+use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\ScopeInterface;
 
 /**
  * MCP tool `system.config.set` — write one `core_config_data` path. Four gates must pass: the write
- * policy, the sensitivity guard, presence in system.xml, and the target section's own admin ACL.
+ * policy, the sensitivity guard, the target section's own admin ACL, and every check the writer makes.
  */
 class ConfigSet implements ToolInterface, UnderlyingAclAwareInterface, ContextualAclAwareInterface
 {
@@ -38,13 +37,11 @@ class ConfigSet implements ToolInterface, UnderlyingAclAwareInterface, Contextua
      * @param ConfigWritePolicy $writePolicy
      * @param SensitiveFieldGuard $sensitiveFieldGuard
      * @param ConfigPathWriter $pathWriter
-     * @param Structure $configStructure
      */
     public function __construct(
         private readonly ConfigWritePolicy $writePolicy,
         private readonly SensitiveFieldGuard $sensitiveFieldGuard,
-        private readonly ConfigPathWriter $pathWriter,
-        private readonly Structure $configStructure
+        private readonly ConfigPathWriter $pathWriter
     ) {
     }
 
@@ -77,7 +74,8 @@ class ConfigSet implements ToolInterface, UnderlyingAclAwareInterface, Contextua
             . 'allowlist. Paths with no field in system.xml are refused — if '
             . 'the admin UI cannot set it, neither can this tool. That excludes '
             . 'the whole `design/*` family, which lives in Content > Design > '
-            . 'Configuration rather than in system.xml.';
+            . 'Configuration rather than in system.xml, and any field that takes '
+            . 'a file upload.';
     }
 
     /**
@@ -129,14 +127,9 @@ class ConfigSet implements ToolInterface, UnderlyingAclAwareInterface, Contextua
             return [];
         }
 
-        $section = $this->pathWriter->sectionFor($rawPath);
-        if ($section === null) {
-            return [];
-        }
+        $resource = $this->sectionResource($this->pathWriter->sectionFor($rawPath));
 
-        $resource = $section->getAttribute('resource');
-
-        return is_string($resource) && $resource !== '' ? [$resource] : [];
+        return $resource === null ? [] : [$resource];
     }
 
     /**
@@ -184,11 +177,14 @@ class ConfigSet implements ToolInterface, UnderlyingAclAwareInterface, Contextua
             );
         }
 
-        if (!$this->configStructure->getElementByConfigPath($path) instanceof Field) {
+        // A section with no <resource> is refused by Stores > Configuration for every role, and the
+        // contextual gate reads [] as "no gate", so that refusal has to be made here.
+        $section = $this->pathWriter->sectionFor($path);
+        if ($section !== null && $this->sectionResource($section) === null) {
             throw new LocalizedException(
                 __(
-                    'Path "%1" has no field in system.xml, so it cannot be written over MCP. '
-                    . 'If the admin UI cannot set it, neither can this tool.',
+                    'Path "%1" is in a configuration section that declares no admin permission, which '
+                    . 'the admin UI refuses to save for every role. This tool refuses it too.',
                     $path
                 )
             );
@@ -215,6 +211,19 @@ class ConfigSet implements ToolInterface, UnderlyingAclAwareInterface, Contextua
             content: [['type' => 'text', 'text' => $json]],
             auditSummary: $payload
         );
+    }
+
+    /**
+     * The admin resource guarding the section the row lands in, or null when there is none to check.
+     *
+     * @param Section|null $section
+     * @return string|null
+     */
+    private function sectionResource(?Section $section): ?string
+    {
+        $resource = $section?->getAttribute('resource');
+
+        return is_string($resource) && $resource !== '' ? $resource : null;
     }
 
     /**

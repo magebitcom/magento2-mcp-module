@@ -11,6 +11,9 @@ namespace Magebit\Mcp\Test\Unit\Model\Config;
 use Magebit\Mcp\Model\Config\ConfigPathWriter;
 use Magebit\Mcp\Model\Util\ConfigPathFormat;
 use Magento\Config\Model\Config as AdminConfig;
+use Magento\Config\Model\Config\Backend\File as FileBackend;
+use Magento\Config\Model\Config\Backend\Image\Pdf as ImagePdfBackend;
+use Magento\Config\Model\Config\Backend\Serialized as SerializedBackend;
 use Magento\Config\Model\Config\Reader\Source\Deployed\SettingChecker;
 use Magento\Config\Model\Config\Structure;
 use Magento\Config\Model\Config\Structure\Element\Field;
@@ -80,6 +83,21 @@ class ConfigPathWriterTest extends TestCase
     {
         $field = $this->createMock(Field::class);
         $field->method('getConfigPath')->willReturn($configPath);
+
+        return $field;
+    }
+
+    /**
+     * @param string|null $backendModel
+     * @param string|null $type
+     * @return Field&MockObject
+     */
+    private function fieldWith(?string $backendModel, ?string $type): Field
+    {
+        $field = $this->createMock(Field::class);
+        $field->method('getConfigPath')->willReturn(null);
+        $field->method('getAttribute')->with('backend_model')->willReturn($backendModel);
+        $field->method('getType')->willReturn($type);
 
         return $field;
     }
@@ -546,6 +564,77 @@ class ConfigPathWriterTest extends TestCase
             null,
             [],
             ['tax/calculation/based_on' => $this->createMock(Group::class)]
+        );
+
+        [$writer, $adminConfig] = $this->writerExpecting(null, $structure);
+        $adminConfig->expects($this->once())->method('save');
+
+        $writer->write('tax/calculation/based_on', 'total', 'default', null);
+    }
+
+    /**
+     * @return array<string, array{0: string|null, 1: string|null}>
+     */
+    public static function fileUploadFieldProvider(): array
+    {
+        return [
+            'File backend model' => [FileBackend::class, 'text'],
+            'File subclass backend model' => [ImagePdfBackend::class, 'text'],
+            'backend model with a leading slash' => ['\\' . FileBackend::class, 'text'],
+            'image type alone' => [null, 'image'],
+            'file type alone' => [null, 'file'],
+            'type in mixed case' => [null, 'Image'],
+        ];
+    }
+
+    /**
+     * Backend\File::beforeSave() acts on $_FILES only: a plain string makes it unset the value, so
+     * _prepareDataForTable() drops the column and save() reports a change that never happened.
+     *
+     * @dataProvider fileUploadFieldProvider
+     * @param string|null $backendModel
+     * @param string|null $type
+     * @return void
+     */
+    public function testAFileUploadFieldIsRefused(?string $backendModel, ?string $type): void
+    {
+        $structure = $this->structure(
+            null,
+            [],
+            ['tax/calculation/based_on' => $this->fieldWith($backendModel, $type)]
+        );
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage('takes a file upload');
+        $this->writerRefusingToCreate($structure)->write('tax/calculation/based_on', 'logo.png', 'default', null);
+    }
+
+    /**
+     * @return array<string, array{0: string|null, 1: string|null}>
+     */
+    public static function ordinaryFieldProvider(): array
+    {
+        return [
+            'no backend model, plain type' => [null, 'text'],
+            'unrelated backend model' => [SerializedBackend::class, 'text'],
+            'backend model that does not exist' => ['No\\Such\\Backend\\Model', 'select'],
+            'blank backend model' => ['', null],
+            'type resembling neither' => [null, 'textarea'],
+        ];
+    }
+
+    /**
+     * @dataProvider ordinaryFieldProvider
+     * @param string|null $backendModel
+     * @param string|null $type
+     * @return void
+     */
+    public function testAnOrdinaryFieldIsStillWritable(?string $backendModel, ?string $type): void
+    {
+        $structure = $this->structure(
+            null,
+            [],
+            ['tax/calculation/based_on' => $this->fieldWith($backendModel, $type)]
         );
 
         [$writer, $adminConfig] = $this->writerExpecting(null, $structure);
