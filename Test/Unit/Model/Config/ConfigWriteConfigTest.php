@@ -70,6 +70,10 @@ class ConfigWriteConfigTest extends TestCase
             'non-string value' => [42, []],
             'comments only' => ["# nothing here\n#   still nothing", []],
             'single path' => ['tax/calculation/based_on', ['tax/calculation/based_on']],
+            'bare carriage returns delimit lines' => [
+                "a/b/c\rd/e/f",
+                ['a/b/c', 'd/e/f'],
+            ],
             'crlf and comments' => [
                 "# header\r\ntax/calculation/based_on\r\n\r\n  design/head/demonotice  \r\n# trailing",
                 ['tax/calculation/based_on', 'design/head/demonotice'],

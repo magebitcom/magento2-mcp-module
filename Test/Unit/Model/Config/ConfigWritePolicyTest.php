@@ -106,4 +106,73 @@ class ConfigWritePolicyTest extends TestCase
         $this->assertSame('payment', $this->policy([])->findProtectedPrefix('payment/checkmo/active'));
         $this->assertNull($this->policy([])->findProtectedPrefix('tax/calculation/based_on'));
     }
+
+    /**
+     * @param string $path
+     * @return void
+     * @dataProvider malformedPathProvider
+     */
+    public function testAMalformedPathIsRefusedByTheShapeGuard(string $path): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessageMatches('/is not a well-formed configuration path/');
+        // Allowlisted verbatim, and enabled, so only the shape guard can refuse it.
+        $this->policy([$path])->assertWritable($path);
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function malformedPathProvider(): array
+    {
+        return [
+            'leading space' => [' admin/x'],
+            'trailing space' => ['tax/calculation/based_on '],
+            'leading tab' => ["\tadmin/x"],
+            'leading newline' => ["\nadmin/x"],
+            // Without the /D modifier PCRE lets "$" match before a final newline, so this one
+            // slips the guard and Task 5's canonicalisation would write the trimmed path.
+            'trailing newline' => ["admin/x\n"],
+            'embedded space' => ['tax/calculation /based_on'],
+            'doubled slash' => ['tax//based_on'],
+            'leading slash' => ['/admin/x'],
+            'trailing slash' => ['tax/calculation/'],
+            'single segment' => ['tax'],
+            'empty string' => [''],
+            'dot segment' => ['tax/../admin/x'],
+            'null byte' => ["tax/calculation/based_on\0"],
+        ];
+    }
+
+    public function testMixedCasePathsSurviveTheShapeGuardAndStillHitTheProtectedLayer(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessageMatches('/is protected by "payment"/');
+        $this->policy(['Payment/Checkmo/Active'])->assertWritable('Payment/Checkmo/Active');
+    }
+
+    /**
+     * @param string $path
+     * @return void
+     * @dataProvider whitespacePaddedProtectedPathProvider
+     */
+    public function testFindProtectedPrefixIsNotFooledByWhitespace(string $path): void
+    {
+        $this->assertSame('admin', $this->policy([])->findProtectedPrefix($path));
+    }
+
+    /**
+     * @return array<string, array{string}>
+     */
+    public static function whitespacePaddedProtectedPathProvider(): array
+    {
+        return [
+            'leading space' => [' admin/x'],
+            'leading tab' => ["\tadmin/x"],
+            'leading newline' => ["\nadmin/x"],
+            'trailing space' => ['admin/x '],
+            'leading slash' => ['/admin/x'],
+            'mixed case' => ['Admin/X'],
+        ];
+    }
 }

@@ -17,6 +17,12 @@ use Magento\Framework\Exception\LocalizedException;
 class ConfigWritePolicy
 {
     /**
+     * Canonical `section/group/field`. Non-canonical input is refused rather than normalised, so a
+     * caller cannot slip past the protected layer with a leading space or a doubled slash.
+     */
+    private const PATH_PATTERN = '#^[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)+$#D';
+
+    /**
      * @param ConfigWriteConfig $config
      * @param array<array-key, string> $protectedPrefixes Segment-boundary matched, so `dev`
      *        protects `dev/debug/...` without catching `developer/...`.
@@ -34,6 +40,16 @@ class ConfigWritePolicy
      */
     public function assertWritable(string $path): void
     {
+        if (preg_match(self::PATH_PATTERN, $path) !== 1) {
+            throw new LocalizedException(
+                __(
+                    'Path "%1" is not a well-formed configuration path. Expected section/group/field '
+                    . 'using letters, digits and underscores, with no surrounding or embedded whitespace.',
+                    $path
+                )
+            );
+        }
+
         if (!$this->config->isEnabled()) {
             throw new LocalizedException(
                 __(
@@ -76,15 +92,18 @@ class ConfigWritePolicy
     }
 
     /**
+     * Deliberately lenient about case, surrounding whitespace and slashes: this layer may only ever
+     * catch more than the caller asked about, never less.
+     *
      * @param string $path
      * @return string|null The protected prefix that matched, for the rejection message.
      */
     public function findProtectedPrefix(string $path): ?string
     {
-        $normalized = strtolower(trim($path, '/'));
+        $normalized = strtolower(trim($path, " \t\n\r\0\x0B/"));
 
         foreach ($this->protectedPrefixes as $prefix) {
-            $candidate = strtolower(trim($prefix, '/'));
+            $candidate = strtolower(trim($prefix, " \t\n\r\0\x0B/"));
             if ($candidate === '') {
                 continue;
             }
