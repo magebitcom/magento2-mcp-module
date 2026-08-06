@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this module is
 
-Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpReportTools`); this repo ships its own set of 18 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), and read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`).
+Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpReportTools`); this repo ships its own set of 19 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`), and allowlisted config writing (`system.config.set`).
 
 The repo is checked out as a Magento module at `app/code/Magebit/Mcp`. The Magento root is `/var/www/demo` — Composer, `bin/magento`, and `vendor/bin/*` all run from there, not from this directory. Read the root `README.md` for protocol-level detail and client-onboarding snippets — this file complements it with architecture and workflow notes.
 
@@ -125,6 +125,17 @@ Write tools (`WriteMode::WRITE` from `getWriteMode()`) require BOTH:
 
 Either fails → `-32012 WRITE_NOT_ALLOWED`. Write tools SHOULD also return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human.
 
+### Configuration writing (`system.config.set`)
+
+`Tool/System/ConfigSet` sits behind a third gate of its own, `magebit_mcp/config_write/*` (Stores → Configuration → Magebit → MCP Server → **MCP Configuration Writer**):
+
+- `config_write/enabled` — off by default; `Model/Config/ConfigWriteConfig` reads it at **default scope only**, which is why both fields are `showInWebsite="0" showInStore="0"`.
+- `config_write/allowed_paths` — exact paths, one per line, no wildcards. Empty (the shipped default) refuses every write. `Model/Config/Backend/AllowedPaths` validates each line against `Model/Util/ConfigPathFormat` at save time, so an entry that could never match is rejected in the admin rather than silently ignored.
+
+`Model/Config/ConfigWritePolicy` checks a DI-injected protected-prefix list *before* the allowlist, so no allowlist entry can re-open one. `magebit_mcp` is on that list: without it the tool could add paths to its own allowlist or flip `allow_writes`. `Model/Config/ConfigPathWriter` then refuses redirected (`<config_path>`), env-locked, undeclared and wrong-scope writes, and saves through `Magento\Config\Model\Config` so backend models and validation run.
+
+Anything touching `Magento\Config\Model\Config\Structure` must be DI-wired to the `Model\Config\Structure\AdminhtmlLazy` virtual type — `system.xml` is adminhtml-only and the plain structure is **empty** on the frontend route `/mcp` serves. `Test/Unit/Model/Config/ConfigStructureWiringTest` fails if a new consumer is left unwired. The virtual type must not be named `…Proxy`: `setup:di:compile` resolves any such di.xml reference as a generated proxy class and aborts.
+
 ## Logging
 
 This module ships a **dedicated log channel**. Classes inside the module inject `Magebit\Mcp\Api\LoggerInterface` (preferenced to `Magebit\Mcp\Logger\Logger`), which writes to `var/log/magebit_mcp.log`. PSR-3 injections (`Psr\Log\LoggerInterface`) still receive Magento's default system logger — use the module interface for anything MCP-specific so grepping the module log stays meaningful.
@@ -147,4 +158,4 @@ Purged by `Cron/PurgeAuditLog` per `magebit_mcp/general/retention_days` (`0` dis
 ## Error codes
 
 Module-specific JSON-RPC codes are declared in `Model/JsonRpc/ErrorCode`:
-`-32001 UNAUTHORIZED`, `-32002 INVALID_ORIGIN`, `-32003 UNSUPPORTED_PROTOCOL_VERSION`, `-32004 FORBIDDEN`, `-32010 TOOL_NOT_FOUND`, `-32011 TOOL_EXECUTION_FAILED`, `-32012 WRITE_NOT_ALLOWED`, `-32013 RATE_LIMITED`, `-32014 SCHEMA_VALIDATION_FAILED`, `-32015 SERVER_DISABLED`. Next free: `-32016`. When adding a new one, extend `ErrorCode` (value + `label()` case) *and* document in the root `README.md` error-codes table.
+`-32001 UNAUTHORIZED`, `-32002 INVALID_ORIGIN`, `-32003 UNSUPPORTED_PROTOCOL_VERSION`, `-32004 FORBIDDEN`, `-32010 TOOL_NOT_FOUND`, `-32011 TOOL_EXECUTION_FAILED`, `-32012 WRITE_NOT_ALLOWED`, `-32013 RATE_LIMITED`, `-32014 SCHEMA_VALIDATION_FAILED`, `-32015 SERVER_DISABLED`, `-32016 PROMPT_NOT_FOUND`. Next free: `-32017`. When adding a new one, extend `ErrorCode` (value + `label()` case) *and* document in the root `README.md` error-codes table.

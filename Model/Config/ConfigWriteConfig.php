@@ -44,10 +44,19 @@ class ConfigWriteConfig
     public function getAllowedPaths(): array
     {
         $raw = $this->scopeConfig->getValue(self::XML_PATH_ALLOWED_PATHS);
-        if (!is_string($raw) || trim($raw) === '') {
-            return [];
-        }
 
+        return is_string($raw) ? $this->parseAllowedPaths($raw) : [];
+    }
+
+    /**
+     * The one reading of the Allowed Paths field, so the admin-side validator and the policy can
+     * never disagree on which lines count.
+     *
+     * @param string $raw
+     * @return list<string>
+     */
+    public function parseAllowedPaths(string $raw): array
+    {
         $paths = [];
         foreach (preg_split('/\r\n|\r|\n/', $raw) ?: [] as $line) {
             $trimmed = trim($line);
