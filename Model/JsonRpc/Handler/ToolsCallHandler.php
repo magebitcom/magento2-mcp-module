@@ -211,18 +211,69 @@ class ToolsCallHandler implements HandlerInterface
         }
 
         if ($tool instanceof ContextualAclAwareInterface) {
-            foreach ($tool->getContextualAclResources($arguments) as $resource) {
-                if ($resource === '' || $this->aclChecker->isAllowed($context->adminUser, $resource)) {
-                    continue;
-                }
-                return $this->fail(
-                    $request,
-                    ErrorCode::FORBIDDEN,
-                    'Your admin role does not permit the Magento section this call targets.'
-                );
-            }
+            return $this->checkContextualAcl($request, $context, $tool, $arguments);
         }
         return null;
+    }
+
+    /**
+     * @param Request $request
+     * @param AuthenticatedContext $context
+     * @param ToolInterface&ContextualAclAwareInterface $tool
+     * @param array $arguments
+     * @phpstan-param array<string, mixed> $arguments
+     * @return Response|null
+     */
+    private function checkContextualAcl(
+        Request $request,
+        AuthenticatedContext $context,
+        ToolInterface&ContextualAclAwareInterface $tool,
+        array $arguments
+    ): ?Response {
+        try {
+            foreach ($tool->getContextualAclResources($arguments) as $resource) {
+                if ($resource === '') {
+                    return $this->failUnresolvedContextualAcl($request, $tool, null);
+                }
+                if (!$this->aclChecker->isAllowed($context->adminUser, $resource)) {
+                    return $this->fail(
+                        $request,
+                        ErrorCode::FORBIDDEN,
+                        'Your admin role does not permit the Magento section this call targets.'
+                    );
+                }
+            }
+        } catch (Throwable $e) {
+            // Arguments reach the resolver unvalidated, so a throw (or a non-string entry) is
+            // reachable from client input; a gate that cannot name its resource must refuse.
+            return $this->failUnresolvedContextualAcl($request, $tool, $e);
+        }
+        return null;
+    }
+
+    /**
+     * Distinct from a permission refusal — the tool failed to state what it needs, so the
+     * operator should not go looking at role permissions.
+     *
+     * @param Request $request
+     * @param ToolInterface $tool
+     * @param Throwable|null $exception
+     * @return Response
+     */
+    private function failUnresolvedContextualAcl(
+        Request $request,
+        ToolInterface $tool,
+        ?Throwable $exception
+    ): Response {
+        $this->logger->error('MCP contextual ACL resolution failed; refusing the call.', [
+            'tool' => $tool->getName(),
+            'exception' => $exception,
+        ]);
+        return $this->fail(
+            $request,
+            ErrorCode::FORBIDDEN,
+            'Could not determine which Magento permission this call requires; the call was refused.'
+        );
     }
 
     /**

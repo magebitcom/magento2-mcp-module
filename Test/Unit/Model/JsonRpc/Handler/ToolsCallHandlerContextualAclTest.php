@@ -30,6 +30,7 @@ use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
 use Magento\Framework\Event\ManagerInterface as EventManager;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\User\Model\User;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -43,6 +44,8 @@ class ToolsCallHandlerContextualAclTest extends TestCase
     private const OWN_RESOURCE = 'Magebit_Mcp::tool_system_config_set';
     private const UNDERLYING_RESOURCE = 'Magento_Config::config';
     private const TAX_RESOURCE = 'Magento_Tax::config_tax';
+    private const UNRESOLVED_MESSAGE =
+        'Could not determine which Magento permission this call requires; the call was refused.';
 
     /**
      * ACL resources the checker will grant; everything else is denied.
@@ -64,6 +67,11 @@ class ToolsCallHandlerContextualAclTest extends TestCase
     private $aclChecker;
 
     /**
+     * @var LoggerInterface&MockObject
+     */
+    private $logger;
+
+    /**
      * @var AuditContext
      */
     private AuditContext $auditContext;
@@ -76,6 +84,7 @@ class ToolsCallHandlerContextualAclTest extends TestCase
         $this->allowedResources = [];
         $this->checkedResources = [];
         $this->auditContext = new AuditContext();
+        $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->aclChecker = $this->createMock(AclChecker::class);
         $this->aclChecker->method('isAllowed')->willReturnCallback(
@@ -200,18 +209,70 @@ class ToolsCallHandlerContextualAclTest extends TestCase
         $this->assertSame(['path' => 'tax/classes/shipping_tax_class', 'value' => '2'], $received);
     }
 
-    public function testBlankContextualResourceIsSkippedRatherThanDenied(): void
+    public function testBlankContextualResourceIsDeniedNotSkipped(): void
     {
-        // Contract: "nothing determinable" is expressed by an empty list, and a blank entry is
-        // the same statement — the tool itself must refuse such input.
         $this->allowedResources = [self::OWN_RESOURCE];
         $tool = $this->contextualTool(['']);
-        $tool->expects($this->once())->method('execute')->willReturn($this->successResult());
+        $tool->expects($this->never())->method('execute');
+        $this->logger->expects($this->once())->method('error');
 
         $response = $this->dispatch($tool);
 
-        $this->assertNull($response->error);
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::FORBIDDEN, $response->error->code);
+        $this->assertSame(self::UNRESOLVED_MESSAGE, $response->error->message);
+        $this->assertSame('-32004', $this->auditContext->errorCode);
         $this->assertSame([self::OWN_RESOURCE], $this->checkedResources);
+    }
+
+    public function testResolverThrowIsDeniedRatherThanSurfacedAsAnInternalError(): void
+    {
+        $this->allowedResources = [self::OWN_RESOURCE];
+        $tool = $this->createMock(ContextualToolFixtureInterface::class);
+        $this->stubToolBasics($tool);
+        $tool->method('getContextualAclResources')
+            ->willThrowException(new LocalizedException(__('Unknown config section "nosuchsection".')));
+        $tool->expects($this->never())->method('execute');
+        $this->logger->expects($this->once())->method('error');
+
+        $response = $this->dispatch($tool, ['path' => 'nosuchsection/foo/bar']);
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::FORBIDDEN, $response->error->code);
+        $this->assertSame(self::UNRESOLVED_MESSAGE, $response->error->message);
+        $this->assertSame('-32004', $this->auditContext->errorCode);
+    }
+
+    public function testNonStringContextualResourceIsDeniedRatherThanFatal(): void
+    {
+        // `AclChecker::isAllowed()` takes a string under strict_types, so a malformed entry
+        // raises a TypeError mid-loop — it must land on the same refusal.
+        $this->allowedResources = [self::OWN_RESOURCE];
+        $tool = $this->createMock(ContextualToolFixtureInterface::class);
+        $this->stubToolBasics($tool);
+        $tool->method('getContextualAclResources')->willReturn([12345]);
+        $tool->expects($this->never())->method('execute');
+        $this->logger->expects($this->once())->method('error');
+
+        $response = $this->dispatch($tool);
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::FORBIDDEN, $response->error->code);
+        $this->assertSame(self::UNRESOLVED_MESSAGE, $response->error->message);
+    }
+
+    public function testDenialForARealPermissionFailureKeepsItsOwnMessage(): void
+    {
+        // The two refusals must stay distinguishable: a role problem must not be reported as a
+        // tool bug, and vice versa.
+        $this->allowedResources = [self::OWN_RESOURCE];
+        $tool = $this->contextualTool([self::TAX_RESOURCE]);
+        $this->logger->expects($this->never())->method('error');
+
+        $response = $this->dispatch($tool);
+
+        $this->assertNotNull($response->error);
+        $this->assertNotSame(self::UNRESOLVED_MESSAGE, $response->error->message);
     }
 
     public function testToolWithoutTheInterfaceGainsNoExtraAclCheck(): void
@@ -308,7 +369,7 @@ class ToolsCallHandlerContextualAclTest extends TestCase
             $config,
             $this->auditContext,
             new AuthenticatedContextProvider(),
-            $this->createMock(LoggerInterface::class),
+            $this->logger,
             $coercer,
             $sanitizer
         );
