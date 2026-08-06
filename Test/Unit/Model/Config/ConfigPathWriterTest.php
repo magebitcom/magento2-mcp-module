@@ -13,9 +13,11 @@ use Magebit\Mcp\Model\Util\ConfigPathFormat;
 use Magento\Config\Model\Config as AdminConfig;
 use Magento\Config\Model\Config\Reader\Source\Deployed\SettingChecker;
 use Magento\Config\Model\Config\Structure;
+use Magento\Config\Model\Config\Structure\Element\Field;
 use Magento\Config\Model\Config\Structure\Element\Group;
 use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Config\Model\ConfigFactory;
+use Magento\Framework\App\Config\ScopeCodeResolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -24,13 +26,12 @@ use PHPUnit\Framework\TestCase;
 class ConfigPathWriterTest extends TestCase
 {
     /**
-     * Structure::getFieldPaths() shape: the path a value lands on, mapped to the structural paths
-     * that reach it. Covers the three paths the happy-path tests write to.
+     * Structural paths system.xml declares, used for the existence half of the resolution.
      */
-    private const DECLARED_FIELDS = [
-        'tax/calculation/based_on' => ['tax/calculation/based_on'],
-        'section/outer/inner/flag' => ['section/outer/inner/flag'],
-        'section/a/b/c/flag' => ['section/a/b/c/flag'],
+    private const DECLARED = [
+        'tax/calculation/based_on',
+        'section/outer/inner/flag',
+        'section/a/b/c/flag',
     ];
 
     /**
@@ -69,16 +70,48 @@ class ConfigPathWriterTest extends TestCase
     }
 
     /**
-     * @param array<string, list<string>>|null $declaredFields
-     * @param array<string, object> $sections
+     * The intercepted flyweight Config::getFieldPath() reads. A plugin-synthesised config_path is
+     * indistinguishable from a declared one here, which is the point.
+     *
+     * @param string|null $configPath
+     * @return Field&MockObject
+     */
+    private function flyweightField(?string $configPath): Field
+    {
+        $field = $this->createMock(Field::class);
+        $field->method('getConfigPath')->willReturn($configPath);
+
+        return $field;
+    }
+
+    /**
+     * getFieldPaths() is modelled as always reporting identity — it walks the raw merged array and
+     * cannot see a plugin — so any test that observes a redirect proves the flyweight was consulted.
+     *
+     * @param list<string>|null $declared
+     * @param array<string, string> $redirects Structural path => the config_path its flyweight reports.
+     * @param array<string, object> $elements getElement() overrides, by path.
      * @return Structure&MockObject
      */
-    private function structure(?array $declaredFields = null, array $sections = []): Structure
+    private function structure(?array $declared = null, array $redirects = [], array $elements = []): Structure
     {
+        $fieldPaths = [];
+        foreach ($declared ?? self::DECLARED as $structurePath) {
+            $fieldPaths[$structurePath] = [$structurePath];
+        }
+
         $structure = $this->createMock(Structure::class);
-        $structure->method('getFieldPaths')->willReturn($declaredFields ?? self::DECLARED_FIELDS);
+        $structure->method('getFieldPaths')->willReturn($fieldPaths);
         $structure->method('getElement')->willReturnCallback(
-            fn (string $id): object => $sections[$id] ?? $this->declaredSection($id)
+            function (string $id) use ($redirects, $elements): object {
+                if (isset($elements[$id])) {
+                    return $elements[$id];
+                }
+
+                return str_contains($id, '/')
+                    ? $this->flyweightField($redirects[$id] ?? null)
+                    : $this->declaredSection($id);
+            }
         );
 
         return $structure;
@@ -95,11 +128,16 @@ class ConfigPathWriterTest extends TestCase
         ?ConfigFactory $factory = null,
         ?Structure $structure = null,
         ?ScopeConfigInterface $scopeConfig = null,
-        ?SettingChecker $settingChecker = null
+        ?SettingChecker $settingChecker = null,
+        ?ScopeCodeResolver $scopeCodeResolver = null
     ): ConfigPathWriter {
         if ($settingChecker === null) {
             $settingChecker = $this->createMock(SettingChecker::class);
             $settingChecker->method('isReadOnly')->willReturn(false);
+        }
+        if ($scopeCodeResolver === null) {
+            $scopeCodeResolver = $this->createMock(ScopeCodeResolver::class);
+            $scopeCodeResolver->method('resolve')->willReturnArgument(1);
         }
 
         return new ConfigPathWriter(
@@ -107,6 +145,7 @@ class ConfigPathWriterTest extends TestCase
             $structure ?? $this->structure(),
             $scopeConfig ?? $this->createMock(ScopeConfigInterface::class),
             $settingChecker,
+            $scopeCodeResolver,
             new ConfigPathFormat()
         );
     }
@@ -145,6 +184,17 @@ class ConfigPathWriterTest extends TestCase
         $factory->expects($this->never())->method('create');
 
         return $this->writer($factory, $structure, $scopeConfig, $settingChecker);
+    }
+
+    /**
+     * @return ConfigFactory&MockObject
+     */
+    private function savingFactory(): ConfigFactory
+    {
+        $factory = $this->createMock(ConfigFactory::class);
+        $factory->method('create')->willReturn($this->createMock(AdminConfig::class));
+
+        return $factory;
     }
 
     public function testAThreeSegmentPathBecomesSectionGroupField(): void
@@ -366,7 +416,7 @@ class ConfigPathWriterTest extends TestCase
     public function testAFieldRedirectingViaConfigPathIsRefused(): void
     {
         $requested = 'payment_all_paypal/paypal_payflow_required/partner';
-        $structure = $this->structure(['payment/payflowpro/partner' => [$requested]]);
+        $structure = $this->structure([$requested], [$requested => 'payment/payflowpro/partner']);
 
         $writer = $this->writerRefusingToCreate($structure);
 
@@ -374,50 +424,62 @@ class ConfigPathWriterTest extends TestCase
         $writer->write($requested, 'abc123', 'default', null);
     }
 
+    /**
+     * Magento_Paypal's FieldPlugin::afterGetConfigPath() synthesises `payment/<rest>` for every
+     * field under a payment_<country> section that declares no config_path. getFieldPaths() walks
+     * the raw merged array and cannot see it, so resolution has to come off the flyweight.
+     *
+     * @return void
+     */
+    public function testAPluginSynthesisedConfigPathIsRefusedEvenThoughTheRawStructureShowsIdentity(): void
+    {
+        $requested = 'payment_us/purchaseorder/sort_order';
+        $structure = $this->structure([$requested], [$requested => 'payment/purchaseorder/sort_order']);
+
+        $writer = $this->writerRefusingToCreate($structure);
+
+        $this->expectException(LocalizedException::class);
+        $writer->write($requested, '4242', 'default', null);
+    }
+
     public function testTheRedirectRefusalNamesBothTheRequestedAndTheStoredPath(): void
     {
-        $requested = 'payment_all_paypal/paypal_payflow_required/partner';
-        $structure = $this->structure(['payment/payflowpro/partner' => [$requested]]);
+        $requested = 'payment_us/purchaseorder/sort_order';
+        $structure = $this->structure([$requested], [$requested => 'payment/purchaseorder/sort_order']);
 
         try {
-            $this->writerRefusingToCreate($structure)->write($requested, 'abc123', 'default', null);
+            $this->writerRefusingToCreate($structure)->write($requested, '4242', 'default', null);
             $this->fail('Expected a LocalizedException.');
         } catch (LocalizedException $e) {
             $this->assertStringContainsString($requested, $e->getMessage());
-            $this->assertStringContainsString('payment/payflowpro/partner', $e->getMessage());
+            $this->assertStringContainsString('payment/purchaseorder/sort_order', $e->getMessage());
         }
     }
 
     /**
-     * The sibling structural path of a redirecting field must stay writable — refusing one must not
-     * refuse the field that legitimately owns the stored path.
+     * A field whose flyweight reports the path it was asked for is not a redirect.
      *
      * @return void
      */
-    public function testTheFieldThatOwnsTheStoredPathIsStillWritable(): void
+    public function testAConfigPathEqualToTheRequestedPathIsStillWritable(): void
     {
-        $structure = $this->structure([
-            'payment/payflowpro/partner' => [
-                'payment/payflowpro/partner',
-                'payment_all_paypal/paypal_payflow_required/partner',
-            ],
-        ]);
+        $structure = $this->structure(null, ['tax/calculation/based_on' => 'tax/calculation/based_on']);
 
         [$writer, $adminConfig] = $this->writerExpecting(null, $structure);
         $adminConfig->expects($this->once())->method('save');
 
-        $writer->write('payment/payflowpro/partner', 'abc123', 'default', null);
+        $writer->write('tax/calculation/based_on', 'total', 'default', null);
     }
 
     /**
-     * getFieldsRecursively() keys on `<config_path>` unconditionally, but Config::getFieldPath()
-     * only honours one containing an inner slash — a degenerate one is not a redirect.
+     * Config::getFieldPath() only honours a config_path containing an inner slash, so one that does
+     * not must not be treated as a redirect either.
      *
      * @return void
      */
     public function testAConfigPathWithoutAnInnerSlashIsIgnoredExactlyAsMagentoIgnoresIt(): void
     {
-        $structure = $this->structure(['nonsense' => ['tax/calculation/based_on']]);
+        $structure = $this->structure(null, ['tax/calculation/based_on' => 'nonsense']);
 
         [$writer, $adminConfig] = $this->writerExpecting(null, $structure);
         $adminConfig->expects($this->once())->method('save');
@@ -440,17 +502,31 @@ class ConfigPathWriterTest extends TestCase
     }
 
     /**
-     * A group is never a key in the field-path map, so it cannot be mistaken for a writable field.
+     * Existence comes from getFieldPaths(), so a flyweight alone must not make a path writable.
      *
      * @return void
      */
-    public function testAGroupPathIsRefusedRatherThanTreatedAsAField(): void
+    public function testAnUndeclaredPathIsRefusedEvenWhenItsFlyweightLooksLikeAField(): void
     {
-        $structure = $this->structure(['tax/calculation/based_on/extra' => ['tax/calculation/based_on/extra']]);
+        $structure = $this->structure([], [], ['tax/calculation/algorithm' => $this->flyweightField(null)]);
 
         $writer = $this->writerRefusingToCreate($structure);
 
         $this->expectException(LocalizedException::class);
+        $writer->write('tax/calculation/algorithm', 'garbage', 'default', null);
+    }
+
+    public function testAPathWhoseElementIsNotAFieldIsTreatedAsUnredirected(): void
+    {
+        $structure = $this->structure(
+            null,
+            [],
+            ['tax/calculation/based_on' => $this->createMock(Group::class)]
+        );
+
+        [$writer, $adminConfig] = $this->writerExpecting(null, $structure);
+        $adminConfig->expects($this->once())->method('save');
+
         $writer->write('tax/calculation/based_on', 'total', 'default', null);
     }
 
@@ -479,18 +555,56 @@ class ConfigPathWriterTest extends TestCase
             ->with('tax/calculation/based_on', 'websites', 'base')
             ->willReturn(false);
 
-        $adminConfig = $this->createMock(AdminConfig::class);
-        $factory = $this->createMock(ConfigFactory::class);
-        $factory->method('create')->willReturn($adminConfig);
-
-        $writer = $this->writer($factory, null, null, $settingChecker);
+        $writer = $this->writer($this->savingFactory(), null, null, $settingChecker);
         $writer->write('tax/calculation/based_on', 'total', 'websites', 'base');
+    }
+
+    /**
+     * SettingChecker's env-variable branch uses the code verbatim, so a numeric id would probe
+     * CONFIG__WEBSITES__1__… while the real lock is CONFIG__WEBSITES__BASE__… and be missed.
+     *
+     * @return void
+     */
+    public function testTheLockCheckResolvesANumericScopeCodeBeforeProbing(): void
+    {
+        $resolver = $this->createMock(ScopeCodeResolver::class);
+        $resolver->expects($this->once())->method('resolve')->with('websites', '1')->willReturn('base');
+
+        $settingChecker = $this->createMock(SettingChecker::class);
+        $settingChecker->expects($this->once())
+            ->method('isReadOnly')
+            ->with('tax/calculation/based_on', 'websites', 'base')
+            ->willReturn(false);
+
+        $writer = $this->writer($this->savingFactory(), null, null, $settingChecker, $resolver);
+        $writer->write('tax/calculation/based_on', 'total', 'websites', '1');
+    }
+
+    /**
+     * resolvePath() and the placeholder both ignore the code in the default scope, and resolving one
+     * there would only invent a store context the write does not have.
+     *
+     * @return void
+     */
+    public function testTheLockCheckDoesNotResolveACodeInTheDefaultScope(): void
+    {
+        $resolver = $this->createMock(ScopeCodeResolver::class);
+        $resolver->expects($this->never())->method('resolve');
+
+        $settingChecker = $this->createMock(SettingChecker::class);
+        $settingChecker->expects($this->once())
+            ->method('isReadOnly')
+            ->with('tax/calculation/based_on', 'default', null)
+            ->willReturn(false);
+
+        $writer = $this->writer($this->savingFactory(), null, null, $settingChecker, $resolver);
+        $writer->write('tax/calculation/based_on', 'total', 'default', 'base');
     }
 
     public function testSectionForReturnsTheStructureSection(): void
     {
         $section = $this->declaredSection('tax');
-        $writer = $this->writer(null, $this->structure(null, ['tax' => $section]));
+        $writer = $this->writer(null, $this->structure(null, [], ['tax' => $section]));
 
         $this->assertSame($section, $writer->sectionFor('tax/calculation/based_on'));
     }
@@ -508,14 +622,14 @@ class ConfigPathWriterTest extends TestCase
      */
     public function testSectionForReturnsNullForAnUndeclaredSection(): void
     {
-        $structure = $this->structure(null, ['no_such_section' => $this->synthesisedSection('no_such_section')]);
+        $structure = $this->structure(null, [], ['no_such_section' => $this->synthesisedSection('no_such_section')]);
 
         $this->assertNull($this->writer(null, $structure)->sectionFor('no_such_section/group/field'));
     }
 
     public function testSectionForReturnsNullWhenTheElementIsNotASection(): void
     {
-        $structure = $this->structure(null, ['tax' => $this->createMock(Group::class)]);
+        $structure = $this->structure(null, [], ['tax' => $this->createMock(Group::class)]);
 
         $this->assertNull($this->writer(null, $structure)->sectionFor('tax/calculation/based_on'));
     }
@@ -528,12 +642,13 @@ class ConfigPathWriterTest extends TestCase
      */
     public function testSectionForFollowsAConfigPathRedirectToTheRealSection(): void
     {
-        $requested = 'payment_all_paypal/paypal_payflow_required/partner';
+        $requested = 'payment_us/purchaseorder/sort_order';
         $realSection = $this->declaredSection('payment');
 
         $structure = $this->structure(
-            ['payment/payflowpro/partner' => [$requested]],
-            ['payment' => $realSection, 'payment_all_paypal' => $this->declaredSection('payment_all_paypal')]
+            [$requested],
+            [$requested => 'payment/purchaseorder/sort_order'],
+            ['payment' => $realSection]
         );
 
         $this->assertSame($realSection, $this->writer(null, $structure)->sectionFor($requested));
@@ -542,7 +657,7 @@ class ConfigPathWriterTest extends TestCase
     public function testSectionForFallsBackToTheRequestedSectionWhenNoFieldIsDeclared(): void
     {
         $section = $this->declaredSection('tax');
-        $structure = $this->structure(null, ['tax' => $section]);
+        $structure = $this->structure(null, [], ['tax' => $section]);
 
         $this->assertSame($section, $this->writer(null, $structure)->sectionFor('tax/calculation/algorithm'));
     }
@@ -555,7 +670,7 @@ class ConfigPathWriterTest extends TestCase
     public function testSectionForIgnoresAConfigPathWithoutAnInnerSlash(): void
     {
         $section = $this->declaredSection('tax');
-        $structure = $this->structure(['nonsense' => ['tax/calculation/based_on']], ['tax' => $section]);
+        $structure = $this->structure(null, ['tax/calculation/based_on' => 'nonsense'], ['tax' => $section]);
 
         $this->assertSame($section, $this->writer(null, $structure)->sectionFor('tax/calculation/based_on'));
     }

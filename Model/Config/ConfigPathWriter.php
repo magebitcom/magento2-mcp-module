@@ -11,8 +11,10 @@ namespace Magebit\Mcp\Model\Config;
 use Magebit\Mcp\Model\Util\ConfigPathFormat;
 use Magento\Config\Model\Config\Reader\Source\Deployed\SettingChecker;
 use Magento\Config\Model\Config\Structure;
+use Magento\Config\Model\Config\Structure\Element\Field;
 use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Config\Model\ConfigFactory;
+use Magento\Framework\App\Config\ScopeCodeResolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\ScopeInterface;
@@ -32,15 +34,16 @@ class ConfigPathWriter
     ];
 
     /**
-     * @var array<string, string>|null
+     * @var array<string, true>|null
      */
-    private ?array $storedPaths = null;
+    private ?array $declaredPaths = null;
 
     /**
      * @param ConfigFactory $configFactory
      * @param Structure $configStructure
      * @param ScopeConfigInterface $scopeConfig
      * @param SettingChecker $settingChecker
+     * @param ScopeCodeResolver $scopeCodeResolver
      * @param ConfigPathFormat $pathFormat
      */
     public function __construct(
@@ -48,6 +51,7 @@ class ConfigPathWriter
         private readonly Structure $configStructure,
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly SettingChecker $settingChecker,
+        private readonly ScopeCodeResolver $scopeCodeResolver,
         private readonly ConfigPathFormat $pathFormat
     ) {
     }
@@ -184,7 +188,14 @@ class ConfigPathWriter
      */
     private function assertNotLocked(string $path, string $scope, ?string $scopeCode): void
     {
-        if (!$this->settingChecker->isReadOnly($path, $scope, $scopeCode)) {
+        // _processGroup() probes with Config::getScopeCode(), which is resolved. The env-variable
+        // branch of isReadOnly() uses the code verbatim, so an id would probe CONFIG__WEBSITES__1__…
+        // while the lock is CONFIG__WEBSITES__BASE__… and the write would be skipped in silence.
+        $code = $scope === ScopeConfigInterface::SCOPE_TYPE_DEFAULT
+            ? null
+            : $this->scopeCodeResolver->resolve($scope, $scopeCode);
+
+        if (!$this->settingChecker->isReadOnly($path, $scope, $code)) {
             return;
         }
 
@@ -204,41 +215,45 @@ class ConfigPathWriter
      */
     private function storedPath(string $path): ?string
     {
-        return $this->storedPaths()[$path] ?? null;
+        if (!isset($this->declaredPaths()[$path])) {
+            return null;
+        }
+
+        // Byte-for-byte what Config::getFieldPath() reads, off the same cached flyweight — so a
+        // plugin that synthesises a config_path is seen here too. Magento_Paypal ships one for
+        // every field under payment_<country>, and the raw structure array it never touches
+        // reports those paths as writing to themselves.
+        $element = $this->configStructure->getElement($path);
+        $configPath = $element instanceof Field ? (string) $element->getConfigPath() : '';
+
+        return $configPath !== '' && strrpos($configPath, '/') > 0 ? $configPath : $path;
     }
 
     /**
-     * Structure::getFieldPaths() is keyed by the path the value lands on and lists the structural
-     * paths that reach it, which inverted is exactly the redirection Config::getFieldPath() applies.
+     * Existence only. Structure::getFieldPaths() walks the raw merged array, which is exact for
+     * "does system.xml declare this field" but blind to plugins — hence the flyweight above.
      *
-     * @return array<string, string>
+     * @return array<string, true>
      */
-    private function storedPaths(): array
+    private function declaredPaths(): array
     {
-        if ($this->storedPaths !== null) {
-            return $this->storedPaths;
+        if ($this->declaredPaths !== null) {
+            return $this->declaredPaths;
         }
 
-        $map = [];
-        foreach ($this->configStructure->getFieldPaths() as $configPath => $structurePaths) {
+        $declared = [];
+        foreach ($this->configStructure->getFieldPaths() as $structurePaths) {
             if (!is_array($structurePaths)) {
                 continue;
             }
-
-            $configPath = (string) $configPath;
-            // getFieldsRecursively() keys on <config_path> unconditionally, but getFieldPath()
-            // only honours one with an inner slash — follow the latter, it does the writing.
-            $honoured = strrpos($configPath, '/') > 0;
-
             foreach ($structurePaths as $structurePath) {
-                if (!is_string($structurePath)) {
-                    continue;
+                if (is_string($structurePath)) {
+                    $declared[$structurePath] = true;
                 }
-                $map[$structurePath] = $honoured ? $configPath : $structurePath;
             }
         }
 
-        return $this->storedPaths = $map;
+        return $this->declaredPaths = $declared;
     }
 
     /**
