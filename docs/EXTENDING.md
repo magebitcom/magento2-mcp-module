@@ -7,6 +7,10 @@ For a canonical satellite that ships a full catalog of read + write tools with c
 - The **field-resolver pattern** (`FieldResolverInterface` + `ResolverPipeline` in this module; per-entity sub-interfaces like `OrderFieldResolverInterface` in the satellite) for building tool responses out of DI-injected, 3rd-party-extendable fragments.
 - The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI.
 
+A third ACL contract exists for tools whose required permission is argument-dependent:
+
+- **`Api/ContextualAclAwareInterface`** — third ACL check for tools whose required Magento resource depends on the call arguments (e.g. a config writer needing the target section's own `<resource>`). Returns a list; every entry must pass. Resolved *before* schema validation, so implementations must tolerate malformed arguments and return `[]` when nothing can be determined.
+
 ## Step 1 — Implement `ToolInterface`
 
 ```php

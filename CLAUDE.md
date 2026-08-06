@@ -97,10 +97,11 @@ Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth
 
 ## Core extensibility surface
 
-Satellite modules must reuse these five contracts — never duplicate them.
+Satellite modules must reuse these contracts — never duplicate them.
 
 - **`Api/ToolInterface`** — every MCP tool. Registered by DI array into `Model/Tool/ToolRegistry`. The registry validates at construction that the di.xml key matches `getName()` and matches `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`. Duplicates fail `setup:di:compile`.
 - **`Api/UnderlyingAclAwareInterface`** — opt-in second ACL check. If a tool wraps a Magento service contract (e.g. an invoice-create tool wrapping `InvoiceOrderInterface`), return the underlying Magento admin-UI resource here. `ToolsCallHandler` then enforces *both* the MCP-specific ACL AND the admin-UI ACL. Invariant: "MCP cannot do what the admin UI cannot."
+- **`Api/ContextualAclAwareInterface`** — third ACL check for tools whose required Magento resource depends on the call arguments (e.g. a config writer needing the target section's own `<resource>`). Returns a list; every entry must pass. Resolved *before* schema validation, so implementations must tolerate malformed arguments and return `[]` when nothing can be determined.
 - **`Api/FieldResolverInterface`** — marker for the field-resolver pattern used by satellite read tools. Each resolver owns a named slice of the response (`totals`, `items`, …). `Model/Util/ResolverPipeline` walks heterogeneous resolver arrays and orders them by `getSortOrder()` (default 100). Satellites define entity-typed sub-interfaces (`OrderFieldResolverInterface` etc.); the pipeline only needs the marker.
 - **`Api/ToolRegistryInterface`** / **`ToolResultInterface`** — registry + result envelope.
 - **Events `magebit_mcp_tool_call_before` / `_after`** — cross-cutting concerns (result masking, custom audit sinks, bespoke throttling on top of the shipped limiter). Params are read-only; arguments have already been redacted for audit when the event fires, so mutating them desyncs the audit row from what ran.

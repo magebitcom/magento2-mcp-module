@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
+use Magebit\Mcp\Api\ContextualAclAwareInterface;
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\RateLimiterInterface;
@@ -41,7 +42,7 @@ use Throwable;
  * Order:
  *   1. Resolve params + tool from registry.
  *   2. Token scope narrows allowed tools.
- *   3. ACL — admin role + optional underlying-Magento ACL.
+ *   3. ACL — admin role + optional underlying-Magento and argument-derived contextual ACLs.
  *   4. Write gate (WRITE tools require both server config and token flag).
  *   5. Input schema validation.
  *   6. Rate limiter.
@@ -104,7 +105,7 @@ class ToolsCallHandler implements HandlerInterface
 
         foreach ([
             fn (): ?Response => $this->checkTokenScope($request, $context, $tool),
-            fn (): ?Response => $this->checkAcl($request, $context, $tool),
+            fn (): ?Response => $this->checkAcl($request, $context, $tool, $args),
             fn (): ?Response => $this->checkWriteGate($request, $context, $tool),
             fn (): ?Response => $this->validateInputSchema($request, $schema, $args),
             fn (): ?Response => $this->checkRateLimit($request, $context, $tool),
@@ -181,10 +182,16 @@ class ToolsCallHandler implements HandlerInterface
      * @param Request $request
      * @param AuthenticatedContext $context
      * @param ToolInterface $tool
+     * @param array $arguments
+     * @phpstan-param array<string, mixed> $arguments
      * @return Response|null
      */
-    private function checkAcl(Request $request, AuthenticatedContext $context, ToolInterface $tool): ?Response
-    {
+    private function checkAcl(
+        Request $request,
+        AuthenticatedContext $context,
+        ToolInterface $tool,
+        array $arguments
+    ): ?Response {
         if (!$this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource())) {
             return $this->fail($request, ErrorCode::FORBIDDEN, 'Your admin role does not permit this tool.');
         }
@@ -199,6 +206,19 @@ class ToolsCallHandler implements HandlerInterface
                     $request,
                     ErrorCode::FORBIDDEN,
                     'Your admin role does not permit the underlying Magento action.'
+                );
+            }
+        }
+
+        if ($tool instanceof ContextualAclAwareInterface) {
+            foreach ($tool->getContextualAclResources($arguments) as $resource) {
+                if ($resource === '' || $this->aclChecker->isAllowed($context->adminUser, $resource)) {
+                    continue;
+                }
+                return $this->fail(
+                    $request,
+                    ErrorCode::FORBIDDEN,
+                    'Your admin role does not permit the Magento section this call targets.'
                 );
             }
         }
