@@ -61,6 +61,50 @@
         </arguments>
     </type>
 
+    <!-- system.xml only exists at etc/adminhtml/system.xml, and Structure\Data reads per area, so
+         the plain Structure is EMPTY on the frontend route this module serves. Without this the
+         sensitive-field guard loses its field-type and encrypted-backend checks, and a config write
+         gets no backend model and no validation. Mirrors Magento's own adminhtmlConfigStructure
+         rather than referencing it: a virtualType is not public API and could be renamed. -->
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlScope" type="Magento\Framework\Config\Scope">
+        <arguments>
+            <argument name="defaultScope" xsi:type="string">adminhtml</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlData"
+                 type="Magento\Config\Model\Config\Structure\Data">
+        <arguments>
+            <argument name="configScope" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlScope
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\Adminhtml" type="Magento\Config\Model\Config\Structure">
+        <arguments>
+            <argument name="structureData" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlData
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magebit\Mcp\Model\Config\SensitiveFieldGuard">
+        <arguments>
+            <argument name="configStructure" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\Adminhtml
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- The same instance is handed to Magento\Config\Model\Config in write(), so the redirect check
+         and the save that follows it can never resolve against different structures. -->
+    <type name="Magebit\Mcp\Model\Config\ConfigPathWriter">
+        <arguments>
+            <argument name="configStructure" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\Adminhtml
+            </argument>
+        </arguments>
+    </type>
+
     <!-- Request-scoped audit context — a single shared instance per HTTP request
          so the controller and the tools/call handler populate the same object. -->
     <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>

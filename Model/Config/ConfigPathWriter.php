@@ -93,9 +93,14 @@ class ConfigPathWriter
         $this->assertNotRedirected($path, $stored);
         $this->assertNotLocked($path, $scope, $scopeCode);
 
+        // Config is DI-wired to the plain area-scoped Structure, which is empty outside adminhtml.
+        // Handing it the same instance the checks above used is what keeps the redirect resolution
+        // and the save that follows it from resolving against two different structures.
+        //
         // setSection()/setGroups()/... are DataObject __call magic, not declared methods; seeding
         // the same keys through the factory is equivalent and actually mockable.
         $this->configFactory->create([
+            'configStructure' => $this->configStructure,
             'data' => [
                 'section' => $parsed['section'],
                 'website' => $scope === ScopeInterface::SCOPE_WEBSITES ? (string) $scopeCode : '',

@@ -158,11 +158,14 @@ class ConfigPathWriterTest extends TestCase
     private function writerExpecting(?array $expectedData, ?Structure $structure = null): array
     {
         $adminConfig = $this->createMock(AdminConfig::class);
+        $structure = $structure ?? $this->structure();
 
         $factory = $this->createMock(ConfigFactory::class);
         $create = $factory->expects($this->once())->method('create');
         if ($expectedData !== null) {
-            $create->with(['data' => $expectedData]);
+            // The structure is asserted on every happy path: Config must resolve the field against
+            // the same instance the redirect check just used, not its DI-wired area-scoped default.
+            $create->with(['configStructure' => $structure, 'data' => $expectedData]);
         }
         $create->willReturn($adminConfig);
 
@@ -208,6 +211,27 @@ class ConfigPathWriterTest extends TestCase
         $adminConfig->expects($this->once())->method('save');
 
         $writer->write('tax/calculation/based_on', 'total', 'default', null);
+    }
+
+    /**
+     * Config is DI-wired to the plain area-scoped Structure, which is empty on the frontend route
+     * this module serves. Forwarding ours is what makes the backend model and validation run.
+     *
+     * @return void
+     */
+    public function testTheWritersOwnStructureIsHandedToTheConfigModel(): void
+    {
+        $structure = $this->structure();
+
+        $factory = $this->createMock(ConfigFactory::class);
+        $factory->expects($this->once())
+            ->method('create')
+            ->with($this->callback(
+                fn (array $arguments): bool => ($arguments['configStructure'] ?? null) === $structure
+            ))
+            ->willReturn($this->createMock(AdminConfig::class));
+
+        $this->writer($factory, $structure)->write('tax/calculation/based_on', 'total', 'default', null);
     }
 
     public function testANestedGroupPathNestsTheGroupsArray(): void
