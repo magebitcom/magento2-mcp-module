@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Config;
 
+use Magebit\Mcp\Model\Util\ConfigPathFormat;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
@@ -17,20 +18,14 @@ use Magento\Framework\Exception\LocalizedException;
 class ConfigWritePolicy
 {
     /**
-     * Canonical `section/group/field`. Non-canonical input is refused rather than normalised, so a
-     * caller cannot slip past the protected layer with a leading space or a doubled slash.
-     */
-    private const PATH_PATTERN = '#^[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)+$#D';
-
-    private const MESSAGE_PATH_MAX_LENGTH = 120;
-
-    /**
      * @param ConfigWriteConfig $config
+     * @param ConfigPathFormat $pathFormat
      * @param array<array-key, string> $protectedPrefixes Segment-boundary matched, so `dev`
      *        protects `dev/debug/...` without catching `developer/...`.
      */
     public function __construct(
         private readonly ConfigWriteConfig $config,
+        private readonly ConfigPathFormat $pathFormat,
         private readonly array $protectedPrefixes = []
     ) {
     }
@@ -42,14 +37,14 @@ class ConfigWritePolicy
      */
     public function assertWritable(string $path): void
     {
-        if (preg_match(self::PATH_PATTERN, $path) !== 1) {
+        if (!$this->pathFormat->isCanonical($path)) {
             throw new LocalizedException(
                 __(
                     'Path "%1" is not a well-formed configuration path. Expected two or more '
                     . 'slash-separated segments of letters, digits and underscores '
                     . '(for example tax/calculation/based_on), with no leading, trailing or embedded '
                     . 'whitespace and no empty segments.',
-                    $this->forMessage($path)
+                    $this->pathFormat->forMessage($path)
                 )
             );
         }
@@ -70,7 +65,7 @@ class ConfigWritePolicy
                 __(
                     'Path "%1" is protected by "%2" and can never be written over MCP, '
                     . 'regardless of the allowlist. Use the admin UI or CLI.',
-                    $this->forMessage($path),
+                    $this->pathFormat->forMessage($path),
                     $protectedPrefix
                 )
             );
@@ -90,7 +85,10 @@ class ConfigWritePolicy
 
         if (!in_array($path, $allowed, true)) {
             throw new LocalizedException(
-                __('Path "%1" is not in the configured allowlist of writable paths.', $this->forMessage($path))
+                __(
+                    'Path "%1" is not in the configured allowlist of writable paths.',
+                    $this->pathFormat->forMessage($path)
+                )
             );
         }
     }
@@ -118,27 +116,5 @@ class ConfigWritePolicy
         }
 
         return null;
-    }
-
-    /**
-     * The shape-guard branch is reachable with wholly unvalidated bytes, and its message travels to
-     * the JSON-RPC error string and the audit log — so echo back something bounded and printable.
-     *
-     * @param string $path
-     * @return string
-     */
-    private function forMessage(string $path): string
-    {
-        $safe = preg_replace('/[[:cntrl:]]+/', ' ', $path);
-        if (!is_string($safe)) {
-            return '';
-        }
-
-        // Invalid UTF-8 would otherwise fail json_encode() when the error is serialized.
-        $safe = mb_convert_encoding($safe, 'UTF-8', 'UTF-8');
-
-        return mb_strlen($safe) > self::MESSAGE_PATH_MAX_LENGTH
-            ? mb_substr($safe, 0, self::MESSAGE_PATH_MAX_LENGTH) . '...'
-            : $safe;
     }
 }

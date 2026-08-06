@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\Config;
 
 use Magebit\Mcp\Model\Config\ConfigWriteConfig;
 use Magebit\Mcp\Model\Config\ConfigWritePolicy;
+use Magebit\Mcp\Model\Util\ConfigPathFormat;
 use Magento\Framework\Exception\LocalizedException;
 use PHPUnit\Framework\TestCase;
 
@@ -26,7 +27,7 @@ class ConfigWritePolicyTest extends TestCase
         $config->method('isEnabled')->willReturn($enabled);
         $config->method('getAllowedPaths')->willReturn($allowed);
 
-        return new ConfigWritePolicy($config, [
+        return new ConfigWritePolicy($config, new ConfigPathFormat(), [
             'web/unsecure',
             'web/secure',
             'admin',

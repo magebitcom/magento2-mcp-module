@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Config;
 
+use Magebit\Mcp\Model\Util\ConfigPathFormat;
+use Magento\Config\Model\Config\Reader\Source\Deployed\SettingChecker;
 use Magento\Config\Model\Config\Structure;
 use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Config\Model\ConfigFactory;
@@ -23,29 +25,30 @@ class ConfigPathWriter
 {
     private const MIN_SEGMENTS = 3;
 
-    private const MESSAGE_PATH_MAX_LENGTH = 120;
+    private const SCOPE_TYPES = [
+        ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
+        ScopeInterface::SCOPE_WEBSITES,
+        ScopeInterface::SCOPE_STORES,
+    ];
 
     /**
-     * Both the singular and plural spellings are accepted because the framework's own
-     * ScopeConfigInterface::getValue() normalises them, so callers legitimately use either.
+     * @var array<string, string>|null
      */
-    private const SCOPE_ALIASES = [
-        'default' => ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
-        'website' => ScopeInterface::SCOPE_WEBSITES,
-        'websites' => ScopeInterface::SCOPE_WEBSITES,
-        'store' => ScopeInterface::SCOPE_STORES,
-        'stores' => ScopeInterface::SCOPE_STORES,
-    ];
+    private ?array $storedPaths = null;
 
     /**
      * @param ConfigFactory $configFactory
      * @param Structure $configStructure
      * @param ScopeConfigInterface $scopeConfig
+     * @param SettingChecker $settingChecker
+     * @param ConfigPathFormat $pathFormat
      */
     public function __construct(
         private readonly ConfigFactory $configFactory,
         private readonly Structure $configStructure,
-        private readonly ScopeConfigInterface $scopeConfig
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly SettingChecker $settingChecker,
+        private readonly ConfigPathFormat $pathFormat
     ) {
     }
 
@@ -63,28 +66,36 @@ class ConfigPathWriter
         if ($parsed === null) {
             throw new LocalizedException(
                 __(
-                    'Config path "%1" must have at least three segments (section/group/field), each '
-                    . 'non-empty and free of whitespace.',
-                    $this->forMessage($path)
+                    'Config path "%1" must be section/group/field: three or more slash-separated '
+                    . 'segments of letters, digits and underscores.',
+                    $this->pathFormat->forMessage($path)
                 )
             );
         }
 
-        $normalizedScope = $this->normalizeScope($scope);
-        $code = (string) $scopeCode;
-        if ($normalizedScope !== ScopeConfigInterface::SCOPE_TYPE_DEFAULT && $code === '') {
+        $this->assertScope($scope, $scopeCode);
+
+        $stored = $this->storedPath($path);
+        if ($stored === null) {
             throw new LocalizedException(
-                __('Scope "%1" needs a scope code; without one the write would land on the default scope.', $scope)
+                __(
+                    'Config path "%1" is not declared as a field in system.xml. Writing it would '
+                    . 'store a raw string with no backend model and no validation, so it is refused.',
+                    $this->pathFormat->forMessage($path)
+                )
             );
         }
+
+        $this->assertNotRedirected($path, $stored);
+        $this->assertNotLocked($path, $scope, $scopeCode);
 
         // setSection()/setGroups()/... are DataObject __call magic, not declared methods; seeding
         // the same keys through the factory is equivalent and actually mockable.
         $this->configFactory->create([
             'data' => [
                 'section' => $parsed['section'],
-                'website' => $normalizedScope === ScopeInterface::SCOPE_WEBSITES ? $code : '',
-                'store' => $normalizedScope === ScopeInterface::SCOPE_STORES ? $code : '',
+                'website' => $scope === ScopeInterface::SCOPE_WEBSITES ? (string) $scopeCode : '',
+                'store' => $scope === ScopeInterface::SCOPE_STORES ? (string) $scopeCode : '',
                 'groups' => $this->buildGroups($parsed['groups'], $parsed['field'], $value),
             ],
         ])->save();
@@ -99,14 +110,17 @@ class ConfigPathWriter
      */
     public function currentValue(string $path, string $scope, ?string $scopeCode): ?string
     {
-        $value = $this->scopeConfig->getValue($path, $this->normalizeScope($scope), $scopeCode);
+        $this->assertScope($scope, $scopeCode);
+
+        $value = $this->scopeConfig->getValue($path, $scope, $scopeCode);
 
         return is_scalar($value) ? (string) $value : null;
     }
 
     /**
-     * Never throws: the caller resolves ACL resources with it, and the dispatcher reads a throw out
-     * of that as a hard denial rather than the "no such field" message the tool wants to report.
+     * The section of the row that would actually be written, which is not the requested one when the
+     * field redirects. Never throws: the caller resolves ACL resources with it, and the dispatcher
+     * reads a throw out of that as a hard denial rather than the "no such field" the tool wants.
      *
      * @param string $path
      * @return Section|null
@@ -118,8 +132,14 @@ class ConfigPathWriter
             return null;
         }
 
-        $element = $this->configStructure->getElement($parsed['section']);
-        if (!$element instanceof Section || $this->isPlaceholder($element, $parsed['section'])) {
+        $sectionId = $parsed['section'];
+        $stored = $this->parse($this->storedPath($path) ?? $path);
+        if ($stored !== null) {
+            $sectionId = $stored['section'];
+        }
+
+        $element = $this->configStructure->getElement($sectionId);
+        if (!$element instanceof Section || $this->isSynthesisedSection($element, $sectionId)) {
             return null;
         }
 
@@ -127,41 +147,141 @@ class ConfigPathWriter
     }
 
     /**
-     * Structure::getElement() answers an undeclared id with a synthesised three-key element instead
-     * of null; a section declared in system.xml always carries more than that and never a `path`.
+     * Magento overrides the posted path with the field's `<config_path>`, so an allowlisted path can
+     * write a protected row. Nothing here re-checks the stored path against the policy: that would
+     * put allowlist knowledge in the writer and hide the mismatch instead of reporting it.
+     *
+     * @param string $path
+     * @param string $stored
+     * @return void
+     * @throws LocalizedException
+     */
+    private function assertNotRedirected(string $path, string $stored): void
+    {
+        if ($stored === $path) {
+            return;
+        }
+
+        throw new LocalizedException(
+            __(
+                'Config path "%1" stores its value at "%2" instead, so writing it here would bypass '
+                . 'every check made against "%1". Set it through Stores > Configuration.',
+                $this->pathFormat->forMessage($path),
+                $this->pathFormat->forMessage($stored)
+            )
+        );
+    }
+
+    /**
+     * A path pinned in app/etc/env.php or by a CONFIG__* variable is skipped by _processGroup() and
+     * save() still returns cleanly — the tool would report a change that never happened.
+     *
+     * @param string $path
+     * @param string $scope
+     * @param string|null $scopeCode
+     * @return void
+     * @throws LocalizedException
+     */
+    private function assertNotLocked(string $path, string $scope, ?string $scopeCode): void
+    {
+        if (!$this->settingChecker->isReadOnly($path, $scope, $scopeCode)) {
+            return;
+        }
+
+        throw new LocalizedException(
+            __(
+                'Config path "%1" is locked by app/etc/env.php or an environment variable in the "%2" '
+                . 'scope. The save would be skipped silently, so it is refused instead.',
+                $this->pathFormat->forMessage($path),
+                $this->pathFormat->forMessage($scope)
+            )
+        );
+    }
+
+    /**
+     * @param string $path A structural section/group/field path.
+     * @return string|null Where the value is really stored, or null when no such field is declared.
+     */
+    private function storedPath(string $path): ?string
+    {
+        return $this->storedPaths()[$path] ?? null;
+    }
+
+    /**
+     * Structure::getFieldPaths() is keyed by the path the value lands on and lists the structural
+     * paths that reach it, which inverted is exactly the redirection Config::getFieldPath() applies.
+     *
+     * @return array<string, string>
+     */
+    private function storedPaths(): array
+    {
+        if ($this->storedPaths !== null) {
+            return $this->storedPaths;
+        }
+
+        $map = [];
+        foreach ($this->configStructure->getFieldPaths() as $configPath => $structurePaths) {
+            if (!is_array($structurePaths)) {
+                continue;
+            }
+
+            $configPath = (string) $configPath;
+            // getFieldsRecursively() keys on <config_path> unconditionally, but getFieldPath()
+            // only honours one with an inner slash — follow the latter, it does the writing.
+            $honoured = strrpos($configPath, '/') > 0;
+
+            foreach ($structurePaths as $structurePath) {
+                if (!is_string($structurePath)) {
+                    continue;
+                }
+                $map[$structurePath] = $honoured ? $configPath : $structurePath;
+            }
+        }
+
+        return $this->storedPaths = $map;
+    }
+
+    /**
+     * Structure::getElement() answers an undeclared id with a synthesised placeholder rather than
+     * null; it carries exactly `id`, `path` and `_elementType`, and a real section has no `path`.
      *
      * @param Section $section
-     * @param string $sectionId
+     * @param string $expectedId
      * @return bool
      */
-    private function isPlaceholder(Section $section, string $sectionId): bool
+    private function isSynthesisedSection(Section $section, string $expectedId): bool
     {
         $data = $section->getData();
 
         return count($data) === 3
-            && ($data['id'] ?? null) === $sectionId
-            && ($data['path'] ?? null) === ''
-            && ($data['_elementType'] ?? null) === 'section';
+            && ($data['id'] ?? null) === $expectedId
+            && array_key_exists('path', $data)
+            && isset($data['_elementType']);
     }
 
     /**
      * @param string $scope
-     * @return string
+     * @param string|null $scopeCode
+     * @return void
      * @throws LocalizedException
      */
-    private function normalizeScope(string $scope): string
+    private function assertScope(string $scope, ?string $scopeCode): void
     {
-        if (!isset(self::SCOPE_ALIASES[$scope])) {
+        if (!in_array($scope, self::SCOPE_TYPES, true)) {
             throw new LocalizedException(
                 __(
                     'Unknown configuration scope "%1". Expected one of: %2.',
-                    $this->forMessage($scope),
-                    implode(', ', array_keys(self::SCOPE_ALIASES))
+                    $this->pathFormat->forMessage($scope),
+                    implode(', ', self::SCOPE_TYPES)
                 )
             );
         }
 
-        return self::SCOPE_ALIASES[$scope];
+        if ($scope !== ScopeConfigInterface::SCOPE_TYPE_DEFAULT && (string) $scopeCode === '') {
+            throw new LocalizedException(
+                __('Scope "%1" needs a scope code; without one the call would fall back to the default scope.', $scope)
+            );
+        }
     }
 
     /**
@@ -184,23 +304,18 @@ class ConfigPathWriter
     }
 
     /**
-     * Non-canonical input is refused rather than normalised, so a caller cannot reach a path
-     * different from the one an earlier allowlist check approved.
-     *
      * @param string $path
      * @return array{section: string, groups: list<string>, field: string}|null
      */
     private function parse(string $path): ?array
     {
-        $segments = explode('/', $path);
-        if (count($segments) < self::MIN_SEGMENTS) {
+        if (!$this->pathFormat->isCanonical($path)) {
             return null;
         }
 
-        foreach ($segments as $segment) {
-            if ($segment === '' || preg_match('/\s/', $segment) === 1) {
-                return null;
-            }
+        $segments = explode('/', $path);
+        if (count($segments) < self::MIN_SEGMENTS) {
+            return null;
         }
 
         return [
@@ -208,26 +323,5 @@ class ConfigPathWriter
             'groups' => array_slice($segments, 1, count($segments) - 2),
             'field' => $segments[count($segments) - 1],
         ];
-    }
-
-    /**
-     * The rejection message travels to the JSON-RPC error string and the audit log, so echo back
-     * something bounded and printable even when the input never passed a shape check.
-     *
-     * @param string $value
-     * @return string
-     */
-    private function forMessage(string $value): string
-    {
-        $safe = preg_replace('/[[:cntrl:]]+/', ' ', $value);
-        if (!is_string($safe)) {
-            return '';
-        }
-
-        $safe = mb_convert_encoding($safe, 'UTF-8', 'UTF-8');
-
-        return mb_strlen($safe) > self::MESSAGE_PATH_MAX_LENGTH
-            ? mb_substr($safe, 0, self::MESSAGE_PATH_MAX_LENGTH) . '...'
-            : $safe;
     }
 }
