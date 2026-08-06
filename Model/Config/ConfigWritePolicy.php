@@ -22,6 +22,8 @@ class ConfigWritePolicy
      */
     private const PATH_PATTERN = '#^[A-Za-z0-9_]+(?:/[A-Za-z0-9_]+)+$#D';
 
+    private const MESSAGE_PATH_MAX_LENGTH = 120;
+
     /**
      * @param ConfigWriteConfig $config
      * @param array<array-key, string> $protectedPrefixes Segment-boundary matched, so `dev`
@@ -43,9 +45,11 @@ class ConfigWritePolicy
         if (preg_match(self::PATH_PATTERN, $path) !== 1) {
             throw new LocalizedException(
                 __(
-                    'Path "%1" is not a well-formed configuration path. Expected section/group/field '
-                    . 'using letters, digits and underscores, with no surrounding or embedded whitespace.',
-                    $path
+                    'Path "%1" is not a well-formed configuration path. Expected two or more '
+                    . 'slash-separated segments of letters, digits and underscores '
+                    . '(for example tax/calculation/based_on), with no leading, trailing or embedded '
+                    . 'whitespace and no empty segments.',
+                    $this->forMessage($path)
                 )
             );
         }
@@ -66,7 +70,7 @@ class ConfigWritePolicy
                 __(
                     'Path "%1" is protected by "%2" and can never be written over MCP, '
                     . 'regardless of the allowlist. Use the admin UI or CLI.',
-                    $path,
+                    $this->forMessage($path),
                     $protectedPrefix
                 )
             );
@@ -86,14 +90,15 @@ class ConfigWritePolicy
 
         if (!in_array($path, $allowed, true)) {
             throw new LocalizedException(
-                __('Path "%1" is not in the configured allowlist of writable paths.', $path)
+                __('Path "%1" is not in the configured allowlist of writable paths.', $this->forMessage($path))
             );
         }
     }
 
     /**
-     * Deliberately lenient about case, surrounding whitespace and slashes: this layer may only ever
-     * catch more than the caller asked about, never less.
+     * Not a standalone gate: a null return only means "not protected" for input that has already
+     * passed assertWritable()'s shape guard. Case, ASCII whitespace and slashes are folded around
+     * the edges as defence in depth, but embedded and non-ASCII whitespace is not.
      *
      * @param string $path
      * @return string|null The protected prefix that matched, for the rejection message.
@@ -113,5 +118,27 @@ class ConfigWritePolicy
         }
 
         return null;
+    }
+
+    /**
+     * The shape-guard branch is reachable with wholly unvalidated bytes, and its message travels to
+     * the JSON-RPC error string and the audit log — so echo back something bounded and printable.
+     *
+     * @param string $path
+     * @return string
+     */
+    private function forMessage(string $path): string
+    {
+        $safe = preg_replace('/[[:cntrl:]]+/', ' ', $path);
+        if (!is_string($safe)) {
+            return '';
+        }
+
+        // Invalid UTF-8 would otherwise fail json_encode() when the error is serialized.
+        $safe = mb_convert_encoding($safe, 'UTF-8', 'UTF-8');
+
+        return mb_strlen($safe) > self::MESSAGE_PATH_MAX_LENGTH
+            ? mb_substr($safe, 0, self::MESSAGE_PATH_MAX_LENGTH) . '...'
+            : $safe;
     }
 }

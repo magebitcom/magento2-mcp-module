@@ -152,6 +152,45 @@ class ConfigWritePolicyTest extends TestCase
     }
 
     /**
+     * Folding case here would widen the allowlist, so the comparison must stay exact even though
+     * the protected layer above it deliberately folds.
+     *
+     * @return void
+     */
+    public function testTheAllowlistComparisonIsExactAndNeverFoldsCase(): void
+    {
+        $policy = $this->policy(['Tax/Foo/Bar']);
+
+        // Control: the entry as written is writable, so the refusals below are about case only.
+        $policy->assertWritable('Tax/Foo/Bar');
+
+        foreach (['tax/foo/bar', 'TAX/FOO/BAR', 'Tax/Foo/bar', 'tax/Foo/Bar'] as $variant) {
+            try {
+                $policy->assertWritable($variant);
+                $this->fail(sprintf('Expected "%s" to be refused: the allowlist holds "Tax/Foo/Bar".', $variant));
+            } catch (LocalizedException $e) {
+                $this->assertStringContainsString('not in the configured allowlist', $e->getMessage());
+            }
+        }
+    }
+
+    public function testTheRejectionMessageDoesNotEchoRawCallerBytes(): void
+    {
+        $path = "ev\x00il\r\n\x1b[31m/" . str_repeat('a', 500);
+
+        try {
+            $this->policy([])->assertWritable($path);
+            $this->fail('Expected the shape guard to refuse the path.');
+        } catch (LocalizedException $e) {
+            $message = $e->getMessage();
+            $this->assertSame(0, preg_match('/[[:cntrl:]]/', $message), 'Control characters were echoed back.');
+            $this->assertStringNotContainsString(str_repeat('a', 200), $message, 'The path was not truncated.');
+            $this->assertStringContainsString('...', $message);
+            $this->assertLessThan(400, strlen($message));
+        }
+    }
+
+    /**
      * @param string $path
      * @return void
      * @dataProvider whitespacePaddedProtectedPathProvider
