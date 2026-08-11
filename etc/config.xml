@@ -59,6 +59,14 @@ exception.log
 debug.log
 cron.log</allowed_files>
             </log_tools>
+            <config_write>
+                <!-- Off by default: installing an update must never widen the attack surface. -->
+                <enabled>0</enabled>
+                <!-- Empty on purpose: with no path listed, every write is refused. Enabling the
+                     tool and choosing what it may set are two deliberate acts. -->
+                <allowed_paths># One config path per line, e.g. tax/calculation/based_on
+# Lines starting with # are ignored. While this list is empty, every write is refused.</allowed_paths>
+            </config_write>
         </magebit_mcp>
     </default>
 </config>

@@ -8,10 +8,10 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Tool\System;
 
+use Magebit\Mcp\Model\Config\SensitiveFieldGuard;
 use Magebit\Mcp\Tool\System\ConfigGet;
 use Magebit\Mcp\Tool\System\StoreInfo;
 use Magebit\Mcp\Tool\System\StoreList;
-use Magento\Config\Model\Config\Structure;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Store\Api\StoreConfigManagerInterface;
 use Magento\Store\Api\StoreRepositoryInterface;
@@ -84,7 +84,7 @@ class SchemaParityTest extends TestCase
     {
         $tool = new ConfigGet(
             $this->createMock(ScopeConfigInterface::class),
-            $this->createMock(Structure::class)
+            $this->createMock(SensitiveFieldGuard::class)
         );
 
         self::assertSame([

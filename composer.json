@@ -6,6 +6,7 @@
     "require": {
         "php": ">=8.1",
         "magento/framework": "^103.0",
+        "magebitcom/pii-redactor": "^1.1",
         "opis/json-schema": "^2.3",
         "magebitcom/magento2-core": "*"
     },

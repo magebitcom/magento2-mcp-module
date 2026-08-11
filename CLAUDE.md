@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this module is
 
-Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpReportTools`); this repo ships its own set of 18 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), and read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`).
+Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpReportTools`); this repo ships its own set of 19 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`), and allowlisted config writing (`system.config.set`).
 
 The repo is checked out as a Magento module at `app/code/Magebit/Mcp`. The Magento root is `/var/www/demo` — Composer, `bin/magento`, and `vendor/bin/*` all run from there, not from this directory. Read the root `README.md` for protocol-level detail and client-onboarding snippets — this file complements it with architecture and workflow notes.
 
@@ -97,10 +97,11 @@ Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth
 
 ## Core extensibility surface
 
-Satellite modules must reuse these five contracts — never duplicate them.
+Satellite modules must reuse these contracts — never duplicate them.
 
 - **`Api/ToolInterface`** — every MCP tool. Registered by DI array into `Model/Tool/ToolRegistry`. The registry validates at construction that the di.xml key matches `getName()` and matches `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`. Duplicates fail `setup:di:compile`.
 - **`Api/UnderlyingAclAwareInterface`** — opt-in second ACL check. If a tool wraps a Magento service contract (e.g. an invoice-create tool wrapping `InvoiceOrderInterface`), return the underlying Magento admin-UI resource here. `ToolsCallHandler` then enforces *both* the MCP-specific ACL AND the admin-UI ACL. Invariant: "MCP cannot do what the admin UI cannot."
+- **`Api/ContextualAclAwareInterface`** — third ACL check for tools whose required Magento resource depends on the call arguments (e.g. a config writer needing the target section's own `<resource>`). Returns a list; every entry must pass. Resolved *before* schema validation, so implementations must tolerate malformed arguments and return `[]` when nothing can be determined. Fail-closed: a throw, a blank entry, or a non-string entry is a `-32004` denial with its own message (never an internal error).
 - **`Api/FieldResolverInterface`** — marker for the field-resolver pattern used by satellite read tools. Each resolver owns a named slice of the response (`totals`, `items`, …). `Model/Util/ResolverPipeline` walks heterogeneous resolver arrays and orders them by `getSortOrder()` (default 100). Satellites define entity-typed sub-interfaces (`OrderFieldResolverInterface` etc.); the pipeline only needs the marker.
 - **`Api/ToolRegistryInterface`** / **`ToolResultInterface`** — registry + result envelope.
 - **Events `magebit_mcp_tool_call_before` / `_after`** — cross-cutting concerns (result masking, custom audit sinks, bespoke throttling on top of the shipped limiter). Params are read-only; arguments have already been redacted for audit when the event fires, so mutating them desyncs the audit row from what ran.
@@ -114,7 +115,7 @@ Tool ACL resources live under `Magebit_Mcp::tools` (see `etc/acl.xml`). When add
 - MCP tool name `catalog.product.get` → ACL resource `Vendor_Module::mcp_tool_catalog_product_get` (dots → underscores, because ACL ids can't contain dots).
 - Group under a top-level `Vendor_Module::mcp` node nested under `Magento_Backend::system`, NOT under any wide-allow resource.
 
-Four admin-UI resources also gate the module itself: `Magebit_Mcp::mcp_tokens`, `Magebit_Mcp::mcp_audit`, `Magebit_Mcp::config`, and `Magebit_Mcp::tools`. They are intentionally separate so a token-manager role need not see the audit log and vice versa.
+Five admin-UI resources also gate the module itself: `Magebit_Mcp::mcp_tokens`, `Magebit_Mcp::mcp_audit`, `Magebit_Mcp::mcp_tool_management`, `Magebit_Mcp::config`, and `Magebit_Mcp::tools`. They are intentionally separate so a token-manager role need not see the audit log and vice versa.
 
 ## Write-tool gating
 
@@ -123,6 +124,19 @@ Write tools (`WriteMode::WRITE` from `getWriteMode()`) require BOTH:
 2. Per-token `allow_writes = 1` on the `magebit_mcp_token` row.
 
 Either fails → `-32012 WRITE_NOT_ALLOWED`. Write tools SHOULD also return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human.
+
+### Configuration writing (`system.config.set`)
+
+`Tool/System/ConfigSet` sits behind a third gate of its own, `magebit_mcp/config_write/*` (Stores → Configuration → Magebit → MCP Server → **MCP Configuration Writer**):
+
+- `config_write/enabled` — off by default; `Model/Config/ConfigWriteConfig` reads it at **default scope only**, which is why both fields are `showInWebsite="0" showInStore="0"`.
+- `config_write/allowed_paths` — exact paths, one per line, no wildcards. Empty (the shipped default) refuses every write. `Model/Config/Backend/AllowedPaths` validates each line against `Model/Util/ConfigPathFormat` at save time, so an entry that could never match is rejected in the admin rather than silently ignored.
+
+`Model/Config/ConfigWritePolicy` checks a DI-injected protected-prefix list *before* the allowlist, so no allowlist entry can re-open one. `magebit_mcp` is on that list: without it the tool could add paths to its own allowlist or flip `allow_writes`. `Model/Config/ConfigPathWriter` then refuses redirected (`<config_path>`), env-locked, undeclared, file-upload and wrong-scope writes, and saves through `Magento\Config\Model\Config` so backend models and validation run.
+
+`ConfigSet::execute()` additionally refuses a path whose section declares no `<resource>`. `Structure\Element\Section::isAllowed()` is false in that case, so the admin UI refuses the section for *every* role — but `getContextualAclResources()` has to return `[]` there (it must not throw), and the dispatcher reads `[]` as "no extra gate". Every `[]` an implementation returns must be backed by a refusal in `execute()`; this is the one that backs it.
+
+Anything touching `Magento\Config\Model\Config\Structure` must be DI-wired to the `Model\Config\Structure\AdminhtmlLazy` virtual type — `system.xml` is adminhtml-only and the plain structure is **empty** on the frontend route `/mcp` serves. `Test/Unit/Model/Config/ConfigStructureWiringTest` fails if a new consumer is left unwired. The virtual type must not be named `…Proxy`: `setup:di:compile` resolves any such di.xml reference as a generated proxy class and aborts.
 
 ## Logging
 
@@ -146,4 +160,4 @@ Purged by `Cron/PurgeAuditLog` per `magebit_mcp/general/retention_days` (`0` dis
 ## Error codes
 
 Module-specific JSON-RPC codes are declared in `Model/JsonRpc/ErrorCode`:
-`-32001 UNAUTHORIZED`, `-32002 INVALID_ORIGIN`, `-32003 UNSUPPORTED_PROTOCOL_VERSION`, `-32004 FORBIDDEN`, `-32010 TOOL_NOT_FOUND`, `-32011 TOOL_EXECUTION_FAILED`, `-32012 WRITE_NOT_ALLOWED`, `-32013 RATE_LIMITED`, `-32014 SCHEMA_VALIDATION_FAILED`, `-32015 SERVER_DISABLED`. Next free: `-32016`. When adding a new one, extend `ErrorCode` (value + `label()` case) *and* document in the root `README.md` error-codes table.
+`-32001 UNAUTHORIZED`, `-32002 INVALID_ORIGIN`, `-32003 UNSUPPORTED_PROTOCOL_VERSION`, `-32004 FORBIDDEN`, `-32010 TOOL_NOT_FOUND`, `-32011 TOOL_EXECUTION_FAILED`, `-32012 WRITE_NOT_ALLOWED`, `-32013 RATE_LIMITED`, `-32014 SCHEMA_VALIDATION_FAILED`, `-32015 SERVER_DISABLED`, `-32016 PROMPT_NOT_FOUND`. Next free: `-32017`. When adding a new one, extend `ErrorCode` (value + `label()` case) *and* document in the root `README.md` error-codes table.

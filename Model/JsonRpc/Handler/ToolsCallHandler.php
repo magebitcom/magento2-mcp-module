@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
+use Magebit\Mcp\Api\ContextualAclAwareInterface;
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\RateLimiterInterface;
@@ -25,6 +26,7 @@ use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
@@ -41,7 +43,7 @@ use Throwable;
  * Order:
  *   1. Resolve params + tool from registry.
  *   2. Token scope narrows allowed tools.
- *   3. ACL — admin role + optional underlying-Magento ACL.
+ *   3. ACL — admin role + optional underlying-Magento and argument-derived contextual ACLs.
  *   4. Write gate (WRITE tools require both server config and token flag).
  *   5. Input schema validation.
  *   6. Rate limiter.
@@ -61,6 +63,7 @@ class ToolsCallHandler implements HandlerInterface
      * @param LoggerInterface $logger
      * @param ArgumentCoercer $argumentCoercer
      * @param SchemaSanitizer $schemaSanitizer
+     * @param DisabledTools $disabledTools
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -73,7 +76,8 @@ class ToolsCallHandler implements HandlerInterface
         private readonly AuthenticatedContextProvider $authenticatedContextProvider,
         private readonly LoggerInterface $logger,
         private readonly ArgumentCoercer $argumentCoercer,
-        private readonly SchemaSanitizer $schemaSanitizer
+        private readonly SchemaSanitizer $schemaSanitizer,
+        private readonly DisabledTools $disabledTools
     ) {
     }
 
@@ -104,7 +108,7 @@ class ToolsCallHandler implements HandlerInterface
 
         foreach ([
             fn (): ?Response => $this->checkTokenScope($request, $context, $tool),
-            fn (): ?Response => $this->checkAcl($request, $context, $tool),
+            fn (): ?Response => $this->checkAcl($request, $context, $tool, $args),
             fn (): ?Response => $this->checkWriteGate($request, $context, $tool),
             fn (): ?Response => $this->validateInputSchema($request, $schema, $args),
             fn (): ?Response => $this->checkRateLimit($request, $context, $tool),
@@ -134,20 +138,16 @@ class ToolsCallHandler implements HandlerInterface
 
         $canonical = $this->toolRegistry->getCanonicalName($requested);
         if ($canonical === null) {
-            return $this->fail(
-                $request,
-                ErrorCode::TOOL_NOT_FOUND,
-                sprintf('Tool "%s" is not registered.', $requested)
-            );
+            return $this->failNotRegistered($request, $requested);
+        }
+        // An admin-disabled tool is indistinguishable from an unregistered one on the wire.
+        if ($this->disabledTools->isDisabled($canonical)) {
+            return $this->failNotRegistered($request, $requested);
         }
         try {
             $tool = $this->toolRegistry->get($canonical);
         } catch (NoSuchEntityException) {
-            return $this->fail(
-                $request,
-                ErrorCode::TOOL_NOT_FOUND,
-                sprintf('Tool "%s" is not registered.', $requested)
-            );
+            return $this->failNotRegistered($request, $requested);
         }
         $this->auditContext->toolName = $canonical;
 
@@ -181,10 +181,16 @@ class ToolsCallHandler implements HandlerInterface
      * @param Request $request
      * @param AuthenticatedContext $context
      * @param ToolInterface $tool
+     * @param array $arguments
+     * @phpstan-param array<string, mixed> $arguments
      * @return Response|null
      */
-    private function checkAcl(Request $request, AuthenticatedContext $context, ToolInterface $tool): ?Response
-    {
+    private function checkAcl(
+        Request $request,
+        AuthenticatedContext $context,
+        ToolInterface $tool,
+        array $arguments
+    ): ?Response {
         if (!$this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource())) {
             return $this->fail($request, ErrorCode::FORBIDDEN, 'Your admin role does not permit this tool.');
         }
@@ -202,7 +208,71 @@ class ToolsCallHandler implements HandlerInterface
                 );
             }
         }
+
+        if ($tool instanceof ContextualAclAwareInterface) {
+            return $this->checkContextualAcl($request, $context, $tool, $arguments);
+        }
         return null;
+    }
+
+    /**
+     * @param Request $request
+     * @param AuthenticatedContext $context
+     * @param ToolInterface&ContextualAclAwareInterface $tool
+     * @param array $arguments
+     * @phpstan-param array<string, mixed> $arguments
+     * @return Response|null
+     */
+    private function checkContextualAcl(
+        Request $request,
+        AuthenticatedContext $context,
+        ToolInterface&ContextualAclAwareInterface $tool,
+        array $arguments
+    ): ?Response {
+        try {
+            foreach ($tool->getContextualAclResources($arguments) as $resource) {
+                if ($resource === '') {
+                    return $this->failUnresolvedContextualAcl($request, $tool, null);
+                }
+                if (!$this->aclChecker->isAllowed($context->adminUser, $resource)) {
+                    return $this->fail(
+                        $request,
+                        ErrorCode::FORBIDDEN,
+                        'Your admin role does not permit the Magento section this call targets.'
+                    );
+                }
+            }
+        } catch (Throwable $e) {
+            // Arguments reach the resolver unvalidated, so a throw (or a non-string entry) is
+            // reachable from client input; a gate that cannot name its resource must refuse.
+            return $this->failUnresolvedContextualAcl($request, $tool, $e);
+        }
+        return null;
+    }
+
+    /**
+     * Distinct from a permission refusal — the tool failed to state what it needs, so the
+     * operator should not go looking at role permissions.
+     *
+     * @param Request $request
+     * @param ToolInterface $tool
+     * @param Throwable|null $exception
+     * @return Response
+     */
+    private function failUnresolvedContextualAcl(
+        Request $request,
+        ToolInterface $tool,
+        ?Throwable $exception
+    ): Response {
+        $this->logger->error('MCP contextual ACL resolution failed; refusing the call.', [
+            'tool' => $tool->getName(),
+            'exception' => $exception,
+        ]);
+        return $this->fail(
+            $request,
+            ErrorCode::FORBIDDEN,
+            'Could not determine which Magento permission this call requires; the call was refused.'
+        );
     }
 
     /**
@@ -335,6 +405,23 @@ class ToolsCallHandler implements HandlerInterface
             'content' => $result->getContent(),
             'isError' => $result->isError(),
         ]);
+    }
+
+    /**
+     * The one place unresolvable, disabled and unregistered tool names all answer from — an
+     * admin-disabled tool stays indistinguishable from one that never existed only if they match.
+     *
+     * @param Request $request
+     * @param string $requested
+     * @return Response
+     */
+    private function failNotRegistered(Request $request, string $requested): Response
+    {
+        return $this->fail(
+            $request,
+            ErrorCode::TOOL_NOT_FOUND,
+            sprintf('Tool "%s" is not registered.', $requested)
+        );
     }
 
     /**

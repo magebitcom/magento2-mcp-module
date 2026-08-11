@@ -46,10 +46,12 @@ class PiiRedactor
     /**
      * @param DeploymentConfig $deploymentConfig
      * @param array<int, string> $additionalSensitiveKeys
+     * @param TextRedactor|null $textRedactor
      */
     public function __construct(
         private readonly DeploymentConfig $deploymentConfig,
-        array $additionalSensitiveKeys = []
+        array $additionalSensitiveKeys = [],
+        private readonly ?TextRedactor $textRedactor = null
     ) {
         $this->sensitiveKeys = array_values(array_unique(array_map(
             'strtolower',
@@ -74,6 +76,11 @@ class PiiRedactor
             }
             return $out;
         }
+
+        if (is_string($value) && $this->textRedactor !== null) {
+            return $this->textRedactor->redact($value);
+        }
+
         return $value;
     }
 

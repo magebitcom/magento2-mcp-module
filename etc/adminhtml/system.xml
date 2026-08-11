@@ -217,6 +217,42 @@
                     third-party data. Remove them if that matters more than the diagnostics.</p>]]></comment>
                 </field>
             </group>
+            <group id="config_write" translate="label comment" type="text" sortOrder="57"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>MCP Configuration Writer</label>
+                <comment><![CDATA[<p>Settings for the <code>system.config.set</code> tool — writing
+                store configuration over MCP. It is off by default, gated by its own ACL resource
+                (<em>Tool: Set System Configuration Value</em>), and additionally needs
+                <em>Allow Write Tools</em> above plus the calling token's own write flag.</p>]]></comment>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Enable Configuration Writing</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[<strong>Default: No.</strong> Even when on, the tool refuses
+                    every write until you list the paths it may set below.]]></comment>
+                </field>
+                <field id="allowed_paths" translate="label comment" type="textarea" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Allowed Paths</label>
+                    <backend_model>Magebit\Mcp\Model\Config\Backend\AllowedPaths</backend_model>
+                    <depends><field id="enabled">1</field></depends>
+                    <comment><![CDATA[<p><strong>The tool can write these config paths and no
+                    others.</strong> One full path per line, e.g.
+                    <code>tax/calculation/based_on</code>. No wildcards. Blank lines and lines
+                    starting with <code>#</code> are ignored.</p>
+                    <p><strong>Empty means every write is refused.</strong> That is the shipped
+                    default: enabling the tool and deciding what it may change are two separate
+                    decisions.</p>
+                    <p>Some paths can never be written over MCP whatever you list here —
+                    <code>admin/*</code>, <code>payment/*</code> (including the PayPal
+                    <code>payment_&lt;country&gt;</code> sections), <code>web/secure/*</code>,
+                    <code>web/unsecure/*</code>, <code>system/*</code>, <code>dev/*</code>,
+                    <code>oauth/*</code> and <code>magebit_mcp/*</code>. Password, encrypted and
+                    obscured fields are refused too, as are paths with no field in
+                    <code>system.xml</code> — which excludes the whole <code>design/*</code> family,
+                    since those live in Content &gt; Design &gt; Configuration.</p>]]></comment>
+                </field>
+            </group>
             <group id="module_updates" translate="label" type="text" sortOrder="60"
                    showInDefault="1" showInWebsite="0" showInStore="0">
                 <label>Module Update Notifications</label>

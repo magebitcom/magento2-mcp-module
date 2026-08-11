@@ -36,5 +36,12 @@
              parent="Magebit_Mcp::mcp"
              action="magebit_mcp/auditlog/index"
              resource="Magebit_Mcp::mcp_audit"/>
+        <add id="Magebit_Mcp::mcp_tool_management"
+             title="Tools"
+             module="Magebit_Mcp"
+             sortOrder="25"
+             parent="Magebit_Mcp::mcp"
+             action="magebit_mcp/tools/index"
+             resource="Magebit_Mcp::mcp_tool_management"/>
     </menu>
 </config>

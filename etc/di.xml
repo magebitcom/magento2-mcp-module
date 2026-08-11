@@ -41,6 +41,109 @@
         </arguments>
     </type>
 
+    <type name="Magebit\Mcp\Model\Config\ConfigWritePolicy">
+        <arguments>
+            <!-- Protected prefixes are DI-injected, not admin config: weakening them requires
+                 filesystem write plus setup:di:compile, so neither an admin session nor the MCP
+                 surface itself can widen this. Satellites may extend it by merging more entries. -->
+            <argument name="protectedPrefixes" xsi:type="array">
+                <item name="web_unsecure" xsi:type="string">web/unsecure</item>
+                <item name="web_secure" xsi:type="string">web/secure</item>
+                <item name="admin" xsi:type="string">admin</item>
+                <item name="payment" xsi:type="string">payment</item>
+                <item name="system" xsi:type="string">system</item>
+                <item name="dev" xsi:type="string">dev</item>
+                <item name="oauth" xsi:type="string">oauth</item>
+                <!-- Without this the tool is a one-call privilege escalation: it would add itself
+                     to its own allowlist or flip allow_writes. Satellites with their own top-level
+                     section (magebit_mcp_db_tools) contribute that prefix from their own di.xml. -->
+                <item name="magebit_mcp" xsi:type="string">magebit_mcp</item>
+                <!-- Magento_Paypal's country alias sections. In the admin UI a plugin rewrites their
+                     fields onto payment/*; that plugin is adminhtml-only, so on this module's route
+                     a write would land in a row Magento never reads. Protected so neither the
+                     redirect nor the dead row is reachable. -->
+                <item name="payment_all_paypal" xsi:type="string">payment_all_paypal</item>
+                <item name="payment_au" xsi:type="string">payment_au</item>
+                <item name="payment_ca" xsi:type="string">payment_ca</item>
+                <item name="payment_de" xsi:type="string">payment_de</item>
+                <item name="payment_es" xsi:type="string">payment_es</item>
+                <item name="payment_fr" xsi:type="string">payment_fr</item>
+                <item name="payment_gb" xsi:type="string">payment_gb</item>
+                <item name="payment_hk" xsi:type="string">payment_hk</item>
+                <item name="payment_it" xsi:type="string">payment_it</item>
+                <item name="payment_jp" xsi:type="string">payment_jp</item>
+                <item name="payment_nz" xsi:type="string">payment_nz</item>
+                <item name="payment_other" xsi:type="string">payment_other</item>
+                <item name="payment_us" xsi:type="string">payment_us</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- system.xml only exists at etc/adminhtml/system.xml, and Structure\Data reads per area, so
+         the plain Structure is EMPTY on the frontend route this module serves. Without this the
+         sensitive-field guard loses its field-type and encrypted-backend checks, and a config write
+         gets no backend model and no validation. Mirrors Magento's own adminhtmlConfigStructure
+         rather than referencing it: a virtualType is not public API and could be renamed. -->
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlScope" type="Magento\Framework\Config\Scope">
+        <arguments>
+            <argument name="defaultScope" xsi:type="string">adminhtml</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlData"
+                 type="Magento\Config\Model\Config\Structure\Data">
+        <arguments>
+            <argument name="configScope" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlScope
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\Adminhtml" type="Magento\Config\Model\Config\Structure">
+        <arguments>
+            <argument name="structureData" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlData
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Structure::__construct pulls the whole 9 MB structure eagerly, which is why Magento wraps it
+         for its own consumers. Both of ours sit on the eager path from the MCP controller, so
+         without this every request pays for it — including ones that never read config.
+         The name must NOT end in "Proxy": setup:di:compile reads any such di.xml reference as a
+         generated proxy and fails the whole compile on "Invalid proxy class" for a virtual type. -->
+    <virtualType name="Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy"
+                 type="Magento\Config\Model\Config\Structure\Proxy">
+        <arguments>
+            <argument name="instanceName" xsi:type="string">
+                Magebit\Mcp\Model\Config\Structure\Adminhtml
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magebit\Mcp\Model\Config\SensitiveFieldGuard">
+        <arguments>
+            <argument name="configStructure" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
+            </argument>
+            <!-- Read-side twin of ConfigWritePolicy's protected prefixes, and DI-injected for the
+                 same reason. The module's own settings have no system.xml fields to check, so
+                 without this the gates themselves — including the disabled-tool list — read back
+                 out through system.config.get. -->
+            <argument name="blockedPrefixes" xsi:type="array">
+                <item name="magebit_mcp" xsi:type="string">magebit_mcp</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- The same instance is handed to Magento\Config\Model\Config in write(), so the redirect check
+         and the save that follows it can never resolve against different structures. -->
+    <type name="Magebit\Mcp\Model\Config\ConfigPathWriter">
+        <arguments>
+            <argument name="configStructure" xsi:type="object">
+                Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
+            </argument>
+        </arguments>
+    </type>
+
     <!-- Request-scoped audit context — a single shared instance per HTTP request
          so the controller and the tools/call handler populate the same object. -->
     <type name="Magebit\Mcp\Model\AuditLog\AuditContext" shared="true"/>
@@ -200,6 +303,9 @@
                 </item>
                 <item name="system.config.get" xsi:type="object">
                     Magebit\Mcp\Tool\System\ConfigGet
+                </item>
+                <item name="system.config.set" xsi:type="object">
+                    Magebit\Mcp\Tool\System\ConfigSet
                 </item>
                 <item name="system.cache.list" xsi:type="object">
                     Magebit\Mcp\Tool\System\Cache\CacheList
@@ -374,6 +480,27 @@
                     Magebit\Mcp\Prompt\System\FindSettingPrompt
                 </item>
             </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\AuditLog\TextRedactor">
+        <arguments>
+            <argument name="entityTypes" xsi:type="array">
+                <item name="email" xsi:type="string">EMAIL</item>
+                <item name="phone" xsi:type="string">PHONE</item>
+                <item name="credit_card" xsi:type="string">CREDIT_CARD</item>
+                <item name="iban" xsi:type="string">IBAN</item>
+                <item name="vat_id" xsi:type="string">VAT_ID</item>
+                <item name="api_key" xsi:type="string">API_KEY</item>
+                <item name="private_key" xsi:type="string">PRIVATE_KEY</item>
+                <item name="crypto_address" xsi:type="string">CRYPTO_ADDRESS</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\AuditLog\PiiRedactor">
+        <arguments>
+            <argument name="textRedactor" xsi:type="object">Magebit\Mcp\Model\AuditLog\TextRedactor</argument>
         </arguments>
     </type>
 
