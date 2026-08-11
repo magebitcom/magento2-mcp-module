@@ -1,0 +1,67 @@
+<?php
+/**
+ * @author    Magebit <info@magebit.com>
+ * @copyright Copyright (c) Magebit, Ltd. (https://magebit.com)
+ * @license   MIT
+ */
+declare(strict_types=1);
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+
+/** @var \Magebit\Mcp\ViewModel\ToolManagement $viewModel */
+$viewModel = $block->getData('view_model');
+$toggleUrl = $block->getUrl('magebit_mcp/tools/toggle');
+?>
+<?php foreach ($viewModel->getModules() as $module => $tools): ?>
+    <div class="admin__data-grid-wrap" style="margin-bottom: 3rem;">
+        <h2><?= $escaper->escapeHtml($module) ?></h2>
+        <table class="data-grid">
+            <thead>
+                <tr>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Tool')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Title')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Type')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('ACL Resource')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Status')) ?></th>
+                    <th class="data-grid-th"><?= $escaper->escapeHtml(__('Action')) ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($tools as $tool): ?>
+                    <tr>
+                        <td><code><?= $escaper->escapeHtml($tool['name']) ?></code></td>
+                        <td title="<?= $escaper->escapeHtmlAttr($tool['description']) ?>">
+                            <?= $escaper->escapeHtml($tool['title']) ?>
+                        </td>
+                        <td><?= $escaper->escapeHtml($tool['write'] ? __('Write') : __('Read')) ?></td>
+                        <td><code><?= $escaper->escapeHtml($tool['acl']) ?></code></td>
+                        <td>
+                            <?php if ($tool['disabled']): ?>
+                                <span class="grid-severity-critical">
+                                    <span><?= $escaper->escapeHtml(__('Disabled')) ?></span>
+                                </span>
+                            <?php else: ?>
+                                <span class="grid-severity-notice">
+                                    <span><?= $escaper->escapeHtml(__('Enabled')) ?></span>
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <form action="<?= $escaper->escapeUrl($toggleUrl) ?>" method="post">
+                                <?= $block->getBlockHtml('formkey') ?>
+                                <input type="hidden" name="tool"
+                                       value="<?= $escaper->escapeHtmlAttr($tool['name']) ?>"/>
+                                <input type="hidden" name="disabled"
+                                       value="<?= $tool['disabled'] ? '0' : '1' ?>"/>
+                                <button type="submit" class="action-secondary">
+                                    <?= $escaper->escapeHtml($tool['disabled'] ? __('Enable') : __('Disable')) ?>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+<?php endforeach; ?>

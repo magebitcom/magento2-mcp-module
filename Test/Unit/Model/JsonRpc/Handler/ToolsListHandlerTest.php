@@ -17,6 +17,7 @@ use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler;
 use Magebit\Mcp\Model\JsonRpc\Request;
+use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Util\ToolDomain;
@@ -167,6 +168,28 @@ class ToolsListHandlerTest extends TestCase
         self::assertSame(['system_store_list'], $names);
     }
 
+    public function testDisabledToolIsOmittedFromList(): void
+    {
+        // A tool the admin disabled must be invisible to the client, exactly as
+        // if it were never registered.
+        $enabled = $this->makeTool('system.store.list', 'Magebit_Mcp::tool_system_store_list');
+        $disabled = $this->makeTool('cms.page.get', 'Magebit_McpCmsTools::tool_cms_page_get');
+        $handler = $this->makeHandler(
+            [$enabled, $disabled],
+            allowWrites: true,
+            scopes: null,
+            aclAllow: true,
+            disabled: ['cms.page.get']
+        );
+
+        $names = $this->extractToolNames($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertSame(['system_store_list'], $names);
+    }
+
     /**
      * Extracts the emitted tool names from a tools/list response in a way
      * PHPStan can narrow — the Response::result type is array<string, mixed>.
@@ -191,9 +214,15 @@ class ToolsListHandlerTest extends TestCase
     /**
      * @phpstan-param list<ToolInterface> $tools
      * @phpstan-param list<string>|null $scopes
+     * @phpstan-param list<string> $disabled
      */
-    private function makeHandler(array $tools, bool $allowWrites, ?array $scopes, bool $aclAllow): ToolsListHandler
-    {
+    private function makeHandler(
+        array $tools,
+        bool $allowWrites,
+        ?array $scopes,
+        bool $aclAllow,
+        array $disabled = []
+    ): ToolsListHandler {
         $byName = [];
         foreach ($tools as $tool) {
             $byName[$tool->getName()] = $tool;
@@ -215,7 +244,20 @@ class ToolsListHandlerTest extends TestCase
         $logger = $this->createMock(LoggerInterface::class);
         $toolDomain = new ToolDomain(['system' => 'System', 'cms' => 'CMS', 'catalog' => 'Catalog']);
 
-        return new ToolsListHandler($registry, $aclChecker, $config, $sanitizer, $logger, $toolDomain);
+        $disabledTools = $this->createMock(DisabledTools::class);
+        $disabledTools->method('isDisabled')->willReturnCallback(
+            static fn (string $name): bool => in_array($name, $disabled, true)
+        );
+
+        return new ToolsListHandler(
+            $registry,
+            $aclChecker,
+            $config,
+            $sanitizer,
+            $logger,
+            $toolDomain,
+            $disabledTools
+        );
     }
 
     private function makeTool(

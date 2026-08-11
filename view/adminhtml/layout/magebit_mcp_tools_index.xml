@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      layout="admin-1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <block class="Magento\Backend\Block\Template"
+                   name="magebit_mcp_tools"
+                   template="Magebit_Mcp::tools/index.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Magebit\Mcp\ViewModel\ToolManagement</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

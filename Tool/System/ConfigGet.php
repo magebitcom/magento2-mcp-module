@@ -10,13 +10,11 @@ namespace Magebit\Mcp\Tool\System;
 
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Model\Config\SensitiveFieldGuard;
 use Magebit\Mcp\Model\Tool\Schema\Builder\StringBuilder;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\WriteMode;
-use Magento\Config\Model\Config\Backend\Encrypted;
-use Magento\Config\Model\Config\Structure;
-use Magento\Config\Model\Config\Structure\Element\Field;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\ScopeInterface;
@@ -32,34 +30,13 @@ class ConfigGet implements ToolInterface
     public const TOOL_NAME = 'system.config.get';
     public const ACL_RESOURCE = 'Magebit_Mcp::tool_system_config_get';
 
-    private const SENSITIVE_PATH_PATTERNS = [
-        'password',
-        'passwd',
-        'secret',
-        'private_key',
-        'privatekey',
-        'api_key',
-        'apikey',
-        'auth_token',
-        'authtoken',
-        'access_token',
-        'accesstoken',
-        'client_secret',
-        'encryption',
-        'encrypted',
-        'signature',
-        'webhook_secret',
-    ];
-
-    private const SENSITIVE_FIELD_TYPES = ['password', 'obscure'];
-
     /**
      * @param ScopeConfigInterface $scopeConfig
-     * @param Structure $configStructure
+     * @param SensitiveFieldGuard $sensitiveFieldGuard
      */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly Structure $configStructure
+        private readonly SensitiveFieldGuard $sensitiveFieldGuard
     ) {
     }
 
@@ -161,8 +138,8 @@ class ConfigGet implements ToolInterface
             );
         }
 
-        [$forbidden, $reason] = $this->fieldRejection($path);
-        if ($forbidden) {
+        $reason = $this->sensitiveFieldGuard->rejectionFor($path);
+        if ($reason !== null) {
             return new ToolResult(
                 content: [['type' => 'text', 'text' => json_encode([
                     'path' => $path,
@@ -235,65 +212,6 @@ class ConfigGet implements ToolInterface
                 __('Unsupported scope "%1". Expected "default", "websites", or "stores".', $scope)
             ),
         };
-    }
-
-    /**
-     * @param string $path
-     * @return array{0: bool, 1: string|null}
-     */
-    private function fieldRejection(string $path): array
-    {
-        $field = $this->configStructure->getElementByConfigPath($path);
-
-        if ($field instanceof Field) {
-            $type = strtolower((string) $field->getType());
-            if (in_array($type, self::SENSITIVE_FIELD_TYPES, true)) {
-                return [true, 'field_type_sensitive'];
-            }
-
-            $backend = $field->getAttribute('backend_model');
-            if (is_string($backend) && $backend !== '' && $this->isEncryptedBackend($backend)) {
-                return [true, 'encrypted_backend_model'];
-            }
-        } elseif ($field !== null) {
-            // Group / Section / Tab elements collapse to a sub-tree on read,
-            // bypassing the per-field sensitivity checks above. Refuse them.
-            return [true, 'non_field_path'];
-        }
-
-        if ($this->pathMatchesSensitiveKeyword($path)) {
-            return [true, 'path_keyword_blocked'];
-        }
-
-        return [false, null];
-    }
-
-    /**
-     * @param string $className
-     * @return bool
-     */
-    private function isEncryptedBackend(string $className): bool
-    {
-        $normalized = ltrim($className, '\\');
-        if ($normalized === Encrypted::class || is_subclass_of($normalized, Encrypted::class)) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * @param string $path
-     * @return bool
-     */
-    private function pathMatchesSensitiveKeyword(string $path): bool
-    {
-        $needle = strtolower($path);
-        foreach (self::SENSITIVE_PATH_PATTERNS as $pattern) {
-            if (str_contains($needle, $pattern)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

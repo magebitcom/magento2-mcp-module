@@ -6,6 +6,7 @@ For a canonical satellite that ships a full catalog of read + write tools with c
 
 - The **field-resolver pattern** (`FieldResolverInterface` + `ResolverPipeline` in this module; per-entity sub-interfaces like `OrderFieldResolverInterface` in the satellite) for building tool responses out of DI-injected, 3rd-party-extendable fragments.
 - The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI.
+- The **contextual-ACL layering** (`ContextualAclAwareInterface`, described below) for tools whose required permission is not knowable until the arguments arrive.
 
 ## Step 1 — Implement `ToolInterface`
 
@@ -190,6 +191,41 @@ Every tool MUST declare its own ACL resource under a node that's NOT a descendan
 Admins granted this resource — and tokens minted for them — see the tool in `tools/list`; admins without it see an empty list (and `tools/call` fails with `-32004`).
 
 > ACL resource IDs follow the XSD's letter-digit-underscore-colon-colon grammar. Dots in the MCP *tool name* (`catalog.product.get`) map to underscores in the ACL resource id (`mcp_tool_catalog_product_get`).
+
+## Argument-dependent ACL — `ContextualAclAwareInterface`
+
+`UnderlyingAclAwareInterface` returns one fixed resource, which is enough when a tool always wraps the same Magento service. It is not enough when the required permission depends on what the caller asked for — a config writer targeting `tax/calculation/…` needs `Magento_Tax::config_tax`, and the very same tool targeting `payment/…` needs the payment section's own `<resource>`.
+
+Implement `Magebit\Mcp\Api\ContextualAclAwareInterface` alongside `ToolInterface` on the same class:
+
+```php
+class ConfigSet implements ToolInterface, ContextualAclAwareInterface
+{
+    /**
+     * @param array $arguments
+     * @phpstan-param array<string, mixed> $arguments
+     * @return array<int, string>
+     */
+    public function getContextualAclResources(array $arguments): array
+    {
+        $path = $arguments['path'] ?? null;
+        if (!is_string($path)) {
+            return [];
+        }
+        $resource = $this->sectionResourceResolver->resolve($path);
+
+        return $resource === null ? [] : [$resource];
+    }
+}
+```
+
+What the dispatcher does with the return value:
+
+- **Every** entry must pass `AclChecker::isAllowed()` for the calling admin's role. The first failure short-circuits with `-32004 FORBIDDEN` and the message *"Your admin role does not permit the Magento section this call targets."*
+- The gate runs **after** the tool's own ACL and any underlying ACL, and **before** input-schema validation. Arguments are coerced but not yet validated, so `$arguments['path']` may be missing, an `int`, or an array — narrow before use, as above.
+- **Never throw.** A throw, a blank string, or a non-string entry is treated as a hard deny (`-32004`, with the distinct message *"Could not determine which Magento permission this call requires…"*) and logged to `var/log/magebit_mcp.log`. `['']` is **not** equivalent to `[]`.
+- `[]` means "no extra gate" — the call proceeds on the strength of the tool's own ACL alone. Return it only when the tool itself refuses that input in `execute()`; otherwise the gate silently disappears. `Tool/System/ConfigSet` is the worked example: it returns `[]` for a config section that declares no `<resource>` (resolution must not throw), and `execute()` refuses that path outright, exactly as `Structure\Element\Section::isAllowed()` refuses it in the admin UI.
+- The resolver is called **once per tool call** with no caching in the dispatcher. Memoise inside your implementation if resolution is expensive.
 
 ## Step 3 — Register the tool with the MCP registry
 
