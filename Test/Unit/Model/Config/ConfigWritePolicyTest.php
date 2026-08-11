@@ -36,6 +36,8 @@ class ConfigWritePolicyTest extends TestCase
             'dev',
             'oauth',
             'magebit_mcp',
+            // Contributed by Magebit_McpDbTools' di.xml, which pins the entry on its own side.
+            'magebit_mcp_db_tools',
         ]);
     }
 
@@ -78,19 +80,19 @@ class ConfigWritePolicyTest extends TestCase
         $policy = $this->policy([
             'magebit_mcp/general/allow_writes',
             'magebit_mcp/config_write/allowed_paths',
-            'magebit_mcp/db_tools/allowed_tables',
+            'magebit_mcp_db_tools/general/allowed_tables',
         ]);
 
         foreach ([
             'magebit_mcp/general/allow_writes',
             'magebit_mcp/config_write/allowed_paths',
-            'magebit_mcp/db_tools/allowed_tables',
+            'magebit_mcp_db_tools/general/allowed_tables',
         ] as $path) {
             try {
                 $policy->assertWritable($path);
                 $this->fail(sprintf('Expected "%s" to be refused as protected.', $path));
             } catch (LocalizedException $e) {
-                $this->assertStringContainsString('is protected by "magebit_mcp"', $e->getMessage());
+                $this->assertStringContainsString('is protected by "magebit_mcp', $e->getMessage());
             }
         }
     }

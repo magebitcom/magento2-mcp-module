@@ -20,11 +20,14 @@ class SensitiveFieldGuardTest extends TestCase
 {
     /**
      * @param mixed $element
-     * @param list<string> $blockedPrefixes Defaults to the prefixes di.xml ships.
+     * @param list<string> $blockedPrefixes Defaults to the merged set di.xml ships; the second
+     *        entry is contributed by Magebit_McpDbTools, which pins it on its own side.
      * @return SensitiveFieldGuard
      */
-    private function guardReturning(mixed $element, array $blockedPrefixes = ['magebit_mcp']): SensitiveFieldGuard
-    {
+    private function guardReturning(
+        mixed $element,
+        array $blockedPrefixes = ['magebit_mcp', 'magebit_mcp_db_tools']
+    ): SensitiveFieldGuard {
         $structure = $this->createMock(Structure::class);
         $structure->method('getElementByConfigPath')->willReturn($element);
 
@@ -167,6 +170,8 @@ class SensitiveFieldGuardTest extends TestCase
             'magebit_mcp/general/allow_writes',
             'magebit_mcp/config_write/allowed_paths',
             'magebit_mcp/general/allowed_origins',
+            'magebit_mcp_db_tools/general/enabled',
+            'magebit_mcp_db_tools/general/allowed_tables',
         ] as $path) {
             $this->assertSame(
                 'path_prefix_blocked',

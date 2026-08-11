@@ -118,7 +118,9 @@ class AuditLogger
         if ($summary === null || $summary === []) {
             return null;
         }
-        return $this->encode($summary);
+        $redacted = $this->redactor->redact($summary);
+
+        return is_array($redacted) ? $this->encode($redacted) : null;
     }
 
     /**

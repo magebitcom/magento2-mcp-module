@@ -55,7 +55,8 @@
                 <item name="dev" xsi:type="string">dev</item>
                 <item name="oauth" xsi:type="string">oauth</item>
                 <!-- Without this the tool is a one-call privilege escalation: it would add itself
-                     to its own allowlist, flip allow_writes, or widen the db_tools table list. -->
+                     to its own allowlist or flip allow_writes. Satellites with their own top-level
+                     section (magebit_mcp_db_tools) contribute that prefix from their own di.xml. -->
                 <item name="magebit_mcp" xsi:type="string">magebit_mcp</item>
                 <!-- Magento_Paypal's country alias sections. In the admin UI a plugin rewrites their
                      fields onto payment/*; that plugin is adminhtml-only, so on this module's route
@@ -479,6 +480,27 @@
                     Magebit\Mcp\Prompt\System\FindSettingPrompt
                 </item>
             </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\AuditLog\TextRedactor">
+        <arguments>
+            <argument name="entityTypes" xsi:type="array">
+                <item name="email" xsi:type="string">EMAIL</item>
+                <item name="phone" xsi:type="string">PHONE</item>
+                <item name="credit_card" xsi:type="string">CREDIT_CARD</item>
+                <item name="iban" xsi:type="string">IBAN</item>
+                <item name="vat_id" xsi:type="string">VAT_ID</item>
+                <item name="api_key" xsi:type="string">API_KEY</item>
+                <item name="private_key" xsi:type="string">PRIVATE_KEY</item>
+                <item name="crypto_address" xsi:type="string">CRYPTO_ADDRESS</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\AuditLog\PiiRedactor">
+        <arguments>
+            <argument name="textRedactor" xsi:type="object">Magebit\Mcp\Model\AuditLog\TextRedactor</argument>
         </arguments>
     </type>
 
