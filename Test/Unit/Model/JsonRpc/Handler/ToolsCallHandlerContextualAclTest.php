@@ -25,6 +25,7 @@ use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
@@ -360,6 +361,9 @@ class ToolsCallHandlerContextualAclTest extends TestCase
         $config = $this->createMock(ModuleConfig::class);
         $config->method('isAllowWrites')->willReturn(true);
 
+        $disabledTools = $this->createMock(DisabledTools::class);
+        $disabledTools->method('isDisabled')->willReturn(false);
+
         $handler = new ToolsCallHandler(
             $toolRegistry,
             $this->aclChecker,
@@ -371,7 +375,8 @@ class ToolsCallHandlerContextualAclTest extends TestCase
             new AuthenticatedContextProvider(),
             $this->logger,
             $coercer,
-            $sanitizer
+            $sanitizer,
+            $disabledTools
         );
 
         $request = new Request(

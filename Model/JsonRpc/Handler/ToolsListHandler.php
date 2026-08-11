@@ -16,6 +16,7 @@ use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Util\ToolDomain;
@@ -29,6 +30,7 @@ class ToolsListHandler implements HandlerInterface
      * @param SchemaSanitizer $schemaSanitizer
      * @param LoggerInterface $logger
      * @param ToolDomain $toolDomain
+     * @param DisabledTools $disabledTools
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -36,7 +38,8 @@ class ToolsListHandler implements HandlerInterface
         private readonly ModuleConfig $config,
         private readonly SchemaSanitizer $schemaSanitizer,
         private readonly LoggerInterface $logger,
-        private readonly ToolDomain $toolDomain
+        private readonly ToolDomain $toolDomain,
+        private readonly DisabledTools $disabledTools
     ) {
     }
 
@@ -58,6 +61,9 @@ class ToolsListHandler implements HandlerInterface
         $tools = [];
 
         foreach ($this->toolRegistry->all() as $tool) {
+            if ($this->disabledTools->isDisabled($tool->getName())) {
+                continue;
+            }
             if ($scopes !== null && !in_array($tool->getName(), $scopes, true)) {
                 continue;
             }

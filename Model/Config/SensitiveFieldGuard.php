@@ -41,9 +41,12 @@ class SensitiveFieldGuard
 
     /**
      * @param Structure $configStructure
+     * @param array<array-key, string> $blockedPrefixes Segment-boundary matched, so `magebit_mcp`
+     *        blocks `magebit_mcp/tools/disabled` without catching `magebit_mcpx/...`.
      */
     public function __construct(
-        private readonly Structure $configStructure
+        private readonly Structure $configStructure,
+        private readonly array $blockedPrefixes = []
     ) {
     }
 
@@ -53,6 +56,10 @@ class SensitiveFieldGuard
      */
     public function rejectionFor(string $path): ?string
     {
+        if ($this->pathMatchesBlockedPrefix($path)) {
+            return 'path_prefix_blocked';
+        }
+
         $field = $this->configStructure->getElementByConfigPath($path);
 
         if ($field instanceof Field) {
@@ -86,6 +93,30 @@ class SensitiveFieldGuard
     {
         $normalized = ltrim($className, '\\');
         return $normalized === Encrypted::class || is_subclass_of($normalized, Encrypted::class);
+    }
+
+    /**
+     * Mirrors ConfigWritePolicy's protected prefixes on the read side: the module's own
+     * settings must not be readable back out through the tool they gate.
+     *
+     * @param string $path
+     * @return bool
+     */
+    private function pathMatchesBlockedPrefix(string $path): bool
+    {
+        $normalized = strtolower(trim($path, " \t\n\r\0\x0B/"));
+
+        foreach ($this->blockedPrefixes as $prefix) {
+            $candidate = strtolower(trim($prefix, " \t\n\r\0\x0B/"));
+            if ($candidate === '') {
+                continue;
+            }
+            if ($normalized === $candidate || str_starts_with($normalized, $candidate . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

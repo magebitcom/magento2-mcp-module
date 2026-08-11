@@ -26,6 +26,7 @@ use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
@@ -62,6 +63,7 @@ class ToolsCallHandler implements HandlerInterface
      * @param LoggerInterface $logger
      * @param ArgumentCoercer $argumentCoercer
      * @param SchemaSanitizer $schemaSanitizer
+     * @param DisabledTools $disabledTools
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -74,7 +76,8 @@ class ToolsCallHandler implements HandlerInterface
         private readonly AuthenticatedContextProvider $authenticatedContextProvider,
         private readonly LoggerInterface $logger,
         private readonly ArgumentCoercer $argumentCoercer,
-        private readonly SchemaSanitizer $schemaSanitizer
+        private readonly SchemaSanitizer $schemaSanitizer,
+        private readonly DisabledTools $disabledTools
     ) {
     }
 
@@ -135,20 +138,16 @@ class ToolsCallHandler implements HandlerInterface
 
         $canonical = $this->toolRegistry->getCanonicalName($requested);
         if ($canonical === null) {
-            return $this->fail(
-                $request,
-                ErrorCode::TOOL_NOT_FOUND,
-                sprintf('Tool "%s" is not registered.', $requested)
-            );
+            return $this->failNotRegistered($request, $requested);
+        }
+        // An admin-disabled tool is indistinguishable from an unregistered one on the wire.
+        if ($this->disabledTools->isDisabled($canonical)) {
+            return $this->failNotRegistered($request, $requested);
         }
         try {
             $tool = $this->toolRegistry->get($canonical);
         } catch (NoSuchEntityException) {
-            return $this->fail(
-                $request,
-                ErrorCode::TOOL_NOT_FOUND,
-                sprintf('Tool "%s" is not registered.', $requested)
-            );
+            return $this->failNotRegistered($request, $requested);
         }
         $this->auditContext->toolName = $canonical;
 
@@ -406,6 +405,23 @@ class ToolsCallHandler implements HandlerInterface
             'content' => $result->getContent(),
             'isError' => $result->isError(),
         ]);
+    }
+
+    /**
+     * The one place unresolvable, disabled and unregistered tool names all answer from — an
+     * admin-disabled tool stays indistinguishable from one that never existed only if they match.
+     *
+     * @param Request $request
+     * @param string $requested
+     * @return Response
+     */
+    private function failNotRegistered(Request $request, string $requested): Response
+    {
+        return $this->fail(
+            $request,
+            ErrorCode::TOOL_NOT_FOUND,
+            sprintf('Tool "%s" is not registered.', $requested)
+        );
     }
 
     /**

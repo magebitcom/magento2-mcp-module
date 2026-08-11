@@ -22,6 +22,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
   - [Report module — `Magebit_McpReportTools`](#report-module--magebit_mcpreporttools)
   - [Google Analytics module — `Magebit_McpGoogleAnalyticsTools`](#google-analytics-module--magebit_mcpgoogleanalyticstools)
 - [Setup](#setup)
+- [Managing tools](#managing-tools)
 - [Configuration writing](#configuration-writing)
 - [Connecting an AI agent](#connecting-an-ai-agent)
   - [Bearer token](#bearer-token)
@@ -158,14 +159,25 @@ Configuration lives under **Stores → Configuration → Magebit → MCP Server*
 | **MCP Configuration Writer → Enable Configuration Writing** | No | Master switch for `system.config.set`. See [Configuration writing](#configuration-writing). |
 | **MCP Configuration Writer → Allowed Paths** | empty | The only config paths `system.config.set` may write. Empty refuses every write. |
 
-Four separate admin-role permissions gate the module so a token-manager role need not see the audit log and vice versa:
+Five separate admin-role permissions gate the module so a token-manager role need not see the audit log and vice versa:
 
 - `Magebit_Mcp::mcp_tokens` — create, list, revoke and delete bearer tokens
 - `Magebit_Mcp::mcp_oauth_clients` — manage OAuth clients
 - `Magebit_Mcp::mcp_audit` — view the audit log
+- `Magebit_Mcp::mcp_tool_management` — enable and disable individual tools, see [Managing tools](#managing-tools)
 - `Magebit_Mcp::config` — change settings under *Stores → Configuration → Magebit → MCP Server*
 
 Each MCP tool is also gated by its own admin-role permission under `Magebit_Mcp::tools`. Restrict admins to the subset they should be able to drive.
+
+## Managing tools
+
+**System → MCP → Tools** lists every registered tool with an Enable/Disable action, gated by the `Magebit_Mcp::mcp_tool_management` permission — separate from the per-tool ACLs under `Magebit_Mcp::tools`, so a role can manage which tools are available without being able to drive any of them itself.
+
+Disabling a tool is indistinguishable on the wire from the tool never having existed: it drops out of `tools/list`, and a `tools/call` for it returns the same `-32010 TOOL_NOT_FOUND` error, with the same message, that an unregistered tool name would produce. This is deliberate — probing the tool surface tells a client nothing about which tools exist but are switched off. The guarantee covers that surface only: a prompt body that names a tool goes on naming it whether or not the tool is currently disabled.
+
+The disabled set is stored as a newline-separated list of tool names at `magebit_mcp/tools/disabled` (default/global scope). It is written only from the Tools page, not exposed as a field under *Stores → Configuration*, and `system.config.get` refuses to read it back — the whole `magebit_mcp/*` section is off limits to the config reader, just as it is to the writer.
+
+`bin/magento magebit:mcp:tools:list` deliberately keeps listing disabled tools: it reports what the installed modules register, and the switch governs what the MCP endpoint serves, not what an operator on the command line can see.
 
 ## Configuration writing
 
@@ -251,7 +263,7 @@ Each OAuth client has its own scope cap and the consenting admin can narrow furt
 - **Confirmation hint for destructive tools.** Write tools may flag themselves as requiring confirmation; clients that support it (e.g. Claude Desktop) prompt the operator.
 - **Per-(admin, tool) rate limiter.** Off by default; recommended for production.
 - **Audit log.** Every request is recorded — even unauthenticated attempts. Argument values are PII-redacted before storage.
-- **Separated admin permissions.** Token management, OAuth-client management, audit-log viewing and module configuration are four distinct ACLs.
+- **Separated admin permissions.** Token management, OAuth-client management, audit-log viewing, tool management and module configuration are five distinct ACLs.
 
 If you discover a security issue, please report it privately to [info@magebit.com](mailto:info@magebit.com) rather than opening a public issue.
 

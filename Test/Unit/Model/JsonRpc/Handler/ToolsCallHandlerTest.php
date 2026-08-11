@@ -23,6 +23,7 @@ use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler;
 use Magebit\Mcp\Model\JsonRpc\Request;
+use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
@@ -89,7 +90,8 @@ class ToolsCallHandlerTest extends TestCase
             new AuthenticatedContextProvider(),
             $this->createMock(LoggerInterface::class),
             $this->stubArgumentCoercer(),
-            $this->stubSchemaSanitizer()
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools()
         );
 
         $request = new Request(
@@ -170,7 +172,8 @@ class ToolsCallHandlerTest extends TestCase
             $authenticatedContextProvider,
             $this->createMock(LoggerInterface::class),
             $this->stubArgumentCoercer(),
-            $this->stubSchemaSanitizer()
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools()
         );
 
         $request = new Request(
@@ -213,7 +216,8 @@ class ToolsCallHandlerTest extends TestCase
             new AuthenticatedContextProvider(),
             $this->createMock(LoggerInterface::class),
             $this->stubArgumentCoercer(),
-            $this->stubSchemaSanitizer()
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools()
         );
 
         $request = new Request(
@@ -291,7 +295,8 @@ class ToolsCallHandlerTest extends TestCase
             new AuthenticatedContextProvider(),
             $this->createMock(LoggerInterface::class),
             new ArgumentCoercer(),
-            new SchemaSanitizer($this->createMock(LoggerInterface::class))
+            new SchemaSanitizer($this->createMock(LoggerInterface::class)),
+            $this->stubDisabledTools()
         );
 
         $request = new Request(
@@ -306,6 +311,114 @@ class ToolsCallHandlerTest extends TestCase
         $this->assertNull($response->error);
         $this->assertSame(['store_id' => 50], $receivedArgs);
         $this->assertSame(['store_id' => 50], $auditContext->arguments);
+    }
+
+    public function testDisabledToolFailsAsNotRegistered(): void
+    {
+        // An admin-disabled tool is indistinguishable from an unregistered one on
+        // the wire — same error code, byte-identical message, no execution.
+        $tool = $this->createMock(ToolInterface::class);
+        $tool->method('getName')->willReturn('cms.page.update');
+        $tool->method('getAclResource')->willReturn('Magebit_McpCmsTools::tool_cms_page_update');
+        $tool->method('getWriteMode')->willReturn(WriteMode::WRITE);
+        $tool->method('getInputSchema')->willReturn(['type' => 'object']);
+        $tool->expects($this->never())->method('execute');
+
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')
+            ->with('cms.page.update')
+            ->willReturn('cms.page.update');
+        $toolRegistry->method('get')->with('cms.page.update')->willReturn($tool);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getScopes')->willReturn(null);
+        $token->method('getAllowWrites')->willReturn(true);
+
+        $adminUser = $this->createMock(User::class);
+        $adminUser->method('getId')->willReturn(3);
+
+        $aclChecker = $this->createMock(AclChecker::class);
+        $aclChecker->method('isAllowed')->willReturn(true);
+
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('isAllowWrites')->willReturn(true);
+
+        $auditContext = new AuditContext();
+        $handler = new ToolsCallHandler(
+            $toolRegistry,
+            $aclChecker,
+            $this->createMock(JsonSchemaValidator::class),
+            $this->createMock(RateLimiterInterface::class),
+            $this->createMock(EventManager::class),
+            $config,
+            $auditContext,
+            new AuthenticatedContextProvider(),
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools(['cms.page.update'])
+        );
+
+        $request = new Request(
+            11,
+            false,
+            'tools/call',
+            ['name' => 'cms.page.update', 'arguments' => []]
+        );
+
+        $response = $handler->handle($request, new AuthenticatedContext($token, $adminUser));
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::TOOL_NOT_FOUND, $response->error->code);
+        $this->assertSame('Tool "cms.page.update" is not registered.', $response->error->message);
+    }
+
+    public function testDisabledToolReportsTheRequestedWireNameInTheFailureMessage(): void
+    {
+        // The message quotes the name as the caller sent it, exactly like the
+        // unregistered-tool branch, even though the lookup is canonical.
+        $tool = $this->createMock(ToolInterface::class);
+        $tool->method('getName')->willReturn('cms.page.update');
+        $tool->expects($this->never())->method('execute');
+
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')
+            ->with('cms_page_update')
+            ->willReturn('cms.page.update');
+        $toolRegistry->method('get')->with('cms.page.update')->willReturn($tool);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getScopes')->willReturn(null);
+        $adminUser = $this->createMock(User::class);
+        $adminUser->method('getId')->willReturn(3);
+
+        $handler = new ToolsCallHandler(
+            $toolRegistry,
+            $this->createMock(AclChecker::class),
+            $this->createMock(JsonSchemaValidator::class),
+            $this->createMock(RateLimiterInterface::class),
+            $this->createMock(EventManager::class),
+            $this->createMock(ModuleConfig::class),
+            new AuditContext(),
+            new AuthenticatedContextProvider(),
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools(['cms.page.update'])
+        );
+
+        $request = new Request(
+            12,
+            false,
+            'tools/call',
+            ['name' => 'cms_page_update', 'arguments' => []]
+        );
+
+        $response = $handler->handle($request, new AuthenticatedContext($token, $adminUser));
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::TOOL_NOT_FOUND, $response->error->code);
+        $this->assertSame('Tool "cms_page_update" is not registered.', $response->error->message);
     }
 
     /**
@@ -326,5 +439,19 @@ class ToolsCallHandlerTest extends TestCase
         $sanitizer = $this->createMock(SchemaSanitizer::class);
         $sanitizer->method('sanitize')->willReturn(['type' => 'object']);
         return $sanitizer;
+    }
+
+    /**
+     * @param array $disabled
+     * @phpstan-param list<string> $disabled
+     * @return DisabledTools
+     */
+    private function stubDisabledTools(array $disabled = []): DisabledTools
+    {
+        $disabledTools = $this->createMock(DisabledTools::class);
+        $disabledTools->method('isDisabled')->willReturnCallback(
+            static fn (string $name): bool => in_array($name, $disabled, true)
+        );
+        return $disabledTools;
     }
 }

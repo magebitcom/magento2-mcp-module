@@ -20,14 +20,15 @@ class SensitiveFieldGuardTest extends TestCase
 {
     /**
      * @param mixed $element
+     * @param list<string> $blockedPrefixes Defaults to the prefixes di.xml ships.
      * @return SensitiveFieldGuard
      */
-    private function guardReturning(mixed $element): SensitiveFieldGuard
+    private function guardReturning(mixed $element, array $blockedPrefixes = ['magebit_mcp']): SensitiveFieldGuard
     {
         $structure = $this->createMock(Structure::class);
         $structure->method('getElementByConfigPath')->willReturn($element);
 
-        return new SensitiveFieldGuard($structure);
+        return new SensitiveFieldGuard($structure, $blockedPrefixes);
     }
 
     /**
@@ -148,5 +149,48 @@ class SensitiveFieldGuardTest extends TestCase
     public function testUnknownButHarmlessPathIsNotRejected(): void
     {
         $this->assertNull($this->guardReturning(null)->rejectionFor('custom/group/threshold'));
+    }
+
+    public function testTheDisabledToolListIsNotReadable(): void
+    {
+        // No system.xml field and no sensitive keyword — only the prefix keeps
+        // this out of a probing client's reach.
+        $this->assertSame(
+            'path_prefix_blocked',
+            $this->guardReturning(null)->rejectionFor('magebit_mcp/tools/disabled')
+        );
+    }
+
+    public function testTheModulesOwnConfigIsNotReadable(): void
+    {
+        foreach ([
+            'magebit_mcp/general/allow_writes',
+            'magebit_mcp/config_write/allowed_paths',
+            'magebit_mcp/general/allowed_origins',
+        ] as $path) {
+            $this->assertSame(
+                'path_prefix_blocked',
+                $this->guardReturning($this->field('text'))->rejectionFor($path),
+                sprintf('Expected "%s" to be refused as prefix-blocked.', $path)
+            );
+        }
+    }
+
+    public function testBlockedPrefixMatchIsCaseInsensitive(): void
+    {
+        $this->assertSame(
+            'path_prefix_blocked',
+            $this->guardReturning(null)->rejectionFor('Magebit_Mcp/Tools/Disabled')
+        );
+    }
+
+    public function testBlockedPrefixMatchingDoesNotOverreachIntoUnrelatedSections(): void
+    {
+        $this->assertNull($this->guardReturning($this->field('text'))->rejectionFor('magebit_mcpx/group/field'));
+    }
+
+    public function testNoPrefixesConfiguredLeavesOrdinaryPathsReadable(): void
+    {
+        $this->assertNull($this->guardReturning($this->field('text'), [])->rejectionFor('magebit_mcp/tools/disabled'));
     }
 }

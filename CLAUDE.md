@@ -115,7 +115,7 @@ Tool ACL resources live under `Magebit_Mcp::tools` (see `etc/acl.xml`). When add
 - MCP tool name `catalog.product.get` → ACL resource `Vendor_Module::mcp_tool_catalog_product_get` (dots → underscores, because ACL ids can't contain dots).
 - Group under a top-level `Vendor_Module::mcp` node nested under `Magento_Backend::system`, NOT under any wide-allow resource.
 
-Four admin-UI resources also gate the module itself: `Magebit_Mcp::mcp_tokens`, `Magebit_Mcp::mcp_audit`, `Magebit_Mcp::config`, and `Magebit_Mcp::tools`. They are intentionally separate so a token-manager role need not see the audit log and vice versa.
+Five admin-UI resources also gate the module itself: `Magebit_Mcp::mcp_tokens`, `Magebit_Mcp::mcp_audit`, `Magebit_Mcp::mcp_tool_management`, `Magebit_Mcp::config`, and `Magebit_Mcp::tools`. They are intentionally separate so a token-manager role need not see the audit log and vice versa.
 
 ## Write-tool gating
 

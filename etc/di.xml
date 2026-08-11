@@ -123,6 +123,13 @@
             <argument name="configStructure" xsi:type="object">
                 Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
             </argument>
+            <!-- Read-side twin of ConfigWritePolicy's protected prefixes, and DI-injected for the
+                 same reason. The module's own settings have no system.xml fields to check, so
+                 without this the gates themselves — including the disabled-tool list — read back
+                 out through system.config.get. -->
+            <argument name="blockedPrefixes" xsi:type="array">
+                <item name="magebit_mcp" xsi:type="string">magebit_mcp</item>
+            </argument>
         </arguments>
     </type>
 
