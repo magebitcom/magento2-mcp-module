@@ -98,6 +98,15 @@
       </li>
       <li>
         <label>
+          <input type="checkbox" data-module="tax" data-package="magebitcom/magento2-mcp-tax-tools" data-name="Magebit_McpTaxTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Tax &amp; currency</span>
+            <span class="featurelist__desc">Manage tax rates, rules and classes. Update exchange rates.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
           <input type="checkbox" data-module="report" data-package="magebitcom/magento2-mcp-report-tools" data-name="Magebit_McpReportTools" checked>
           <span class="featurelist__body">
             <span class="featurelist__title">Reports &amp; statistics</span>
@@ -114,7 +123,20 @@
           </span>
         </label>
       </li>
+      <li>
+        <label>
+          <input type="checkbox" data-module="db" data-package="magebitcom/magento2-mcp-db-tools" data-name="Magebit_McpDbTools">
+          <span class="featurelist__body">
+            <span class="featurelist__title">Raw database queries</span>
+            <span class="featurelist__desc">Read-only SQL against your database. Advanced — leave this off unless you have been told to turn it on.</span>
+          </span>
+        </label>
+      </li>
     </ul>
+
+    <div class="callout" data-db-warning hidden>
+      <p><strong>You ticked raw database queries.</strong> That gives the AI bulk read access to your store's database — every customer name, e-mail and phone number on any table you allow. It arrives switched off with no tables allowed, so nothing is readable until someone deliberately turns it on and picks the tables. Read the <a href="https://github.com/magebitcom/magento2-mcp-db-tools#readme">module's own guide</a> before you do. If you are not sure, untick it: the other options above answer the same questions more safely.</p>
+    </div>
 
     <h3>Run these commands</h3>
     <p>From the Magento installation folder. If you don't run the server, copy this and send it to whoever does.</p>

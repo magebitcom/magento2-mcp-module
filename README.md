@@ -19,8 +19,10 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
   - [Customer module — `Magebit_McpCustomerTools`](#customer-module--magebit_mcpcustomertools)
   - [CMS module — `Magebit_McpCmsTools`](#cms-module--magebit_mcpcmstools)
   - [Marketing module — `Magebit_McpMarketingTools`](#marketing-module--magebit_mcpmarketingtools)
+  - [Tax and currency module — `Magebit_McpTaxTools`](#tax-and-currency-module--magebit_mcptaxtools)
   - [Report module — `Magebit_McpReportTools`](#report-module--magebit_mcpreporttools)
   - [Google Analytics module — `Magebit_McpGoogleAnalyticsTools`](#google-analytics-module--magebit_mcpgoogleanalyticstools)
+  - [Database module — `Magebit_McpDbTools`](#database-module--magebit_mcpdbtools)
 - [Setup](#setup)
 - [Managing tools](#managing-tools)
 - [Configuration writing](#configuration-writing)
@@ -69,6 +71,8 @@ bin/magento module:enable Magebit_Mcp<Name>Tools
 bin/magento setup:upgrade
 ```
 
+Every tool module — ours and third-party ones — carries the [`magebit-mcp-tools`](https://github.com/topics/magebit-mcp-tools) GitHub topic, so browsing that topic lists the full ecosystem, including modules not documented here.
+
 ### Order module — [`Magebit_McpOrderTools`](https://github.com/magebitcom/magento2-mcp-order-tools)
 - Read and search orders, invoices, shipments, payments, order comments and credit memos
 - Create invoices, shipments, shipment tracks, credit memos and order comments
@@ -114,6 +118,16 @@ composer require magebitcom/magento2-mcp-cms-tools
 composer require magebitcom/magento2-mcp-marketing-tools
 ```
 
+### Tax and currency module — [`Magebit_McpTaxTools`](https://github.com/magebitcom/magento2-mcp-tax-tools)
+- Read or search tax rates, tax rules and tax classes
+- Create, update or delete tax rates, rules and classes
+- Read currency configuration (base, default and allowed currencies)
+- Set currency exchange rates manually or import them from the configured service
+
+```bash
+composer require magebitcom/magento2-mcp-tax-tools
+```
+
 ### Report module — [`Magebit_McpReportTools`](https://github.com/magebitcom/magento2-mcp-report-tools)
 - Cart reports (products in cart, abandoned carts)
 - Popular search queries and newsletter problems (bounces, send failures)
@@ -137,6 +151,21 @@ composer require magebitcom/magento2-mcp-report-tools
 
 ```bash
 composer require magebitcom/magento2-mcp-google-analytics-tools
+```
+
+### Database module — [`Magebit_McpDbTools`](https://github.com/magebitcom/magento2-mcp-db-tools)
+
+> **⚠️ Not a default install.** This module hands an MCP client bulk read access to your production database. Read its [README](https://github.com/magebitcom/magento2-mcp-db-tools#readme) in full before enabling it.
+
+- One tool, `db.query`: a single guarded, read-only `SELECT` returned as JSON
+- Off by default, and allowlist-only — with no tables allowlisted it refuses every query
+- Credentials, sessions and config secrets are in a protected set that no allowlist entry can re-open
+- Every table a statement names must be mapped to the admin ACL resource that reads it, so raw SQL reads no more than its caller could already reach in the admin UI; an unmapped table is refused
+
+A read-only query is still bulk data extraction: the guard bounds the *shape* of a query and the *tables* it may name, not how sensitive the data behind them is. Allowlisting `sales_order` means the token holder can read every customer name, e-mail and phone number in the store — a processing decision under GDPR-style regimes, not a convenience one. Prefer the domain modules above, which expose the same data with a narrow ACL per tool and named arguments instead of an opaque SQL string; reach for `db.query` only when a question cannot be answered any other way.
+
+```bash
+composer require magebitcom/magento2-mcp-db-tools
 ```
 
 ## Setup
@@ -260,6 +289,7 @@ Each OAuth client has its own scope cap and the consenting admin can narrow furt
 - **Per-tool admin-role ACL.** Every tool resolves through Magento's standard role permissions — MCP can never do what the admin UI would forbid.
 - **Two-layer write gating.** Write tools require the global *Allow write tools* toggle *and* a per-token (or per-OAuth-scope) write flag.
 - **Allowlisted configuration writing.** `system.config.set` is off by default and can only write the exact paths an admin lists; a protected set defined in code — including the module's own settings — is refused whatever the allowlist says. See [Configuration writing](#configuration-writing).
+- **No raw SQL in the base module.** `db.query` ships only in the separately installed [`Magebit_McpDbTools`](#database-module--magebit_mcpdbtools), which is off by default and allowlist-only. Nothing in the base module or the domain sub-modules accepts an SQL string.
 - **Confirmation hint for destructive tools.** Write tools may flag themselves as requiring confirmation; clients that support it (e.g. Claude Desktop) prompt the operator.
 - **Per-(admin, tool) rate limiter.** Off by default; recommended for production.
 - **Audit log.** Every request is recorded — even unauthenticated attempts. Argument values are PII-redacted before storage.
@@ -269,7 +299,7 @@ If you discover a security issue, please report it privately to [info@magebit.co
 
 ## Extending
 
-Write your own tools and prompts by implementing `Magebit\Mcp\Api\ToolInterface` (or `PromptInterface`) and registering them via `di.xml`. The six sub-modules listed above are full worked examples.
+Write your own tools and prompts by implementing `Magebit\Mcp\Api\ToolInterface` (or `PromptInterface`) and registering them via `di.xml`. The sub-modules listed above are full worked examples.
 
 The contract surface is:
 
@@ -277,6 +307,8 @@ The contract surface is:
 2. Register the tool in `di.xml` under `Magebit\Mcp\Model\Tool\ToolRegistry`. The DI key must match the tool's `getName()` and conform to `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`.
 3. For write tools that wrap a Magento service contract, optionally implement `Magebit\Mcp\Api\UnderlyingAclAwareInterface` so the dispatcher also enforces the equivalent admin-UI permission.
 4. Run `bin/magento magebit:mcp:tools:validate-acl` to confirm every tool's ACL resource resolves.
+
+Publishing your module? Add the [`magebit-mcp-tools`](https://github.com/topics/magebit-mcp-tools) topic to its GitHub repository so it turns up alongside the rest of the ecosystem.
 
 See [docs/EXTENDING.md](docs/EXTENDING.md) for the full contract, the schema-builder DSL, schema presets, the field-resolver pattern, lifecycle events, and a complete worked example.
 

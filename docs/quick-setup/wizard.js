@@ -163,9 +163,17 @@
     output.textContent = composerLine + '\n\n' + enableLine + '\n\nbin/magento setup:upgrade';
   }
 
+  function syncDbWarning() {
+    var warning = document.querySelector('[data-db-warning]');
+    if (!warning) return;
+    var box = document.querySelector('#featurelist input[data-module="db"]');
+    warning.hidden = !(box && box.checked);
+  }
+
   function onFeatureChange(evt) {
     if (evt.target.matches && evt.target.matches('#featurelist input[type="checkbox"]')) {
       buildInstallCommand();
+      syncDbWarning();
     }
   }
 
@@ -175,5 +183,6 @@
   document.addEventListener('DOMContentLoaded', function () {
     render();
     buildInstallCommand();
+    syncDbWarning();
   });
 })();
