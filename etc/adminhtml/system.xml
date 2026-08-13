@@ -32,6 +32,16 @@
                     <comment><![CDATA[Global override. A token's <em>Allow write tools</em> flag is only
                     honoured when this is <strong>Yes</strong>.]]></comment>
                 </field>
+                <field id="max_body_kb" translate="label comment" type="text" sortOrder="25"
+                       showInDefault="1" showInWebsite="0" showInStore="0">
+                    <label>Max Request Body (KB)</label>
+                    <comment><![CDATA[Largest accepted <code>POST /mcp</code> body. Default <code>256</code>.
+                    Raise this only if you upload product images through MCP — base64 inflates a file by
+                    roughly a third, so an 8 MB photo needs about <code>11000</code>. Clamped to 64–32768.
+                    <strong>Your web server has its own limit</strong>: raise nginx
+                    <code>client_max_body_size</code> / Apache <code>LimitRequestBody</code> to match, or
+                    large uploads are rejected before Magento sees them.]]></comment>
+                </field>
             </group>
             <group id="server_info" translate="label" type="text" sortOrder="15"
                    showInDefault="1" showInWebsite="0" showInStore="0">

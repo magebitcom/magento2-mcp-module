@@ -301,6 +301,9 @@
                 <item name="system.store.info" xsi:type="object">
                     Magebit\Mcp\Tool\System\StoreInfo
                 </item>
+                <item name="system.module.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\ModuleList
+                </item>
                 <item name="system.config.get" xsi:type="object">
                     Magebit\Mcp\Tool\System\ConfigGet
                 </item>
