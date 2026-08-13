@@ -122,9 +122,24 @@ composer require magebitcom/magento2-mcp-order-tools
 - Read and search products and categories
 - Create, update or delete products
 - Create, update or delete categories
+- Set stock levels in bulk, and upload or manage product images
 
 ```bash
 composer require magebitcom/magento2-mcp-catalog-tools
+```
+
+### Inventory module — [`Magebit_McpInventoryTools`](https://github.com/magebitcom/magento2-mcp-inventory-tools)
+- Read sources, stocks and per-source quantities
+- Report salable quantity and the reservations behind it
+- Set or unassign quantities per (SKU, source) in bulk
+- Manage sources, stocks, source links and website assignments
+- Bulk assign, unassign and transfer inventory between sources
+
+Requires Magento's Multi-Source Inventory. For a single-stock store,
+`catalog.product.stock.set` in the catalog module is enough.
+
+```bash
+composer require magebitcom/magento2-mcp-inventory-tools
 ```
 
 ### Customer module — [`Magebit_McpCustomerTools`](https://github.com/magebitcom/magento2-mcp-customer-tools)
@@ -214,6 +229,7 @@ Configuration lives under **Stores → Configuration → Magebit → MCP Server*
 | **General → Server Name** | `Magento MCP` | Advertised to MCP clients during the `initialize` handshake. |
 | **General → Server Description** | empty | Optional free-text hint advertised alongside the server name. |
 | **General → Allow Write Tools** | Yes | Global toggle. A token's per-row write flag is only honoured when this is on. |
+| **General → Max Request Body (KB)** | `256` | Largest accepted `POST /mcp` body, clamped to 64–32768. Raise only if you upload product images through MCP — base64 inflates a file by about a third, so an 8 MB photo needs roughly `11000`. Your web server's own limit (nginx `client_max_body_size`, Apache `LimitRequestBody`) applies first and must be raised to match. |
 | **Security → Allowed Origins** | localhost + Claude, ChatGPT, Gemini, Copilot, Grok and Perplexity | One origin per line. Trailing `*` is allowed. Tighten for production. |
 | **Audit Log → Retention (days)** | `90` | Older rows are purged by the `magebit_mcp_audit_purge` cron. `0` disables purging. |
 | **Rate Limiting → Enabled** | No | Caps `tools/call` requests per (admin, tool) per minute. Recommended for production. |

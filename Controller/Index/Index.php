@@ -37,8 +37,6 @@ use Magento\Framework\App\ResponseInterface;
  */
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
-    // 256 KiB cap — backstop against unauthenticated body-size DoS before auth runs.
-    private const MAX_BODY_BYTES = 262144;
 
     /**
      * @param HttpRequest $request
@@ -98,14 +96,18 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             $this->auditContext->tokenId = $context->token->getId();
             $this->auditContext->adminUserId = $context->getAdminUserId();
 
+            // Body cap, `magebit_mcp/general/max_body_kb` (256 KiB default). Bounds
+            // the JSON parse; the web server's own limit is the pre-auth guard.
+            $maxBodyBytes = $this->config->getMaxBodyBytes();
+
             $rawLength = $this->request->getServer('CONTENT_LENGTH');
             $declaredLength = is_scalar($rawLength) ? (int) $rawLength : 0;
-            if ($declaredLength > self::MAX_BODY_BYTES) {
+            if ($declaredLength > $maxBodyBytes) {
                 return $this->failRpc(413, null, ErrorCode::INVALID_REQUEST, 'Request body too large.');
             }
 
             $body = (string) $this->request->getContent();
-            if (strlen($body) > self::MAX_BODY_BYTES) {
+            if (strlen($body) > $maxBodyBytes) {
                 // Recheck after materialization — chunked transfers have no Content-Length.
                 return $this->failRpc(413, null, ErrorCode::INVALID_REQUEST, 'Request body too large.');
             }
