@@ -62,6 +62,42 @@ bin/magento module:enable Magebit_Mcp
 bin/magento setup:upgrade
 ```
 
+That gives you the server and its `system.*` tools, and nothing else.
+
+### Installing everything at once
+
+To get the server plus the catalog, CMS, customer, marketing, order, report and tax modules in one step, require the [suite meta-package](https://github.com/magebitcom/magento2-mcp-suite) instead of picking sub-modules by hand:
+
+```bash
+composer require magebitcom/magento2-mcp-suite
+bin/magento setup:upgrade
+```
+
+The suite contains no code of its own — only a dependency list — so what it installs is eight ordinary Magento modules. That means you stop choosing your tool surface at `composer require` time and start choosing it in `app/etc/config.php`, where `1` is enabled and `0` is disabled:
+
+```php
+'modules' => [
+    // ...
+    'Magebit_Mcp' => 1,
+    'Magebit_McpCatalogTools' => 1,
+    'Magebit_McpCmsTools' => 1,
+    'Magebit_McpCustomerTools' => 1,
+    'Magebit_McpMarketingTools' => 1,
+    'Magebit_McpOrderTools' => 1,
+    'Magebit_McpReportTools' => 0,
+    'Magebit_McpTaxTools' => 0,
+],
+```
+
+`bin/magento module:disable Magebit_McpReportTools` edits the same file. Because `config.php` is committed, this is how you give each environment a different tool surface from one install — full write access on staging, a narrower set in production.
+
+Two caveats worth knowing:
+
+- **`setup:upgrade` enables modules it has not seen before.** Adding the suite to an existing store lands all eight as `=> 1`. If some should be off, disable them in the same deploy, before the store serves traffic.
+- **Disabling a module is a blunt instrument.** To keep one installed but hide individual tools, use **System → MCP → Tools** in the admin, which toggles a single tool at a time behind its own ACL resource.
+
+The Google Analytics and database modules are deliberately **not** in the suite — the first needs a Google login and pulls in the Google SDKs, the second grants bulk database reads. Both are listed below and are one `composer require` away.
+
 ## Sub-modules
 
 Each sub-module is published independently and depends on `Magebit_Mcp`. Install only the ones you need. After every `composer require` below, enable and rebuild Magento with:

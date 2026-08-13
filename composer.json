@@ -11,12 +11,16 @@
         "magebitcom/magento2-core": "*"
     },
     "suggest": {
+        "magebitcom/magento2-mcp-suite": "Meta-package installing this module plus every core-domain tool sub-module in one step",
         "magebitcom/magento2-mcp-order-tools": "Sub-module for order-related MCP tools",
         "magebitcom/magento2-mcp-catalog-tools": "Sub-module for catalog-related MCP tools",
         "magebitcom/magento2-mcp-customer-tools": "Sub-module for customer-related MCP tools",
         "magebitcom/magento2-mcp-cms-tools": "Sub-module for CMS-related MCP tools",
         "magebitcom/magento2-mcp-marketing-tools": "Sub-module for marketing-related MCP tools",
-        "magebitcom/magento2-mcp-report-tools": "Sub-module for reporting-related MCP tools"
+        "magebitcom/magento2-mcp-report-tools": "Sub-module for reporting-related MCP tools",
+        "magebitcom/magento2-mcp-tax-tools": "Sub-module for tax and currency MCP tools",
+        "magebitcom/magento2-mcp-google-analytics-tools": "Sub-module for Google Analytics 4 MCP tools",
+        "magebitcom/magento2-mcp-db-tools": "Sub-module exposing a guarded read-only SQL tool"
     },
     "autoload": {
         "files": [
