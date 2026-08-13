@@ -7,7 +7,7 @@
 
   // Tool modules bundled by the suite meta-package. Tick all of them and the
   // generated composer line collapses to the single suite package.
-  var SUITE_MODULES = ['order', 'catalog', 'customer', 'cms', 'marketing', 'tax', 'report'];
+  var SUITE_MODULES = ['order', 'catalog', 'customer', 'inventory', 'cms', 'marketing', 'tax', 'report'];
   var SUITE_PACKAGE = 'magebitcom/magento2-mcp-suite';
   var CORE_PACKAGE = 'magebitcom/magento2-mcp-module';
 
@@ -174,7 +174,7 @@
     var modules = ['Magebit_Mcp'];
     for (var i = 0; i < checked.length; i++) {
       var slug = checked[i].getAttribute('data-module');
-      // In suite mode the seven bundled modules arrive via the meta-package.
+      // In suite mode the eight bundled modules arrive via the meta-package.
       if (!useSuite || SUITE_MODULES.indexOf(slug) === -1) {
         packages.push(checked[i].getAttribute('data-package'));
       }
