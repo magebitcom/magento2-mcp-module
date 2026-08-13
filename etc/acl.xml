@@ -19,6 +19,8 @@
                                       title="Tool: List Stores &amp; Websites" sortOrder="10"/>
                             <resource id="Magebit_Mcp::tool_system_store_info"
                                       title="Tool: Get Store Information" sortOrder="20"/>
+                            <resource id="Magebit_Mcp::tool_system_module_list"
+                                      title="Tool: List Modules" sortOrder="25"/>
                             <resource id="Magebit_Mcp::tool_system_config_get"
                                       title="Tool: Get System Configuration Value" sortOrder="30"/>
                             <resource id="Magebit_Mcp::tool_system_config_set"
