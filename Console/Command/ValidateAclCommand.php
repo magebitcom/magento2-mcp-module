@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Console\Command;
 
 use Magebit\Mcp\Api\ToolRegistryInterface;
+use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
 use Magento\Framework\Acl\AclResource\ProviderInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -16,7 +17,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * `bin/magento magebit:mcp:tools:validate-acl` — CI gate that catches tools whose
- * `getAclResource()` is missing from the merged acl.xml tree.
+ * `getAclResource()` is missing from the merged acl.xml tree. Underlying resources
+ * are reported too, but only as a warning — they belong to other modules.
  */
 class ValidateAclCommand extends Command
 {
@@ -37,11 +39,19 @@ class ValidateAclCommand extends Command
     {
         $declared = $this->flattenResourceIds($this->aclResourceProvider->getAclResources());
         $missing = [];
+        $missingUnderlying = [];
 
         foreach ($this->toolRegistry->all() as $tool) {
             $resource = $tool->getAclResource();
             if (!in_array($resource, $declared, true)) {
                 $missing[] = sprintf('%s → %s', $tool->getName(), $resource);
+            }
+
+            $underlying = $tool instanceof UnderlyingAclAwareInterface
+                ? $tool->getUnderlyingAclResource()
+                : null;
+            if ($underlying !== null && !in_array($underlying, $declared, true)) {
+                $missingUnderlying[] = sprintf('%s → %s', $tool->getName(), $underlying);
             }
         }
 
@@ -51,6 +61,16 @@ class ValidateAclCommand extends Command
                 $output->writeln(' - ' . $row);
             }
             return Command::FAILURE;
+        }
+
+        if ($missingUnderlying !== []) {
+            // Warning, not a failure: the resource belongs to another module, which
+            // may legitimately be absent on this install.
+            $output->writeln('<comment>MCP tools whose underlying ACL resource does not resolve here:</comment>');
+            foreach ($missingUnderlying as $row) {
+                $output->writeln(' - ' . $row);
+            }
+            $output->writeln('<comment>These tools stay hidden from tools/list for every role.</comment>');
         }
 
         $output->writeln('<info>OK — every registered MCP tool has its ACL resource declared.</info>');

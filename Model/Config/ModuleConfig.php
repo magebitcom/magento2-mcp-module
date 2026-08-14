@@ -19,6 +19,7 @@ class ModuleConfig
     public const XML_PATH_ENABLED = 'magebit_mcp/general/enabled';
     public const XML_PATH_SERVER_NAME = 'magebit_mcp/general/server_name';
     public const XML_PATH_ALLOW_WRITES = 'magebit_mcp/general/allow_writes';
+    public const XML_PATH_MAX_BODY_KB = 'magebit_mcp/general/max_body_kb';
     public const XML_PATH_SERVER_TITLE = 'magebit_mcp/server_info/title';
     public const XML_PATH_SERVER_DESCRIPTION = 'magebit_mcp/server_info/description';
     public const XML_PATH_SERVER_WEBSITE_URL = 'magebit_mcp/server_info/website_url';
@@ -38,6 +39,9 @@ class ModuleConfig
     public const XML_PATH_LOG_ALLOWED_FILES = 'magebit_mcp/log_tools/allowed_files';
 
     public const DEFAULT_SERVER_NAME = 'Magento MCP';
+    public const DEFAULT_MAX_BODY_KB = 256;
+    public const MIN_MAX_BODY_KB = 64;
+    public const MAX_MAX_BODY_KB = 32768;
     public const DEFAULT_RATE_LIMITING_RPM = 60;
     public const DEFAULT_OAUTH_AUTH_CODE_LIFETIME = 60;
     public const DEFAULT_OAUTH_ACCESS_TOKEN_LIFETIME = 3600;
@@ -65,6 +69,21 @@ class ModuleConfig
     public function isAllowWrites(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_ALLOW_WRITES);
+    }
+
+    /**
+     * Maximum accepted `POST /mcp` body, in bytes. Raised above the 256 KiB
+     * default only when a store uploads media through MCP; the web server's own
+     * body limit still applies and is the real pre-auth guard.
+     *
+     * @return int
+     */
+    public function getMaxBodyBytes(): int
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_MAX_BODY_KB);
+        $kilobytes = is_scalar($value) ? (int) $value : self::DEFAULT_MAX_BODY_KB;
+
+        return min(max($kilobytes, self::MIN_MAX_BODY_KB), self::MAX_MAX_BODY_KB) * 1024;
     }
 
     /**

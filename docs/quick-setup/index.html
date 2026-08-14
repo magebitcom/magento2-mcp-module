@@ -71,6 +71,15 @@
       </li>
       <li>
         <label>
+          <input type="checkbox" data-module="inventory" data-package="magebitcom/magento2-mcp-inventory-tools" data-name="Magebit_McpInventoryTools" checked>
+          <span class="featurelist__body">
+            <span class="featurelist__title">Inventory</span>
+            <span class="featurelist__desc">Check and update stock across warehouses. Needs Multi-Source Inventory.</span>
+          </span>
+        </label>
+      </li>
+      <li>
+        <label>
           <input type="checkbox" data-module="customer" data-package="magebitcom/magento2-mcp-customer-tools" data-name="Magebit_McpCustomerTools" checked>
           <span class="featurelist__body">
             <span class="featurelist__title">Customers</span>
@@ -144,6 +153,10 @@
     <div class="codeblock">
       <button class="codeblock__copy" data-copy="cmd-install" aria-label="Copy install commands">Copy</button>
       <pre><code id="cmd-install"></code></pre>
+    </div>
+
+    <div class="callout callout--tip" data-suite-note hidden>
+      <p><strong>That's one package instead of nine.</strong> You kept the whole standard set ticked, so the command above installs <a href="https://github.com/magebitcom/magento2-mcp-suite"><code>magento2-mcp-suite</code></a> — a bundle that brings in the MCP module and those eight tool modules together. Untick any of them and the commands switch to installing each one separately. Either way you can turn individual modules off later in <code>app/etc/config.php</code>, without touching Composer.</p>
     </div>
 
     <div class="callout callout--tip">

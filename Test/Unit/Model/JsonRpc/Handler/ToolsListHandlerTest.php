@@ -12,6 +12,7 @@ use Magebit\Mcp\Api\Data\TokenInterface;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
+use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
@@ -22,6 +23,7 @@ use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Util\ToolDomain;
 use Magento\User\Model\User;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class ToolsListHandlerTest extends TestCase
@@ -190,6 +192,67 @@ class ToolsListHandlerTest extends TestCase
         self::assertSame(['system_store_list'], $names);
     }
 
+    public function testToolIsOmittedWhenItsUnderlyingMagentoAclIsDenied(): void
+    {
+        // The role holds the MCP tool resource but not the Magento resource the
+        // tool wraps, so tools/call would refuse it. Advertising it costs the
+        // client a wasted call and an unexplained -32004.
+        $tool = $this->makeUnderlyingAclTool(
+            'inventory.source_item.set',
+            'Magebit_McpInventoryTools::tool_inventory_source_item_set',
+            'Magento_InventoryApi::stock_source_item_assign'
+        );
+        $handler = $this->makeHandler(
+            [$tool],
+            allowWrites: true,
+            scopes: null,
+            aclAllow: true,
+            denied: ['Magento_InventoryApi::stock_source_item_assign']
+        );
+
+        $names = $this->extractToolNames($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertSame([], $names);
+    }
+
+    public function testToolIsListedWhenItsUnderlyingMagentoAclIsGranted(): void
+    {
+        $tool = $this->makeUnderlyingAclTool(
+            'inventory.source_item.set',
+            'Magebit_McpInventoryTools::tool_inventory_source_item_set',
+            'Magento_InventoryApi::stock_source_item_assign'
+        );
+        $handler = $this->makeHandler([$tool], allowWrites: true, scopes: null, aclAllow: true);
+
+        $names = $this->extractToolNames($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertSame(['inventory_source_item_set'], $names);
+    }
+
+    public function testToolDeclaringNoUnderlyingResourceIsListedOnItsOwnAcl(): void
+    {
+        // Returning null means "no second gate" — the tool must not be filtered.
+        $tool = $this->makeUnderlyingAclTool(
+            'system.store.list',
+            'Magebit_Mcp::tool_system_store_list',
+            null
+        );
+        $handler = $this->makeHandler([$tool], allowWrites: true, scopes: null, aclAllow: true);
+
+        $names = $this->extractToolNames($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        ));
+
+        self::assertSame(['system_store_list'], $names);
+    }
+
     /**
      * Extracts the emitted tool names from a tools/list response in a way
      * PHPStan can narrow — the Response::result type is array<string, mixed>.
@@ -215,13 +278,15 @@ class ToolsListHandlerTest extends TestCase
      * @phpstan-param list<ToolInterface> $tools
      * @phpstan-param list<string>|null $scopes
      * @phpstan-param list<string> $disabled
+     * @phpstan-param list<string> $denied
      */
     private function makeHandler(
         array $tools,
         bool $allowWrites,
         ?array $scopes,
         bool $aclAllow,
-        array $disabled = []
+        array $disabled = [],
+        array $denied = []
     ): ToolsListHandler {
         $byName = [];
         foreach ($tools as $tool) {
@@ -231,7 +296,9 @@ class ToolsListHandlerTest extends TestCase
         $registry->method('all')->willReturn($byName);
 
         $aclChecker = $this->createMock(AclChecker::class);
-        $aclChecker->method('isAllowed')->willReturn($aclAllow);
+        $aclChecker->method('isAllowed')->willReturnCallback(
+            static fn (User $_user, string $resource): bool => $aclAllow && !in_array($resource, $denied, true)
+        );
 
         $config = $this->createMock(ModuleConfig::class);
         $config->method('isAllowWrites')->willReturn($allowWrites);
@@ -260,6 +327,17 @@ class ToolsListHandlerTest extends TestCase
         );
     }
 
+    private function makeUnderlyingAclTool(
+        string $name,
+        string $aclResource,
+        ?string $underlyingResource
+    ): ToolInterface {
+        $tool = $this->createMock(UnderlyingAclToolFixtureInterface::class);
+        $this->stubToolBasics($tool, $name, $aclResource);
+        $tool->method('getUnderlyingAclResource')->willReturn($underlyingResource);
+        return $tool;
+    }
+
     private function makeTool(
         string $name,
         string $aclResource,
@@ -275,6 +353,23 @@ class ToolsListHandlerTest extends TestCase
         $tool->method('getWriteMode')->willReturn($writeMode);
         $tool->method('getConfirmationRequired')->willReturn($confirmationRequired);
         return $tool;
+    }
+
+    /**
+     * @param ToolInterface&MockObject $tool
+     * @param string $name
+     * @param string $aclResource
+     * @return void
+     */
+    private function stubToolBasics($tool, string $name, string $aclResource): void
+    {
+        $tool->method('getName')->willReturn($name);
+        $tool->method('getTitle')->willReturn(ucfirst($name));
+        $tool->method('getDescription')->willReturn('desc');
+        $tool->method('getInputSchema')->willReturn(['type' => 'object']);
+        $tool->method('getAclResource')->willReturn($aclResource);
+        $tool->method('getWriteMode')->willReturn(WriteMode::READ);
+        $tool->method('getConfirmationRequired')->willReturn(false);
     }
 
     /**
@@ -305,4 +400,11 @@ class ToolsListHandlerTest extends TestCase
         $token->method('getAllowWrites')->willReturn($allowWrites);
         return $token;
     }
+}
+
+/**
+ * PHPUnit 9 cannot mock an intersection of types, so the fixture names the combination.
+ */
+interface UnderlyingAclToolFixtureInterface extends ToolInterface, UnderlyingAclAwareInterface
+{
 }

@@ -17,6 +17,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
   - [Order module — `Magebit_McpOrderTools`](#order-module--magebit_mcpordertools)
   - [Catalog module — `Magebit_McpCatalogTools`](#catalog-module--magebit_mcpcatalogtools)
   - [Customer module — `Magebit_McpCustomerTools`](#customer-module--magebit_mcpcustomertools)
+  - [Inventory module — `Magebit_McpInventoryTools`](#inventory-module--magebit_mcpinventorytools)
   - [CMS module — `Magebit_McpCmsTools`](#cms-module--magebit_mcpcmstools)
   - [Marketing module — `Magebit_McpMarketingTools`](#marketing-module--magebit_mcpmarketingtools)
   - [Tax and currency module — `Magebit_McpTaxTools`](#tax-and-currency-module--magebit_mcptaxtools)
@@ -40,7 +41,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - A PII-redacting audit log with configurable retention
 - Per-(admin, tool) rate limiting
 - An origin allowlist with sensible defaults for major AI clients
-- Core tools for the authenticated identity, cache types, indexers, store views, system configuration values and admin notifications
+- Core tools for the authenticated identity, cache types, indexers, store views, installed modules (`system.module.list`, for checking what the store actually supports before picking a tool), system configuration values and admin notifications
 - Configuration writing (`system.config.set`), off by default and allowlist-only — see [Configuration writing](#configuration-writing)
 - Scheduled-job diagnostics (`system.cron.status`), so the AI can answer "why didn't that run automatically?" — per-job last success/error, stuck-job detection, and per-group retention. Absent run history is not evidence a job never ran: Magento prunes successful cron rows aggressively (60 minutes by default), so `no_run_history` is normal for most of the day on any job that doesn't run every few minutes
 - Read-only log diagnostics (`system.log.list` / `system.log.tail` / `system.log.grep`), so the AI can read `var/log` without shell access — basename-only, `.log` files only. Every read is bounded (line and match caps, a total byte budget) and never loads a whole file. Log lines routinely contain customer PII, tokens, or credentials, so grant the underlying tool ACLs to admin roles accordingly
@@ -61,6 +62,43 @@ composer require magebitcom/magento2-mcp-module
 bin/magento module:enable Magebit_Mcp
 bin/magento setup:upgrade
 ```
+
+That gives you the server and its `system.*` tools, and nothing else.
+
+### Installing everything at once
+
+To get the server plus the catalog, CMS, customer, inventory, marketing, order, report and tax modules in one step, require the [suite meta-package](https://github.com/magebitcom/magento2-mcp-suite) instead of picking sub-modules by hand:
+
+```bash
+composer require magebitcom/magento2-mcp-suite
+bin/magento setup:upgrade
+```
+
+The suite contains no code of its own — only a dependency list — so what it installs is nine ordinary Magento modules. That means you stop choosing your tool surface at `composer require` time and start choosing it in `app/etc/config.php`, where `1` is enabled and `0` is disabled:
+
+```php
+'modules' => [
+    // ...
+    'Magebit_Mcp' => 1,
+    'Magebit_McpCatalogTools' => 1,
+    'Magebit_McpCmsTools' => 1,
+    'Magebit_McpCustomerTools' => 1,
+    'Magebit_McpInventoryTools' => 1,
+    'Magebit_McpMarketingTools' => 1,
+    'Magebit_McpOrderTools' => 1,
+    'Magebit_McpReportTools' => 0,
+    'Magebit_McpTaxTools' => 0,
+],
+```
+
+`bin/magento module:disable Magebit_McpReportTools` edits the same file. Because `config.php` is committed, this is how you give each environment a different tool surface from one install — full write access on staging, a narrower set in production.
+
+Two caveats worth knowing:
+
+- **`setup:upgrade` enables modules it has not seen before.** Adding the suite to an existing store lands all nine as `=> 1`. If some should be off, disable them in the same deploy, before the store serves traffic.
+- **Disabling a module is a blunt instrument.** To keep one installed but hide individual tools, use **System → MCP → Tools** in the admin, which toggles a single tool at a time behind its own ACL resource.
+
+The Google Analytics and database modules are deliberately **not** in the suite — the first needs a Google login and pulls in the Google SDKs, the second grants bulk database reads. Both are listed below and are one `composer require` away.
 
 ## Sub-modules
 
@@ -86,9 +124,24 @@ composer require magebitcom/magento2-mcp-order-tools
 - Read and search products and categories
 - Create, update or delete products
 - Create, update or delete categories
+- Set stock levels in bulk, and upload or manage product images
 
 ```bash
 composer require magebitcom/magento2-mcp-catalog-tools
+```
+
+### Inventory module — [`Magebit_McpInventoryTools`](https://github.com/magebitcom/magento2-mcp-inventory-tools)
+- Read sources, stocks and per-source quantities
+- Report salable quantity and the reservations behind it
+- Set or unassign quantities per (SKU, source) in bulk
+- Manage sources, stocks, source links and website assignments
+- Bulk assign, unassign and transfer inventory between sources
+
+Requires Magento's Multi-Source Inventory. For a single-stock store,
+`catalog.product.stock.set` in the catalog module is enough.
+
+```bash
+composer require magebitcom/magento2-mcp-inventory-tools
 ```
 
 ### Customer module — [`Magebit_McpCustomerTools`](https://github.com/magebitcom/magento2-mcp-customer-tools)
@@ -178,6 +231,7 @@ Configuration lives under **Stores → Configuration → Magebit → MCP Server*
 | **General → Server Name** | `Magento MCP` | Advertised to MCP clients during the `initialize` handshake. |
 | **General → Server Description** | empty | Optional free-text hint advertised alongside the server name. |
 | **General → Allow Write Tools** | Yes | Global toggle. A token's per-row write flag is only honoured when this is on. |
+| **General → Max Request Body (KB)** | `256` | Largest accepted `POST /mcp` body, clamped to 64–32768. Raise only if you upload product images through MCP — base64 inflates a file by about a third, so an 8 MB photo needs roughly `11000`. Your web server's own limit (nginx `client_max_body_size`, Apache `LimitRequestBody`) applies first and must be raised to match. |
 | **Security → Allowed Origins** | localhost + Claude, ChatGPT, Gemini, Copilot, Grok and Perplexity | One origin per line. Trailing `*` is allowed. Tighten for production. |
 | **Audit Log → Retention (days)** | `90` | Older rows are purged by the `magebit_mcp_audit_purge` cron. `0` disables purging. |
 | **Rate Limiting → Enabled** | No | Caps `tools/call` requests per (admin, tool) per minute. Recommended for production. |
@@ -305,8 +359,8 @@ The contract surface is:
 
 1. Implement `Magebit\Mcp\Api\ToolInterface` and declare an ACL resource for the tool. By convention, dots in the tool name become underscores in the ACL id (`catalog.product.get` → `Vendor_Module::mcp_tool_catalog_product_get`).
 2. Register the tool in `di.xml` under `Magebit\Mcp\Model\Tool\ToolRegistry`. The DI key must match the tool's `getName()` and conform to `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`.
-3. For write tools that wrap a Magento service contract, optionally implement `Magebit\Mcp\Api\UnderlyingAclAwareInterface` so the dispatcher also enforces the equivalent admin-UI permission.
-4. Run `bin/magento magebit:mcp:tools:validate-acl` to confirm every tool's ACL resource resolves.
+3. For write tools that wrap a Magento service contract, optionally implement `Magebit\Mcp\Api\UnderlyingAclAwareInterface` so the dispatcher also enforces the equivalent admin-UI permission. `tools/list` applies the same check, so a role that lacks the underlying permission is never offered the tool.
+4. Run `bin/magento magebit:mcp:tools:validate-acl` to confirm every tool's ACL resource resolves. It also warns about underlying resources that do not resolve on this install — those tools stay hidden from `tools/list` for every role.
 
 Publishing your module? Add the [`magebit-mcp-tools`](https://github.com/topics/magebit-mcp-tools) topic to its GitHub repository so it turns up alongside the rest of the ecosystem.
 

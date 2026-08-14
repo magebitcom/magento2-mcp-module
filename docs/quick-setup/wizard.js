@@ -5,6 +5,12 @@
   // 'claude-desktop' is temporarily disabled pending Linux verification.
   var AGENTS = ['claude-web', 'claude-code', 'cursor', 'chatgpt', 'other'];
 
+  // Tool modules bundled by the suite meta-package. Tick all of them and the
+  // generated composer line collapses to the single suite package.
+  var SUITE_MODULES = ['order', 'catalog', 'customer', 'inventory', 'cms', 'marketing', 'tax', 'report'];
+  var SUITE_PACKAGE = 'magebitcom/magento2-mcp-suite';
+  var CORE_PACKAGE = 'magebitcom/magento2-mcp-module';
+
   function parseHash() {
     var raw = (window.location.hash || '').replace(/^#/, '');
     if (!raw) return { step: 'install', agent: null };
@@ -141,14 +147,37 @@
     }, 2000);
   }
 
+  function checkedBoxes() {
+    return document.querySelectorAll('#featurelist input[type="checkbox"]:checked');
+  }
+
+  function suiteCovered(checked) {
+    for (var i = 0; i < SUITE_MODULES.length; i++) {
+      var found = false;
+      for (var j = 0; j < checked.length; j++) {
+        if (checked[j].getAttribute('data-module') === SUITE_MODULES[i]) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) return false;
+    }
+    return true;
+  }
+
   function buildInstallCommand() {
     var output = document.getElementById('cmd-install');
     if (!output) return;
-    var checked = document.querySelectorAll('#featurelist input[type="checkbox"]:checked');
-    var packages = ['magebitcom/magento2-mcp-module'];
+    var checked = checkedBoxes();
+    var useSuite = suiteCovered(checked);
+    var packages = [useSuite ? SUITE_PACKAGE : CORE_PACKAGE];
     var modules = ['Magebit_Mcp'];
     for (var i = 0; i < checked.length; i++) {
-      packages.push(checked[i].getAttribute('data-package'));
+      var slug = checked[i].getAttribute('data-module');
+      // In suite mode the eight bundled modules arrive via the meta-package.
+      if (!useSuite || SUITE_MODULES.indexOf(slug) === -1) {
+        packages.push(checked[i].getAttribute('data-package'));
+      }
       modules.push(checked[i].getAttribute('data-name'));
     }
 
@@ -163,6 +192,12 @@
     output.textContent = composerLine + '\n\n' + enableLine + '\n\nbin/magento setup:upgrade';
   }
 
+  function syncSuiteNote() {
+    var note = document.querySelector('[data-suite-note]');
+    if (!note) return;
+    note.hidden = !suiteCovered(checkedBoxes());
+  }
+
   function syncDbWarning() {
     var warning = document.querySelector('[data-db-warning]');
     if (!warning) return;
@@ -174,6 +209,7 @@
     if (evt.target.matches && evt.target.matches('#featurelist input[type="checkbox"]')) {
       buildInstallCommand();
       syncDbWarning();
+      syncSuiteNote();
     }
   }
 
@@ -184,5 +220,6 @@
     render();
     buildInstallCommand();
     syncDbWarning();
+    syncSuiteNote();
   });
 })();
