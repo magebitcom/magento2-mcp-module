@@ -5,7 +5,7 @@ Third-party modules expose new MCP tools by implementing `Magebit\Mcp\Api\ToolIn
 For a canonical satellite that ships a full catalog of read + write tools with caller-driven field selection, see `Magebit_McpOrderTools`. It demonstrates:
 
 - The **field-resolver pattern** (`FieldResolverInterface` + `ResolverPipeline` in this module; per-entity sub-interfaces like `OrderFieldResolverInterface` in the satellite) for building tool responses out of DI-injected, 3rd-party-extendable fragments.
-- The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI.
+- The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI. `tools/list` filters on it too, so such a tool is never advertised to a role that cannot call it.
 - The **contextual-ACL layering** (`ContextualAclAwareInterface`, described below) for tools whose required permission is not knowable until the arguments arrive.
 
 ## Step 1 — Implement `ToolInterface`

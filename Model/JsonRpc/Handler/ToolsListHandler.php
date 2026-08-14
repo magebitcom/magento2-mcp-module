@@ -9,7 +9,9 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
 use Magebit\Mcp\Api\LoggerInterface;
+use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
+use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
@@ -59,6 +61,7 @@ class ToolsListHandler implements HandlerInterface
         $scopes = $context->token->getScopes();
         $writesAllowed = $this->config->isAllowWrites() && $context->token->getAllowWrites();
         $tools = [];
+        $hiddenByUnderlyingAcl = [];
 
         foreach ($this->toolRegistry->all() as $tool) {
             if ($this->disabledTools->isDisabled($tool->getName())) {
@@ -71,6 +74,12 @@ class ToolsListHandler implements HandlerInterface
                 continue;
             }
             if (!$this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource())) {
+                continue;
+            }
+            // Mirrors the second gate in ToolsCallHandler: a tool the role cannot
+            // invoke must not be advertised, or the client wastes a call on it.
+            if ($this->isUnderlyingAclDenied($tool, $context)) {
+                $hiddenByUnderlyingAcl[] = $tool->getName();
                 continue;
             }
 
@@ -93,9 +102,28 @@ class ToolsListHandler implements HandlerInterface
 
         $this->logger->debug(
             sprintf('Emitted tools/list with %d tool(s).', count($tools)),
-            ['tools' => array_column($tools, 'name')]
+            [
+                'tools' => array_column($tools, 'name'),
+                'hidden_by_underlying_acl' => $hiddenByUnderlyingAcl,
+            ]
         );
 
         return Response::success($request->id, ['tools' => $tools]);
+    }
+
+    /**
+     * @param ToolInterface $tool
+     * @param AuthenticatedContext $context
+     * @return bool
+     */
+    private function isUnderlyingAclDenied(ToolInterface $tool, AuthenticatedContext $context): bool
+    {
+        if (!$tool instanceof UnderlyingAclAwareInterface) {
+            return false;
+        }
+        $underlying = $tool->getUnderlyingAclResource();
+
+        return $underlying !== null
+            && !$this->aclChecker->isAllowed($context->adminUser, $underlying);
     }
 }
