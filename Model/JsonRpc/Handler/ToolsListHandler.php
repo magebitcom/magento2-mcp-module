@@ -88,7 +88,7 @@ class ToolsListHandler implements HandlerInterface
                 'name' => str_replace('.', '_', $tool->getName()),
                 'title' => $displayTitle,
                 'description' => $tool->getDescription(),
-                'inputSchema' => $this->schemaSanitizer->sanitize(
+                'inputSchema' => $this->schemaSanitizer->sanitizeForClient(
                     $tool->getName(),
                     $tool->getInputSchema()
                 ),
