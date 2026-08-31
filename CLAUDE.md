@@ -24,6 +24,8 @@ bin/magento magebit:mcp:tools:list            # Every registered tool, ACL, writ
 bin/magento magebit:mcp:tools:validate-acl    # CI gate: tool ACLs must resolve + names must match regex
 bin/magento magebit:mcp:token:create --admin-user=<u> --name='<label>'
 bin/magento magebit:mcp:token:{list,revoke,delete}
+bin/magento magebit:mcp:oauth:client:create --preset=claude_web --allow-all-tools
+bin/magento magebit:mcp:oauth:client:{list,rotate-secret,set-status,delete}
 
 # Static analysis — PHPStan level 9 on this module
 vendor/bin/phpstan analyse app/code/Magebit/Mcp -c app/code/Magebit/Mcp/phpstan.neon
@@ -93,7 +95,11 @@ Issued access tokens are written to `magebit_mcp_token` with `oauth_client_id` s
 
 Tables: `magebit_mcp_oauth_client`, `magebit_mcp_oauth_auth_code`, `magebit_mcp_oauth_refresh_token`. Cleanup cron: `magebit_mcp_purge_oauth` (daily 04:00).
 
-Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth_clients`).
+Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth_clients`). The same CRUD is on the CLI as `magebit:mcp:oauth:client:*` — `Console/Command/OAuthClient*Command`. Both paths share `Model/OAuth/ClientCredentialIssuer` and `Model/OAuth/AuthorizationOptionsValidator`, so a misconfiguration is refused identically either way.
+
+`set-status --disabled` and `delete` revoke the client's live access tokens, because neither the disabled flag nor the FK (`ON DELETE SET NULL`) stops an already-issued token on its own. `rotate-secret` deliberately does not, so a client can pick up a new secret without an outage; pass `--revoke-tokens` when the old one may have leaked.
+
+`docs/AGENTS.md` is the agent-facing setup runbook — CLI-only, with a verification step per stage. Keep it in sync when a setup-relevant command or config path changes.
 
 ## Core extensibility surface
 

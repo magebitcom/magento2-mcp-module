@@ -240,6 +240,21 @@
                 <item name="magebit_mcp_token_delete" xsi:type="object">
                     Magebit\Mcp\Console\Command\TokenDeleteCommand
                 </item>
+                <item name="magebit_mcp_oauth_client_create" xsi:type="object">
+                    Magebit\Mcp\Console\Command\OAuthClientCreateCommand
+                </item>
+                <item name="magebit_mcp_oauth_client_list" xsi:type="object">
+                    Magebit\Mcp\Console\Command\OAuthClientListCommand
+                </item>
+                <item name="magebit_mcp_oauth_client_rotate_secret" xsi:type="object">
+                    Magebit\Mcp\Console\Command\OAuthClientRotateSecretCommand
+                </item>
+                <item name="magebit_mcp_oauth_client_set_status" xsi:type="object">
+                    Magebit\Mcp\Console\Command\OAuthClientSetStatusCommand
+                </item>
+                <item name="magebit_mcp_oauth_client_delete" xsi:type="object">
+                    Magebit\Mcp\Console\Command\OAuthClientDeleteCommand
+                </item>
             </argument>
         </arguments>
     </type>
@@ -250,6 +265,11 @@
         </arguments>
     </type>
     <type name="Magebit\Mcp\Console\Command\ValidateAclCommand">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Console\Command\OAuthClientCreateCommand">
         <arguments>
             <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
         </arguments>
