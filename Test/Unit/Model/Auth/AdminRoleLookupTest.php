@@ -47,20 +47,6 @@ class AdminRoleLookupTest extends TestCase
         $this->lookup->getIdByName('Nope');
     }
 
-    public function testNamesByIdsMapsIdsToRoleNames(): void
-    {
-        $this->stubCollection([$this->makeRole(4, 'Support'), $this->makeRole(9, 'Ops')]);
-
-        self::assertSame([4 => 'Support', 9 => 'Ops'], $this->lookup->namesByIds([4, 9]));
-    }
-
-    public function testNamesByIdsShortCircuitsOnAnEmptyIdList(): void
-    {
-        $this->collectionFactory->expects(self::never())->method('create');
-
-        self::assertSame([], $this->lookup->namesByIds([]));
-    }
-
     public function testGetAllNamesListsEveryRole(): void
     {
         $this->stubCollection([$this->makeRole(9, 'Ops'), $this->makeRole(4, 'Support')]);

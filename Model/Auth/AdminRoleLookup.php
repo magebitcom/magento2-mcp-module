@@ -47,24 +47,6 @@ class AdminRoleLookup
     }
 
     /**
-     * @param array<int, int> $ids
-     * @return array<int, string>
-     */
-    public function namesByIds(array $ids): array
-    {
-        $filtered = array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
-        if ($filtered === []) {
-            return [];
-        }
-
-        $collection = $this->roleCollectionFactory->create();
-        $collection->setRolesFilter();
-        $collection->addFieldToFilter('role_id', ['in' => $filtered]);
-
-        return $this->narrowItems($collection->getItems());
-    }
-
-    /**
      * @return array<int, string> Role names, alphabetical.
      */
     public function getAllNames(): array

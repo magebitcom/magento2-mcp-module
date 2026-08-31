@@ -182,6 +182,70 @@ class OAuthClientCreateCommandTest extends TestCase
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
     }
 
+    public function testAllowAllToolsTogetherWithAnExplicitToolIsRejected(): void
+    {
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/mutually exclusive/');
+
+        $this->runCommand([
+            '--name' => 'Claude Web',
+            '--redirect-uri' => [self::CALLBACK],
+            '--allow-all-tools' => true,
+            '--tool' => ['catalog.product.list'],
+        ]);
+    }
+
+    public function testServiceAdminUserIsRejectedInPersonalMode(): void
+    {
+        // Silently ignoring it would leave the operator believing consents are
+        // pinned to that admin when every admin still gets their own token.
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/--service-admin-user/');
+
+        $this->runCommand([
+            '--name' => 'Claude Web',
+            '--redirect-uri' => [self::CALLBACK],
+            '--allow-all-tools' => true,
+            '--service-admin-user' => 'svc',
+        ]);
+    }
+
+    public function testAdminUserWhitelistIsRejectedInSharedMode(): void
+    {
+        // applyAuthorizationOptions() wipes the whitelists in shared mode, so
+        // accepting them here would discard a restriction the operator asked for.
+        $this->adminUserLookup->method('getByUsername')->willReturn($this->makeUser(12));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/personal/');
+
+        $this->runCommand([
+            '--name' => 'Shared connector',
+            '--redirect-uri' => [self::CALLBACK],
+            '--allow-all-tools' => true,
+            '--auth-mode' => 'shared',
+            '--service-admin-user' => 'svc',
+            '--allowed-admin-user' => ['alice'],
+        ]);
+    }
+
+    public function testAdminRoleWhitelistIsRejectedInSharedMode(): void
+    {
+        $this->adminUserLookup->method('getByUsername')->willReturn($this->makeUser(12));
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/personal/');
+
+        $this->runCommand([
+            '--name' => 'Shared connector',
+            '--redirect-uri' => [self::CALLBACK],
+            '--allow-all-tools' => true,
+            '--auth-mode' => 'shared',
+            '--service-admin-user' => 'svc',
+            '--allowed-admin-role' => ['Support'],
+        ]);
+    }
+
     public function testMissingToolSelectionIsRejected(): void
     {
         $this->expectException(RuntimeException::class);

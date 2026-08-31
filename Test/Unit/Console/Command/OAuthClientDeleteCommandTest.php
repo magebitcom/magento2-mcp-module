@@ -65,6 +65,21 @@ class OAuthClientDeleteCommandTest extends TestCase
         self::assertStringContainsString('still valid', $tester->getDisplay());
     }
 
+    public function testFailedRevocationAbortsTheDeleteEntirely(): void
+    {
+        // Deleting anyway would strand live tokens: they keep authenticating with
+        // no client row left to manage or revoke them through.
+        $this->stubClient(5);
+        $this->tokenRepository->method('revokeAllForClient')
+            ->willThrowException(new \RuntimeException('db gone'));
+        $this->clientRepository->expects(self::never())->method('deleteById');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessageMatches('/db gone|--keep-tokens/');
+
+        $this->runCommand(['id' => '5']);
+    }
+
     public function testUnknownClientIsReported(): void
     {
         $this->clientRepository->method('getById')
