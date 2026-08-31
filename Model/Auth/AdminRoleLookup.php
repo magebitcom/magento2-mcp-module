@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Auth;
 
-use Magento\Authorization\Model\ResourceModel\Role\CollectionFactory as RoleCollectionFactory;
+use Magento\Authorization\Model\ResourceModel\Role\CollectionFactory;
 use Magento\Authorization\Model\Role;
 use Magento\Framework\Exception\NoSuchEntityException;
 
@@ -19,10 +19,10 @@ use Magento\Framework\Exception\NoSuchEntityException;
 class AdminRoleLookup
 {
     /**
-     * @param RoleCollectionFactory $roleCollectionFactory
+     * @param CollectionFactory $roleCollectionFactory
      */
     public function __construct(
-        private readonly RoleCollectionFactory $roleCollectionFactory
+        private readonly CollectionFactory $roleCollectionFactory
     ) {
     }
 

@@ -10,7 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\Auth;
 
 use Magebit\Mcp\Model\Auth\AdminRoleLookup;
 use Magento\Authorization\Model\ResourceModel\Role\Collection as RoleCollection;
-use Magento\Authorization\Model\ResourceModel\Role\CollectionFactory as RoleCollectionFactory;
+use Magento\Authorization\Model\ResourceModel\Role\CollectionFactory;
 use Magento\Authorization\Model\Role;
 use Magento\Framework\Exception\NoSuchEntityException;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -19,16 +19,16 @@ use PHPUnit\Framework\TestCase;
 class AdminRoleLookupTest extends TestCase
 {
     /**
-     * @phpstan-var RoleCollectionFactory&MockObject
+     * @phpstan-var CollectionFactory&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
-    private RoleCollectionFactory&MockObject $collectionFactory;
+    private CollectionFactory&MockObject $collectionFactory;
 
     private AdminRoleLookup $lookup;
 
     protected function setUp(): void
     {
-        $this->collectionFactory = $this->createMock(RoleCollectionFactory::class);
+        $this->collectionFactory = $this->createMock(CollectionFactory::class);
         $this->lookup = new AdminRoleLookup($this->collectionFactory);
     }
 

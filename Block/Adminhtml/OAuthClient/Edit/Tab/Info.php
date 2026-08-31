@@ -13,7 +13,6 @@ use Magebit\Mcp\Api\OAuth\ClientPresetProviderInterface;
 use Magebit\Mcp\Controller\Adminhtml\OAuthClient\Edit as EditController;
 use Magebit\Mcp\Model\Adminhtml\FormDataPersistence;
 use Magebit\Mcp\Model\OAuth\AuthMode;
-use Magento\Authorization\Model\ResourceModel\Role\CollectionFactory as RoleCollectionFactory;
 use Magento\Backend\Block\Template\Context;
 use Magento\Backend\Block\Widget\Form\Generic;
 use Magento\Backend\Block\Widget\Tab\TabInterface;
@@ -22,7 +21,7 @@ use Magento\Framework\Data\Form\Element\Fieldset;
 use Magento\Framework\Data\FormFactory;
 use Magento\Framework\Registry;
 use Magento\Framework\Serialize\Serializer\Json;
-use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
+use Magento\User\Model\ResourceModel\User\CollectionFactory;
 
 /**
  * "Client Info" tab — preset dropdown, Name, Redirect URIs, Authorization
@@ -37,8 +36,8 @@ class Info extends Generic implements TabInterface
      * @param ClientPresetProviderInterface $presetProvider
      * @param FormDataPersistence $formDataPersistence
      * @param Json $jsonSerializer
-     * @param UserCollectionFactory $userCollectionFactory
-     * @param RoleCollectionFactory $roleCollectionFactory
+     * @param CollectionFactory $userCollectionFactory
+     * @param \Magento\Authorization\Model\ResourceModel\Role\CollectionFactory $roleCollectionFactory
      * @param array $data
      * @phpstan-param array<string, mixed> $data
      */
@@ -49,8 +48,9 @@ class Info extends Generic implements TabInterface
         private readonly ClientPresetProviderInterface $presetProvider,
         private readonly FormDataPersistence $formDataPersistence,
         private readonly Json $jsonSerializer,
-        private readonly UserCollectionFactory $userCollectionFactory,
-        private readonly RoleCollectionFactory $roleCollectionFactory,
+        private readonly CollectionFactory $userCollectionFactory,
+        // Aliasing this to RoleCollectionFactory confuses the PHPStan Magento extension.
+        private readonly \Magento\Authorization\Model\ResourceModel\Role\CollectionFactory $roleCollectionFactory,
         array $data = []
     ) {
         parent::__construct($context, $registry, $formFactory, $data);

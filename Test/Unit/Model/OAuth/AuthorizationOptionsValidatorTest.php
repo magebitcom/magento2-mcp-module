@@ -12,23 +12,23 @@ use Magebit\Mcp\Model\OAuth\AuthMode;
 use Magebit\Mcp\Model\OAuth\AuthorizationOptions;
 use Magebit\Mcp\Model\OAuth\AuthorizationOptionsValidator;
 use Magento\User\Model\ResourceModel\User\Collection as UserCollection;
-use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
+use Magento\User\Model\ResourceModel\User\CollectionFactory;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class AuthorizationOptionsValidatorTest extends TestCase
 {
     /**
-     * @phpstan-var UserCollectionFactory&MockObject
+     * @phpstan-var CollectionFactory&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
-    private UserCollectionFactory&MockObject $userCollectionFactory;
+    private CollectionFactory&MockObject $userCollectionFactory;
 
     private AuthorizationOptionsValidator $validator;
 
     protected function setUp(): void
     {
-        $this->userCollectionFactory = $this->createMock(UserCollectionFactory::class);
+        $this->userCollectionFactory = $this->createMock(CollectionFactory::class);
         $this->validator = new AuthorizationOptionsValidator($this->userCollectionFactory);
     }
 

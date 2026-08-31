@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\OAuth;
 
-use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
+use Magento\User\Model\ResourceModel\User\CollectionFactory;
 
 /**
  * Checks that a client's authorization knobs point at admins who can actually
@@ -18,10 +18,10 @@ use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFac
 class AuthorizationOptionsValidator
 {
     /**
-     * @param UserCollectionFactory $userCollectionFactory
+     * @param CollectionFactory $userCollectionFactory
      */
     public function __construct(
-        private readonly UserCollectionFactory $userCollectionFactory
+        private readonly CollectionFactory $userCollectionFactory
     ) {
     }
 
