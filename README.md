@@ -55,6 +55,8 @@ Not connecting? The **[Connection Checker](https://magebitcom.github.io/magento2
 
 For the long-form reference — every admin setting, the OAuth and bearer-token flows in detail, and the full tool catalog — see the [Wiki](https://github.com/magebitcom/magento2-mcp-module/wiki).
 
+**Setting this up with an AI coding agent?** Point it at [docs/AGENTS.md](docs/AGENTS.md) — the same install written as a command-line-only runbook, with a verification step after each stage so the agent can tell whether it worked instead of guessing.
+
 ## Installation
 
 ```bash
@@ -242,6 +244,19 @@ Configuration lives under **Stores → Configuration → Magebit → MCP Server*
 | **MCP Configuration Writer → Enable Configuration Writing** | No | Master switch for `system.config.set`. See [Configuration writing](#configuration-writing). |
 | **MCP Configuration Writer → Allowed Paths** | empty | The only config paths `system.config.set` may write. Empty refuses every write. |
 
+Every one of those settings is an ordinary Magento config path, so `bin/magento config:set` is an equivalent to clicking through the admin — useful for scripted installs and for AI agents doing the setup:
+
+```bash
+bin/magento config:set magebit_mcp/general/enabled 1
+bin/magento config:set magebit_mcp/general/allow_writes 1
+bin/magento config:set magebit_mcp/rate_limiting/enabled 1
+bin/magento config:set magebit_mcp/audit/retention_days 90
+bin/magento config:show magebit_mcp/general/enabled   # read one back
+bin/magento cache:flush config
+```
+
+`magebit_mcp/security/allowed_origins` is a multi-line value, so it is easier to set in the admin than on the command line.
+
 Five separate admin-role permissions gate the module so a token-manager role need not see the audit log and vice versa:
 
 - `Magebit_Mcp::mcp_tokens` — create, list, revoke and delete bearer tokens
@@ -320,7 +335,35 @@ Configure your MCP client with:
 
 ### OAuth 2.1
 
-Manage OAuth clients under **System → MCP → OAuth Clients**. The module exposes:
+Register a client from the CLI (or under **System → MCP → OAuth Clients** in the admin):
+
+```bash
+# Known AI clients come as presets, which fill in the name and redirect URI
+bin/magento magebit:mcp:oauth:client:create --list-presets
+bin/magento magebit:mcp:oauth:client:create --preset claude_web --allow-all-tools
+
+# Or spell it out
+bin/magento magebit:mcp:oauth:client:create \
+  --name "<label>" \
+  --redirect-uri "https://<client-callback>" \
+  --tool catalog.product.list --tool sales.order.get
+```
+
+Pick the tool surface with repeated `--tool` flags, or `--allow-all-tools` to also cover tools installed later. `--auth-mode shared --service-admin-user <username>` pins every consent to one admin instead of letting each admin authorize for themselves; in the default personal mode, `--allowed-admin-user` / `--allowed-admin-role` narrow who may consent at all. Add `--disabled` to register a client without switching it on.
+
+The client secret is printed once and is never recoverable afterwards — only its hash is stored. Manage clients with:
+
+```bash
+bin/magento magebit:mcp:oauth:client:list
+bin/magento magebit:mcp:oauth:client:set-status <id> --disabled   # also revokes its live tokens
+bin/magento magebit:mcp:oauth:client:set-status <id> --enabled
+bin/magento magebit:mcp:oauth:client:rotate-secret <id> [--revoke-tokens]
+bin/magento magebit:mcp:oauth:client:delete <id> [--keep-tokens]
+```
+
+Two things worth knowing about revocation. Disabling a client blocks new grants but does not by itself stop the access tokens it already issued, so `set-status --disabled` revokes them for you. Deleting a client leaves its tokens behind for the same reason — the foreign key clears the reference rather than the row — so `delete` revokes them first; `--keep-tokens` opts out and leaves them valid until they expire.
+
+The module exposes:
 
 | Endpoint | Purpose |
 |---|---|
