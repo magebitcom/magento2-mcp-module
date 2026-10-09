@@ -1,6 +1,6 @@
 # Setting up Magebit_Mcp — a runbook for AI agents
 
-This page is written for an AI coding agent installing and verifying the MCP server on a Magento 2 store. Humans should read the [README](../README.md) or the [Quick Setup guide](https://magebitcom.github.io/magento2-mcp-module/quick-setup/) instead — those explain the same work with screenshots and prose. Everything here is done from the command line, and every stage ends with a check whose output you can read.
+This page is written for an AI coding agent installing and verifying the MCP server on a Magento 2 store. Humans should read the [README](../README.md) or the [Quick Setup guide](https://magebit.com/magento-mcp) instead — those explain the same work with screenshots and prose. Everything here is done from the command line, and every stage ends with a check whose output you can read.
 
 ## How to use this page
 
