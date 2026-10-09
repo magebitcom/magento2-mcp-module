@@ -49,7 +49,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 
 ## Quick start
 
-The fastest path from `composer require` to a connected AI is the interactive **[Quick Setup guide](https://magebitcom.github.io/magento2-mcp-module/quick-setup/)** — pick which AI you're using (Claude, ChatGPT, Cursor, Claude Code, or anything else MCP-compatible) and follow the per-client steps with copy-paste snippets and admin-screen screenshots.
+The fastest path from `composer require` to a connected AI is the interactive **[Quick Setup guide](https://magebit.com/magento-mcp)** — pick which AI you're using (Claude, ChatGPT, Cursor, Claude Code, or anything else MCP-compatible) and follow the per-client steps with copy-paste snippets and admin-screen screenshots.
 
 Not connecting? The **[Connection Checker](https://magebitcom.github.io/magento2-mcp-module/quick-setup/diagnose.html)** probes your store's MCP endpoints from the browser and flags redirects, unreachable hosts and base-URL mismatches; the **[MCP Inspector guide](https://magebitcom.github.io/magento2-mcp-module/quick-setup/inspector.html)** walks you through verifying the OAuth sign-in and bearer-token access end to end.
 
