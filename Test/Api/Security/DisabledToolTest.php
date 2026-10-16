@@ -29,7 +29,9 @@ class DisabledToolTest extends McpTestCase
     {
         ConfigState::remember(self::DISABLED_PATH);
         parent::setUp();
-        Bootstrap::getObjectManager()->get(DisabledTools::class)->setDisabled('system.store.list', true);
+        /** @var DisabledTools $disabledTools */
+        $disabledTools = Bootstrap::getObjectManager()->get(DisabledTools::class);
+        $disabledTools->setDisabled('system.store.list', true);
     }
 
     /**

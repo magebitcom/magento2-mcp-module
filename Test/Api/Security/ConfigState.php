@@ -74,6 +74,7 @@ final class ConfigState
         foreach (self::$remembered as $path => $state) {
             if ($state['exists']) {
                 // A NULL value is kept as NULL, same as before the test.
+                // @phpstan-ignore-next-line argument.type (the writer stores NULL as NULL)
                 self::writer()->save($path, $state['value'], self::SCOPE, self::SCOPE_ID);
             } else {
                 self::writer()->delete($path, self::SCOPE, self::SCOPE_ID);
@@ -101,7 +102,7 @@ final class ConfigState
     public static function read(string $path): ?string
     {
         $row = self::fetchRow($path);
-        if ($row === null || $row['value'] === null) {
+        if ($row === null || !is_scalar($row['value'])) {
             return null;
         }
 
@@ -122,6 +123,7 @@ final class ConfigState
             ->where('path = ?', $path)
             ->where('scope = ?', self::SCOPE)
             ->where('scope_id = ?', self::SCOPE_ID);
+        /** @var array<string, mixed>|false $row */
         $row = $connection->fetchRow($select);
 
         return is_array($row) ? $row : null;
@@ -132,7 +134,10 @@ final class ConfigState
      */
     private static function writer(): WriterInterface
     {
-        return Bootstrap::getObjectManager()->get(WriterInterface::class);
+        /** @var WriterInterface $writer */
+        $writer = Bootstrap::getObjectManager()->get(WriterInterface::class);
+
+        return $writer;
     }
 
     /**
@@ -140,6 +145,8 @@ final class ConfigState
      */
     private static function cleanCache(): void
     {
-        Bootstrap::getObjectManager()->get(TypeListInterface::class)->cleanType('config');
+        /** @var TypeListInterface $typeList */
+        $typeList = Bootstrap::getObjectManager()->get(TypeListInterface::class);
+        $typeList->cleanType('config');
     }
 }

@@ -60,7 +60,9 @@ class RateLimitTest extends McpTestCase
         $response = $this->toolsCall('system.whoami');
 
         $this->assertJsonRpcError($response, ErrorCode::RATE_LIMITED->value, 200);
-        $data = $response['body']['error']['data'] ?? null;
+        $error = $response['body']['error'] ?? null;
+        self::assertIsArray($error);
+        $data = $error['data'] ?? null;
         self::assertIsArray($data);
         self::assertSame(self::LIMIT, $data['limit'] ?? null);
         $retryAfter = $data['retry_after_seconds'] ?? null;
@@ -91,6 +93,8 @@ class RateLimitTest extends McpTestCase
      */
     private function cleanCounters(): void
     {
-        Bootstrap::getObjectManager()->get(CacheInterface::class)->clean([ConfigurableRateLimiter::CACHE_TAG]);
+        /** @var CacheInterface $cache */
+        $cache = Bootstrap::getObjectManager()->get(CacheInterface::class);
+        $cache->clean([ConfigurableRateLimiter::CACHE_TAG]);
     }
 }

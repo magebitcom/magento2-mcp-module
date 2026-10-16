@@ -35,6 +35,7 @@ class AuditLogReaderTest extends McpTestCase
         $row = AuditLogReader::latest('system.whoami', $this->tokenRowId);
         self::assertIsArray($row);
         self::assertSame('ok', $row['response_status']);
+        self::assertIsNumeric($row['token_id']);
         self::assertSame($this->tokenRowId, (int) $row['token_id']);
     }
 

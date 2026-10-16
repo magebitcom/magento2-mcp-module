@@ -176,6 +176,9 @@ class LogReaderEscalationTest extends McpTestCase
      */
     private function logDir(): WriteInterface
     {
-        return Bootstrap::getObjectManager()->get(Filesystem::class)->getDirectoryWrite(DirectoryList::LOG);
+        /** @var Filesystem $filesystem */
+        $filesystem = Bootstrap::getObjectManager()->get(Filesystem::class);
+
+        return $filesystem->getDirectoryWrite(DirectoryList::LOG);
     }
 }

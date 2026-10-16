@@ -31,15 +31,19 @@ class AllWriteToolsGatedTest extends McpTestCase
     public function testEveryWriteToolIsRefusedWithWriteNotAllowed(): void
     {
         $om = Bootstrap::getObjectManager();
+        /** @var DisabledTools $disabled */
         $disabled = $om->get(DisabledTools::class);
+        /** @var ToolRegistryInterface $registry */
+        $registry = $om->get(ToolRegistryInterface::class);
         $misses = [];
         $checked = 0;
-        foreach ($om->get(ToolRegistryInterface::class)->all() as $tool) {
+        foreach ($registry->all() as $tool) {
             $name = $tool->getName();
             if ($tool->getWriteMode() !== WriteMode::WRITE || $disabled->isDisabled($name)) {
                 continue;
             }
-            $code = $this->toolsCall($name, [])['body']['error']['code'] ?? null;
+            $error = $this->toolsCall($name, [])['body']['error'] ?? null;
+            $code = is_array($error) ? ($error['code'] ?? null) : null;
             $audit = AuditLogReader::latest($name, $this->tokenRowId);
             if ($code !== ErrorCode::WRITE_NOT_ALLOWED->value || ($audit['error_code'] ?? null) !== '-32012') {
                 $misses[] = $name . ' => ' . var_export($code, true)

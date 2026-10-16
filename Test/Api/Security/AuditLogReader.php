@@ -78,6 +78,7 @@ final class AuditLogReader
             $select->where('token_id = ?', $tokenId);
         }
 
+        /** @var array<string, mixed>|false $row */
         $row = $connection->fetchRow($select);
 
         return is_array($row) ? $row : null;
@@ -88,6 +89,9 @@ final class AuditLogReader
      */
     private static function resource(): ResourceConnection
     {
-        return Bootstrap::getObjectManager()->get(ResourceConnection::class);
+        /** @var ResourceConnection $resource */
+        $resource = Bootstrap::getObjectManager()->get(ResourceConnection::class);
+
+        return $resource;
     }
 }
