@@ -17,7 +17,7 @@ use Magebit\Mcp\Test\Api\OAuth\TokenEndpointTestCase;
 use Magebit\Mcp\Test\Api\TokenFixture;
 
 /**
- * A revoked bearer, a disabled OAuth client and a replayed refresh token all stop working at once.
+ * A revoked bearer, a disabled or deleted OAuth client and a replayed refresh token all stop working at once.
  *
  * @magentoApiDataFixture Magento/User/_files/user_with_role.php
  */
@@ -36,7 +36,9 @@ class RevocationTest extends TokenEndpointTestCase
 
         $this->assertJsonRpcSuccess($this->toolsList());
 
-        $this->objectManager()->get(TokenRepository::class)->revoke($issued['id']);
+        /** @var TokenRepository $tokens */
+        $tokens = $this->objectManager()->get(TokenRepository::class);
+        $tokens->revoke($issued['id']);
         $before = AuditLogReader::maxId();
 
         $this->assertJsonRpcError($this->toolsList(), ErrorCode::UNAUTHORIZED->value, 401);
@@ -62,6 +64,31 @@ class RevocationTest extends TokenEndpointTestCase
 
             self::assertSame(401, $this->listWith($tokens['access'])['status']);
         } finally {
+            ClientFixture::delete((int) $client['client']->getId());
+        }
+    }
+
+    /**
+     * @return void
+     */
+    public function testDeletedOAuthClientRefusesItsLiveAccessToken(): void
+    {
+        $client = ClientFixture::issue('MCPSEC delete', [self::REDIRECT_URI]);
+        try {
+            $tokens = $this->redeem($client);
+            self::assertSame(200, $this->listWith($tokens['access'])['status']);
+
+            /** @var ClientRepository $repository */
+            $repository = $this->objectManager()->get(ClientRepository::class);
+            $repository->deleteById((int) $client['client']->getId());
+
+            self::assertSame(
+                401,
+                $this->listWith($tokens['access'])['status'],
+                'An access token must stop working once its OAuth client is deleted.'
+            );
+        } finally {
+            // No-op when the row is already gone.
             ClientFixture::delete((int) $client['client']->getId());
         }
     }

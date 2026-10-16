@@ -361,7 +361,7 @@ bin/magento magebit:mcp:oauth:client:rotate-secret <id> [--revoke-tokens]
 bin/magento magebit:mcp:oauth:client:delete <id> [--keep-tokens]
 ```
 
-Two things worth knowing about revocation. Disabling a client blocks new grants but does not by itself stop the access tokens it already issued, so `set-status --disabled` revokes them for you. Deleting a client leaves its tokens behind for the same reason — the foreign key clears the reference rather than the row — so `delete` revokes them first; `--keep-tokens` opts out and leaves them valid until they expire.
+Two things worth knowing about revocation. Disabling a client blocks new grants, and the access tokens it already issued are refused on their next request because `/mcp` checks the client's disabled flag; `set-status --disabled` also revokes them, so they stay dead if the client is enabled again. Deleting a client, from the admin panel or the CLI, revokes its access tokens first, because the foreign key only clears the token's link to the client and would otherwise leave the token working. Only the CLI's `delete --keep-tokens` skips this and leaves them valid until they expire.
 
 The module exposes:
 
