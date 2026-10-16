@@ -8,26 +8,23 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Plugin\Store;
 
+use Magebit\Mcp\Model\Url\WellKnownPathParser;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Store\Model\BaseUrlChecker;
 
 /**
- * Exempts the OAuth/MCP `.well-known` discovery paths from Magento's
- * redirect-to-base check. RFC 8414 §3 / RFC 9728 §3.1 require these documents
- * at the authority root, but on stores whose base URL carries a path (store
- * code) the base-URL check would otherwise 302 them to the store-coded path
- * before the WellKnownRouter runs. This treats the paths as already canonical;
- * it never adds or rewrites the store code.
+ * Stops Magento from redirecting OAuth discovery URLs to the store base URL.
+ * Covers exactly the paths the WellKnownRouter serves.
  */
 class WellKnownRedirectExemption
 {
     /**
-     * @var string[]
+     * @param WellKnownPathParser $pathParser
      */
-    private const EXEMPT_PREFIXES = [
-        '.well-known/oauth-protected-resource',
-        '.well-known/oauth-authorization-server',
-    ];
+    public function __construct(
+        private readonly WellKnownPathParser $pathParser
+    ) {
+    }
 
     /**
      * @param BaseUrlChecker $subject
@@ -46,13 +43,6 @@ class WellKnownRedirectExemption
             return true;
         }
 
-        $path = trim((string) $request->getPathInfo(), '/');
-        foreach (self::EXEMPT_PREFIXES as $prefix) {
-            if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
-                return true;
-            }
-        }
-
-        return $result;
+        return $this->pathParser->parse((string) $request->getPathInfo()) !== null;
     }
 }

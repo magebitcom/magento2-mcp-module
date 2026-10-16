@@ -901,8 +901,8 @@
           <p>Some clients can discover OAuth endpoints automatically from <a href="https://datatracker.ietf.org/doc/html/rfc8414">RFC 8414</a> and <a href="https://datatracker.ietf.org/doc/html/rfc9728">RFC 9728</a>. The metadata lives at:</p>
           <div class="codeblock">
             <button class="codeblock__copy" data-copy="cmd-oauth-meta" aria-label="Copy OAuth metadata URLs">Copy</button>
-            <pre><code id="cmd-oauth-meta">https://&lt;your-store&gt;/.well-known/oauth-authorization-server
-https://&lt;your-store&gt;/.well-known/oauth-protected-resource</code></pre>
+            <pre><code id="cmd-oauth-meta">https://&lt;your-store&gt;/.well-known/oauth-protected-resource/mcp
+https://&lt;your-store&gt;/.well-known/oauth-authorization-server/mcp</code></pre>
           </div>
           <p>You'll still need to pre-register the client in Magento admin to get a Client ID and Secret — this server doesn't support Dynamic Client Registration.</p>
         </div>

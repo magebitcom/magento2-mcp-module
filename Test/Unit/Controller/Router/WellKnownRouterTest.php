@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Test\Unit\Controller\Router;
 use Magebit\Mcp\Controller\OAuth\AuthorizationServerMetadata;
 use Magebit\Mcp\Controller\OAuth\ProtectedResourceMetadata;
 use Magebit\Mcp\Controller\Router\WellKnownRouter;
+use Magebit\Mcp\Model\Url\WellKnownPathParser;
 use Magento\Framework\App\ActionFactory;
 use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\Request\Http as HttpRequest;
@@ -34,7 +35,8 @@ class WellKnownRouterTest extends TestCase
         $this->router = new WellKnownRouter(
             $this->actionFactory,
             $this->actionList,
-            $this->routeConfig
+            $this->routeConfig,
+            new WellKnownPathParser()
         );
     }
 
@@ -135,6 +137,51 @@ class WellKnownRouterTest extends TestCase
         $this->actionFactory->expects(self::never())->method('create');
 
         self::assertNull($this->router->match($this->request('/.well-known/oauth-authorization-server')));
+    }
+
+    public function testMatchesOidcStyleAuthorizationServerPath(): void
+    {
+        // Some clients append .well-known to the end of a path-carrying issuer.
+        $action = $this->createMock(ActionInterface::class);
+        $this->routeConfig->method('getModulesByFrontName')->with('mcp')->willReturn(['Magebit_Mcp']);
+        $this->actionList->method('get')
+            ->with('Magebit_Mcp', '', 'oauth', 'authorizationservermetadata')
+            ->willReturn(AuthorizationServerMetadata::class);
+        $this->actionFactory->method('create')
+            ->with(AuthorizationServerMetadata::class)
+            ->willReturn($action);
+
+        self::assertSame(
+            $action,
+            $this->router->match($this->request('/mcp/.well-known/oauth-authorization-server'))
+        );
+    }
+
+    public function testMatchesOidcStyleAuthorizationServerPathWithStorePath(): void
+    {
+        $action = $this->createMock(ActionInterface::class);
+        $this->routeConfig->method('getModulesByFrontName')->with('mcp')->willReturn(['Magebit_Mcp']);
+        $this->actionList->method('get')
+            ->with('Magebit_Mcp', '', 'oauth', 'authorizationservermetadata')
+            ->willReturn(AuthorizationServerMetadata::class);
+        $this->actionFactory->method('create')
+            ->with(AuthorizationServerMetadata::class)
+            ->willReturn($action);
+
+        self::assertSame(
+            $action,
+            $this->router->match($this->request('/lv/mcp/.well-known/oauth-authorization-server'))
+        );
+    }
+
+    public function testDoesNotMatchOidcStylePathWithoutTheMcpSegment(): void
+    {
+        self::assertNull($this->router->match($this->request('/shop/.well-known/oauth-authorization-server')));
+    }
+
+    public function testDoesNotMatchTrailingProtectedResourcePath(): void
+    {
+        self::assertNull($this->router->match($this->request('/mcp/.well-known/oauth-protected-resource')));
     }
 
     /**
