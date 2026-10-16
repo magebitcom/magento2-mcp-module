@@ -89,6 +89,11 @@ class ClientRepository
     public function deleteById(int $id, bool $keepTokens = false): int
     {
         $client = $this->getById($id);
+        if (!$keepTokens && !$client->isDisabled()) {
+            // Stop new tokens being issued while the old ones are revoked.
+            $client->setDisabled(true);
+            $this->resource->save($client);
+        }
         $revoked = $keepTokens ? 0 : $this->tokenRepository->revokeAllForClient($id);
         $this->resource->delete($client);
 

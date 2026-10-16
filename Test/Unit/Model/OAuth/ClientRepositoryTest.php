@@ -70,6 +70,11 @@ class ClientRepositoryTest extends TestCase
                 $calls[] = 'revoke';
                 return 2;
             });
+        $this->resource->expects(self::once())->method('save')
+            ->willReturnCallback(function () use (&$calls): ClientResource {
+                $calls[] = 'disable';
+                return $this->resource;
+            });
         $this->resource->expects(self::once())->method('delete')
             ->willReturnCallback(function () use (&$calls): ClientResource {
                 $calls[] = 'delete';
@@ -77,7 +82,21 @@ class ClientRepositoryTest extends TestCase
             });
 
         self::assertSame(2, $this->repository->deleteById(7));
-        self::assertSame(['revoke', 'delete'], $calls);
+        self::assertSame(['disable', 'revoke', 'delete'], $calls);
+    }
+
+    /**
+     * @return void
+     * @throws NoSuchEntityException
+     */
+    public function testDeleteByIdDoesNotSaveAnAlreadyDisabledClient(): void
+    {
+        $this->stubClient(7, true);
+        $this->tokenRepository->expects(self::once())->method('revokeAllForClient')->willReturn(0);
+        $this->resource->expects(self::never())->method('save');
+        $this->resource->expects(self::once())->method('delete');
+
+        self::assertSame(0, $this->repository->deleteById(7));
     }
 
     /**
@@ -88,6 +107,7 @@ class ClientRepositoryTest extends TestCase
     {
         $this->stubClient(7);
         $this->tokenRepository->expects(self::never())->method('revokeAllForClient');
+        $this->resource->expects(self::never())->method('save');
         $this->resource->expects(self::once())->method('delete');
 
         self::assertSame(0, $this->repository->deleteById(7, true));
@@ -110,12 +130,15 @@ class ClientRepositoryTest extends TestCase
 
     /**
      * @param int|null $id
+     * @param bool $disabled
      * @return void
      */
-    private function stubClient(?int $id): void
+    private function stubClient(?int $id, bool $disabled = false): void
     {
         $client = $this->createMock(Client::class);
         $client->method('getId')->willReturn($id);
+        $client->method('isDisabled')->willReturn($disabled);
+        $client->method('setDisabled')->willReturnSelf();
         $this->factory->method('create')->willReturn($client);
     }
 }
