@@ -47,6 +47,6 @@ class WriteGateTest extends McpTestCase
         $tools = $result['tools'] ?? null;
         self::assertIsArray($tools);
         $names = array_column($tools, 'name');
-        self::assertNotContains('system.cache.flush', $names);
+        self::assertNotContains('system_cache_flush', $names);
     }
 }
