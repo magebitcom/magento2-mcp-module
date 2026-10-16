@@ -11,7 +11,6 @@ namespace Magebit\Mcp\Test\Unit\Console\Command;
 use Magebit\Mcp\Console\Command\OAuthClientDeleteCommand;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ClientRepository;
-use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -28,58 +27,59 @@ class OAuthClientDeleteCommandTest extends TestCase
     private ClientRepository&MockObject $clientRepository;
 
     /**
-     * @phpstan-var TokenRepository&MockObject
+     * @return void
      */
-    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
-    private TokenRepository&MockObject $tokenRepository;
-
     protected function setUp(): void
     {
         $this->clientRepository = $this->createMock(ClientRepository::class);
-        $this->tokenRepository = $this->createMock(TokenRepository::class);
     }
 
-    public function testRevokesLiveTokensBeforeDeletingTheClient(): void
+    /**
+     * @return void
+     */
+    public function testRevokesLiveTokensByDefault(): void
     {
-        // The FK is ON DELETE SET NULL, so tokens outlive the client row and would
-        // keep authenticating at /mcp. Revoke first, then delete.
         $this->stubClient(5);
-        $this->tokenRepository->expects(self::once())->method('revokeAllForClient')->with(5)->willReturn(2);
-        $this->clientRepository->expects(self::once())->method('deleteById')->with(5);
+        $this->clientRepository->expects(self::once())->method('deleteById')->with(5, false)->willReturn(2);
 
         $tester = $this->runCommand(['id' => '5']);
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
-        self::assertStringContainsString('2', $tester->getDisplay());
+        self::assertStringContainsString('Access tokens revoked: 2.', $tester->getDisplay());
     }
 
-    public function testKeepTokensSkipsRevocationAndWarns(): void
+    /**
+     * @return void
+     */
+    public function testKeepTokensPassesThroughAndWarns(): void
     {
         $this->stubClient(5);
-        $this->tokenRepository->expects(self::never())->method('revokeAllForClient');
-        $this->clientRepository->expects(self::once())->method('deleteById')->with(5);
+        $this->clientRepository->expects(self::once())->method('deleteById')->with(5, true)->willReturn(0);
 
         $tester = $this->runCommand(['id' => '5', '--keep-tokens' => true]);
 
         self::assertSame(Command::SUCCESS, $tester->getStatusCode());
         self::assertStringContainsString('still valid', $tester->getDisplay());
+        self::assertStringNotContainsString('Access tokens revoked', $tester->getDisplay());
     }
 
-    public function testFailedRevocationAbortsTheDeleteEntirely(): void
+    /**
+     * @return void
+     */
+    public function testFailedDeleteIsReported(): void
     {
-        // Deleting anyway would strand live tokens: they keep authenticating with
-        // no client row left to manage or revoke them through.
         $this->stubClient(5);
-        $this->tokenRepository->method('revokeAllForClient')
-            ->willThrowException(new \RuntimeException('db gone'));
-        $this->clientRepository->expects(self::never())->method('deleteById');
+        $this->clientRepository->method('deleteById')->willThrowException(new RuntimeException('db gone'));
 
         $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('/db gone|--keep-tokens/');
+        $this->expectExceptionMessageMatches('/Failed to delete OAuth client 5/');
 
         $this->runCommand(['id' => '5']);
     }
 
+    /**
+     * @return void
+     */
     public function testUnknownClientIsReported(): void
     {
         $this->clientRepository->method('getById')
@@ -91,6 +91,9 @@ class OAuthClientDeleteCommandTest extends TestCase
         $this->runCommand(['id' => '9']);
     }
 
+    /**
+     * @return void
+     */
     public function testNonNumericIdIsRejected(): void
     {
         $this->expectException(RuntimeException::class);
@@ -118,9 +121,7 @@ class OAuthClientDeleteCommandTest extends TestCase
      */
     private function runCommand(array $input): CommandTester
     {
-        $tester = new CommandTester(
-            new OAuthClientDeleteCommand($this->clientRepository, $this->tokenRepository)
-        );
+        $tester = new CommandTester(new OAuthClientDeleteCommand($this->clientRepository));
         $tester->execute($input);
         return $tester;
     }

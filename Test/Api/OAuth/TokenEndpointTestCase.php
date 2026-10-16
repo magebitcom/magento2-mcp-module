@@ -28,6 +28,10 @@ use RuntimeException;
  */
 abstract class TokenEndpointTestCase extends McpTestCase
 {
+    /** RFC 7636 appendix B example verifier and its S256 challenge. */
+    protected const RFC_VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
+    protected const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
+
     protected ?bool $issueToken = false;
 
     /**

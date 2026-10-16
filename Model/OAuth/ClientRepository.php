@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Model\OAuth;
 
 use Magebit\Mcp\Model\OAuth\ResourceModel\Client as ClientResource;
 use Magebit\Mcp\Model\OAuth\ResourceModel\Client\CollectionFactory;
+use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
@@ -23,11 +24,13 @@ class ClientRepository
      * @param ClientFactory $clientFactory
      * @param ClientResource $resource
      * @param CollectionFactory $collectionFactory
+     * @param TokenRepository $tokenRepository
      */
     public function __construct(
         private readonly ClientFactory $clientFactory,
         private readonly ClientResource $resource,
-        private readonly CollectionFactory $collectionFactory
+        private readonly CollectionFactory $collectionFactory,
+        private readonly TokenRepository $tokenRepository
     ) {
     }
 
@@ -74,14 +77,27 @@ class ClientRepository
     }
 
     /**
+     * Delete a client and, unless told to keep them, revoke its access tokens first.
+     * The foreign key only clears the token's client link, so without this the tokens keep working.
+     *
      * @param int $id
-     * @return void
+     * @param bool $keepTokens
+     * @return int Number of access tokens revoked.
      * @throws NoSuchEntityException
+     * @throws \Exception
      */
-    public function deleteById(int $id): void
+    public function deleteById(int $id, bool $keepTokens = false): int
     {
         $client = $this->getById($id);
+        if (!$keepTokens && !$client->isDisabled()) {
+            // Stop new tokens being issued while the old ones are revoked.
+            $client->setDisabled(true);
+            $this->resource->save($client);
+        }
+        $revoked = $keepTokens ? 0 : $this->tokenRepository->revokeAllForClient($id);
         $this->resource->delete($client);
+
+        return $revoked;
     }
 
     /**

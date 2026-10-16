@@ -16,9 +16,6 @@ use Magebit\Mcp\Model\Config\Source\ReauthBehavior;
  */
 class TokenReauthPolicyTest extends TokenEndpointTestCase
 {
-    private const RFC_VERIFIER  = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
-    private const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
-
     /**
      * Default behavior: a second auth-code exchange for the same (client, admin)
      * leaves the first access token live alongside the new one.

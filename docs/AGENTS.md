@@ -265,10 +265,10 @@ bin/magento magebit:mcp:oauth:client:set-status <id> --disabled
 bin/magento magebit:mcp:oauth:client:delete <id>
 ```
 
-Two revocation traps, both about tokens outliving the thing that issued them:
+Two things to know about revocation:
 
-- **Disabling an OAuth client does not stop the tokens it already issued** — the flag only blocks new grants. `set-status --disabled` revokes them for you; the admin-UI toggle does too.
-- **Deleting an OAuth client leaves its tokens behind** — the database clears the reference rather than the row. `delete` revokes them first, unless you pass `--keep-tokens`.
+- **Disabling an OAuth client** blocks new grants, and its existing tokens are refused on their next request because `/mcp` checks the client's disabled flag. `set-status --disabled` (and the admin-UI toggle) also revokes them, so they stay dead if the client is enabled again.
+- **Deleting an OAuth client** revokes its tokens first, from the admin panel and the CLI, because the database only clears the token's link to the client. Only the CLI's `delete --keep-tokens` leaves them valid until they expire.
 
 Rotating a client secret is the exception: it deliberately leaves live tokens working, so a client can pick up the new secret without an outage. Pass `--revoke-tokens` when the old secret may have leaked.
 

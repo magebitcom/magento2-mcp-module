@@ -9,7 +9,6 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Console\Command;
 
 use Magebit\Mcp\Model\OAuth\ClientRepository;
-use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use RuntimeException;
 use Symfony\Component\Console\Command\Command;
@@ -22,8 +21,8 @@ use Throwable;
 /**
  * `bin/magento magebit:mcp:oauth:client:delete <id>` — remove a client row.
  *
- * Access tokens reference the client with ON DELETE SET NULL, so they outlive
- * it and keep authenticating; this command revokes them first unless told not to.
+ * The repository revokes the client's access tokens before deleting it, unless
+ * `--keep-tokens` is passed.
  */
 class OAuthClientDeleteCommand extends Command
 {
@@ -32,11 +31,9 @@ class OAuthClientDeleteCommand extends Command
 
     /**
      * @param ClientRepository $clientRepository
-     * @param TokenRepository $tokenRepository
      */
     public function __construct(
-        private readonly ClientRepository $clientRepository,
-        private readonly TokenRepository $tokenRepository
+        private readonly ClientRepository $clientRepository
     ) {
         parent::__construct();
     }
@@ -78,22 +75,8 @@ class OAuthClientDeleteCommand extends Command
 
         $name = $client->getName();
 
-        if (!$keepTokens) {
-            try {
-                $revoked = $this->tokenRepository->revokeAllForClient($id);
-            } catch (Throwable $e) {
-                throw new RuntimeException(sprintf(
-                    'Refusing to delete OAuth client %d: revoking its tokens failed (%s).'
-                    . ' Retry, or pass --keep-tokens to delete it and leave the tokens live.',
-                    $id,
-                    $e->getMessage()
-                ), 0, $e);
-            }
-            $output->writeln(sprintf('<comment>Access tokens revoked: %d.</comment>', $revoked));
-        }
-
         try {
-            $this->clientRepository->deleteById($id);
+            $revoked = $this->clientRepository->deleteById($id, $keepTokens);
         } catch (Throwable $e) {
             throw new RuntimeException(sprintf(
                 'Failed to delete OAuth client %d: %s',
@@ -102,6 +85,9 @@ class OAuthClientDeleteCommand extends Command
             ), 0, $e);
         }
 
+        if (!$keepTokens) {
+            $output->writeln(sprintf('<comment>Access tokens revoked: %d.</comment>', $revoked));
+        }
         $output->writeln(sprintf('<info>OAuth client %d ("%s") deleted.</info>', $id, $name));
         if ($keepTokens) {
             $output->writeln(
