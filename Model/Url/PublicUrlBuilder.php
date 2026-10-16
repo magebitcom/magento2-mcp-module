@@ -92,6 +92,26 @@ class PublicUrlBuilder
     }
 
     /**
+     * The OAuth issuer. Scoped to /mcp so it stays clear of other OAuth apps on the same host.
+     *
+     * @return string
+     */
+    public function getIssuerUrl(): string
+    {
+        return $this->buildUrl('/mcp');
+    }
+
+    /**
+     * Issuer path without the host, e.g. `mcp` or `lv/mcp`.
+     *
+     * @return string
+     */
+    public function getIssuerPath(): string
+    {
+        return trim($this->getBasePath() . '/mcp', '/');
+    }
+
+    /**
      * Build a spec-compliant well-known URL by inserting `.well-known/<name>`
      * between the authority and the resource/issuer path.
      *
@@ -115,9 +135,7 @@ class PublicUrlBuilder
      */
     public function getProtectedResourceWellKnownUrl(): string
     {
-        $path = trim($this->getBasePath() . '/mcp', '/');
-
-        return $this->getWellKnownUrl('oauth-protected-resource', $path);
+        return $this->getWellKnownUrl(WellKnownPath::PROTECTED_RESOURCE, $this->getIssuerPath());
     }
 
     /**
@@ -125,6 +143,6 @@ class PublicUrlBuilder
      */
     public function getAuthServerWellKnownUrl(): string
     {
-        return $this->getWellKnownUrl('oauth-authorization-server', $this->getBasePath());
+        return $this->getWellKnownUrl(WellKnownPath::AUTHORIZATION_SERVER, $this->getIssuerPath());
     }
 }

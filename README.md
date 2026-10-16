@@ -367,10 +367,15 @@ The module exposes:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /.well-known/oauth-authorization-server` | Authorization-server metadata (RFC 8414). |
-| `GET /.well-known/oauth-protected-resource` | Protected-resource metadata (RFC 9728). |
+| `GET /.well-known/oauth-protected-resource/mcp` | Protected-resource metadata (RFC 9728). |
+| `GET /.well-known/oauth-protected-resource` | The same protected-resource metadata, without the `/mcp` suffix. |
+| `GET /.well-known/oauth-authorization-server/mcp` | Authorization-server metadata (RFC 8414). Its issuer is `https://<your-store>/mcp`. |
+| `GET /mcp/.well-known/oauth-authorization-server` | The same document, for clients that put `.well-known` after the issuer path. |
+| `GET /.well-known/oauth-authorization-server` | The same document with the store root as its issuer, still answering under the older root URL. |
 | `GET\|POST /mcp/oauth/authorize` | Interactive consent screen. Requires admin sign-in. |
 | `POST /mcp/oauth/token` | Token endpoint (`authorization_code` and `refresh_token` grants). |
+
+If another OAuth application on the same domain already answers at `/.well-known/oauth-authorization-server`, the two no longer collide. This server keeps its own copy one level down, at `/.well-known/oauth-authorization-server/mcp`, and sends clients there: the protected-resource document names `https://<your-store>/mcp` as the authorization server, and clients follow whatever it names. The plain root URL still answers as well, so a client that saved the old root address keeps working. If your store's base URL has a path, such as `https://example.com/lv/`, the older `/.well-known/oauth-authorization-server/lv` address keeps answering too. Any other suffix returns a JSON 404. Most clients re-check the address on their own, though, so after upgrading a connected client may ask an admin to approve it one more time.
 
 Two scopes are advertised:
 

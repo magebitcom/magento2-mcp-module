@@ -231,10 +231,10 @@ One naming detail: `tools/list` returns names in the underscore form (`system_wh
 
 ```bash
 curl -s "$BASE/.well-known/oauth-protected-resource/mcp"
-curl -s "$BASE/.well-known/oauth-authorization-server"
+curl -s "$BASE/.well-known/oauth-authorization-server/mcp"
 ```
 
-Good: two JSON documents. The first names your `/mcp` endpoint as the `resource` and lists `mcp:read` / `mcp:write` in `scopes_supported`. The second lists the `authorization_endpoint` and `token_endpoint` under your base URL, with `"code_challenge_methods_supported":["S256"]` and `"pkce_required":true`.
+Good: two JSON documents. The first names your `/mcp` endpoint as the `resource` and lists `mcp:read` / `mcp:write` in `scopes_supported`. The second lists the `authorization_endpoint` and `token_endpoint` under your base URL, with `"code_challenge_methods_supported":["S256"]` and `"pkce_required":true`. Its `issuer` is `$BASE/mcp` — path-scoped, so the server does not claim the authority-root discovery namespace another OAuth application may already own. The root URL `$BASE/.well-known/oauth-authorization-server` still answers, with `$BASE` as its issuer, for clients that discovered it earlier. Any other suffix returns a JSON 404, so a typo in the URL is easy to spot.
 
 If the URLs in those documents do not match the base URL you are testing, the store's `web/secure/base_url` disagrees with how you are reaching it — hosted clients will follow the advertised URL and fail. Fix the base URL, not the client.
 
