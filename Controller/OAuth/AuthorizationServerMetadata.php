@@ -94,7 +94,12 @@ class AuthorizationServerMetadata implements
     private function resolveIssuer(): ?string
     {
         $wellKnown = $this->pathParser->parse((string) $this->request->getPathInfo());
-        $path = $wellKnown === null ? '' : $wellKnown->resourcePath;
+        if ($wellKnown === null) {
+            // Direct controller route, not a discovery URL.
+            return $this->urlBuilder->getBaseUrl();
+        }
+
+        $path = $wellKnown->resourcePath;
 
         // Root form, and the older store-path form, keep the base URL as issuer.
         if ($path === '' || $path === $this->urlBuilder->getBasePath()) {
@@ -107,7 +112,7 @@ class AuthorizationServerMetadata implements
 
         // Magento strips a leading store code before routing, so a trailing
         // form may arrive as plain `mcp` even when the store has a base path.
-        if ($wellKnown !== null && $wellKnown->trailing && $path === self::MCP_PATH) {
+        if ($wellKnown->trailing && $path === self::MCP_PATH) {
             return $this->urlBuilder->getIssuerUrl();
         }
 
