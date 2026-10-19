@@ -65,9 +65,7 @@ class RefreshTokenRotator
 
         $storedId = (int) $stored->getId();
 
-        if ($stored->isExpired()) {
-            throw new OAuthException('invalid_grant', 'Refresh token is expired.');
-        }
+        // Revoked is checked first so a replayed token that is also expired still triggers reuse detection.
         if ($stored->isRevoked()) {
             // Already-revoked refresh presented again → §6.1 reuse-detected. Either an
             // attacker replayed, or the legitimate client retried after a successful rotate
@@ -75,6 +73,9 @@ class RefreshTokenRotator
             // re-authorization.
             $this->revokeChain($storedId);
             throw new OAuthException('invalid_grant', 'Refresh token reuse detected.');
+        }
+        if ($stored->isExpired()) {
+            throw new OAuthException('invalid_grant', 'Refresh token is expired.');
         }
 
         try {

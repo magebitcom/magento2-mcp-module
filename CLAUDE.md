@@ -97,7 +97,7 @@ Tables: `magebit_mcp_oauth_client`, `magebit_mcp_oauth_auth_code`, `magebit_mcp_
 
 Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth_clients`). The same CRUD is on the CLI as `magebit:mcp:oauth:client:*` — `Console/Command/OAuthClient*Command`. Both paths share `Model/OAuth/ClientCredentialIssuer` and `Model/OAuth/AuthorizationOptionsValidator`, so a misconfiguration is refused identically either way.
 
-`set-status --disabled` and `delete` revoke the client's live access tokens, because neither the disabled flag nor the FK (`ON DELETE SET NULL`) stops an already-issued token on its own. `rotate-secret` deliberately does not, so a client can pick up a new secret without an outage; pass `--revoke-tokens` when the old one may have leaked.
+A disabled client's tokens are refused on the next request (`TokenAuthenticator` checks the client's disabled flag); `set-status --disabled` also revokes them so they stay dead if the client is re-enabled. `delete` (admin panel and CLI) revokes them first, because the FK (`ON DELETE SET NULL`) alone would leave them working; only CLI `--keep-tokens` skips this. `rotate-secret` deliberately does not, so a client can pick up a new secret without an outage; pass `--revoke-tokens` when the old one may have leaked.
 
 `docs/AGENTS.md` is the agent-facing setup runbook — CLI-only, with a verification step per stage. Keep it in sync when a setup-relevant command or config path changes.
 
