@@ -229,7 +229,7 @@ What the dispatcher does with the return value:
 
 ## Refusing a call at run time — `ForbiddenException`
 
-The ACL gates run before `execute()`, so they cannot see which store or website an entity belongs to. When the tool only learns after loading the entity that the caller may not act on it, throw `Magebit\Mcp\Exception\ForbiddenException` from `execute()`:
+The ACL gates run before `execute()` and cannot see an entity's store or website. When `execute()` finds that the caller may not act on the entity, throw `Magebit\Mcp\Exception\ForbiddenException`:
 
 ```php
 use Magebit\Mcp\Exception\ForbiddenException;
@@ -237,20 +237,18 @@ use Magebit\Mcp\Exception\ForbiddenException;
 if (!$this->scopeChecker->canEditStore($admin, $page->getStoreId())) {
     throw new ForbiddenException(
         'This page belongs to a store view outside your admin scope.',
-        ['reason' => 'store_scope', 'page_id' => (int) $page->getId()]
+        ['reason' => 'scope', 'page_id' => (int) $page->getId()]
     );
 }
 ```
 
-The constructor is `__construct(string $message, array $data = [])`. The dispatcher answers with the same envelope as the pre-execution refusals: a JSON-RPC error `-32004 FORBIDDEN`, `error.message` set to your message and `error.data` set to `$data` (omitted when empty). The audit row gets `response_status = error` and `error_code = -32004`, exactly like a token-scope or ACL refusal, and nothing is written to the error log. Both strings reach the client verbatim, so keep them free of internals: no SQL, paths or data the caller could not see anyway.
+For a missing permission, pass `['reason' => 'acl', 'resource' => 'Vendor_Module::resource_id']`.
 
-Which one to use:
+The client gets `-32004 FORBIDDEN` with your message, and `$data` as `error.data` (omitted when empty). The call is audited like an ACL refusal and not logged. Both reach the client verbatim, so keep internals out of them.
 
-- **`ForbiddenException`** — the caller is not allowed to act on this entity (store or website scope, a role restriction the ACL tree cannot express). Every scope and permission refusal should take this path so clients see one shape.
-- **`ToolResult` with `isError: true`** (a soft error) — the call was allowed but could not do what was asked: the entity does not exist, the input is valid JSON Schema but makes no business sense, a precondition is not met. The model can read it and retry.
-- **`LocalizedException`** — a Magento service refused the operation; surfaces as `-32011 TOOL_EXECUTION_FAILED` with its message. Any other exception surfaces as `-32011` with a generic message and is logged.
-
-Do not throw `ForbiddenException` for an entity that does not exist, unless hiding its existence is the point; in that case use the same message for both.
+- **`ForbiddenException`**: a scope or permission refusal.
+- **Soft error (`isError: true`)**: the call was allowed but cannot be done, for example a missing entity or an unmet precondition.
+- **`LocalizedException`**: `-32011` with its message. Any other exception is `-32011` with a generic message and is logged.
 
 ## Step 3 — Register the tool with the MCP registry
 
