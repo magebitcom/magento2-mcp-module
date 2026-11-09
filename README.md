@@ -330,10 +330,10 @@ bin/magento magebit:mcp:token:create \
   --name "<label>" \
   [--allow-writes] \
   [--expires "+30 days"] \
-  [-s <tool.name>] [-s <tool.name>]
+  [-s <tool_name>] [-s <tool_name>]
 ```
 
-The plaintext is printed once and is never recoverable afterwards — store it securely. Manage tokens with:
+The plaintext is printed once and is never recoverable afterwards — store it securely. `-s` takes the tool name `tools/list` shows (`catalog_product_list`) or its dotted form (`catalog.product.list`); both are stored as the dotted name, and a name that matches no tool fails the command without creating a token. Manage tokens with:
 
 ```bash
 bin/magento magebit:mcp:token:list [-u <username>]

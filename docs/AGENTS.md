@@ -93,10 +93,10 @@ bin/magento magebit:mcp:token:create \
   --name "<who or what is using this>" \
   [--allow-writes] \
   [--expires "+30 days"] \
-  [-s <tool.name> -s <tool.name>]
+  [-s <tool_name> -s <tool_name>]
 ```
 
-The plaintext token is printed once, on the last line, and is never recoverable. `--allow-writes` is layer two of the write gate — the config toggle from stage 2 is layer one, and **both** are needed before a write tool will run. Repeat `-s` to scope the token to specific tools; with no `-s`, it can reach every tool the admin's role permits.
+The plaintext token is printed once, on the last line, and is never recoverable. `--allow-writes` is layer two of the write gate — the config toggle from stage 2 is layer one, and **both** are needed before a write tool will run. Repeat `-s` to scope the token to specific tools, by the name `tools/list` shows or its dotted form; an unknown name fails the command and no token is created. With no `-s`, it can reach every tool the admin's role permits.
 
 **Check:**
 
