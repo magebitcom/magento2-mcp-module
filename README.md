@@ -409,7 +409,7 @@ Each OAuth client has its own scope cap and the consenting admin can narrow furt
 - **No raw SQL in the base module.** `db.query` ships only in the separately installed [`Magebit_McpDbTools`](#database-module--magebit_mcpdbtools), which is off by default and allowlist-only. Nothing in the base module or the domain sub-modules accepts an SQL string.
 - **Confirmation hint for destructive tools.** Write tools may flag themselves as requiring confirmation; clients that support it (e.g. Claude Desktop) prompt the operator.
 - **Per-(admin, tool) rate limiter.** Off by default; recommended for production.
-- **Audit log.** Every request is recorded — even unauthenticated attempts. Argument values are PII-redacted before storage. The one exception is the `server/discover` probe newer MCP clients send before `initialize`: its expected `-32601` answer is not written, so it does not count as an error.
+- **Audit log.** Every request is recorded — even unauthenticated attempts. Argument values are PII-redacted before storage. The one exception is the `server/discover` probe newer MCP clients send before `initialize`: its expected `-32601` answer is not written, so it does not count as an error. The tool column holds the dotted canonical name (`catalog.product.list`) whichever form the client sent, refused calls included; only a name that matches no tool is stored as sent.
 - **Separated admin permissions.** Token management, OAuth-client management, audit-log viewing, tool management and module configuration are five distinct ACLs.
 
 If you discover a security issue, please report it privately to [info@magebit.com](mailto:info@magebit.com) rather than opening a public issue.

@@ -281,6 +281,7 @@ The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or ex
 | Any MCP-specific failure | `var/log/magebit_mcp.log` — the module's own channel |
 | "Did my call even arrive?" | the audit log, *System → MCP → Audit Log*. One row per request, including unauthenticated attempts (except the `server/discover` connect probe, which answers `-32601` and is not logged), so an empty log means the request never reached MCP |
 | A tool errors mid-call | the audit row carries the error code and a redacted copy of the arguments |
+| Finding a tool's rows in the audit log | the tool column holds the dotted canonical name (`catalog.product.list`, not `catalog_product_list`), refused calls included; a name that matches no tool is stored as sent |
 | An unfamiliar error code | `Model/JsonRpc/ErrorCode` lists every module-specific code with its label |
 
 Argument values in the audit log are PII-redacted before storage — do not expect to read back exactly what was sent.

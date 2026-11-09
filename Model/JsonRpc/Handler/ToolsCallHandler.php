@@ -145,6 +145,9 @@ class ToolsCallHandler implements HandlerInterface
         if ($canonical === null) {
             return $this->failNotRegistered($request, $requested);
         }
+        // One name per tool in the audit log: the dotted canonical name, whichever form the client sent
+        // and whether or not the call is refused below.
+        $this->auditContext->toolName = $canonical;
         // An admin-disabled tool is indistinguishable from an unregistered one on the wire.
         if ($this->disabledTools->isDisabled($canonical)) {
             return $this->failNotRegistered($request, $requested);
@@ -158,7 +161,6 @@ class ToolsCallHandler implements HandlerInterface
         if ($this->toolAvailability !== null && !$this->toolAvailability->isAvailable($tool)) {
             return $this->failNotRegistered($request, $requested);
         }
-        $this->auditContext->toolName = $canonical;
 
         $argsRaw = $request->params['arguments'] ?? [];
         if (!is_array($argsRaw)) {
