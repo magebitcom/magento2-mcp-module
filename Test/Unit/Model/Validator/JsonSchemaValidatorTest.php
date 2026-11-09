@@ -178,4 +178,58 @@ class JsonSchemaValidatorTest extends TestCase
         $this->validator->validate($schema, ['ranges' => [[], []]]);
         $this->addToAssertionCount(1);
     }
+
+    public function testMessageNamesTheFailingPath(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'filters' => [
+                    'type' => 'object',
+                    'properties' => ['name' => ['type' => 'string']],
+                ],
+            ],
+        ];
+
+        try {
+            $this->validator->validate($schema, ['filters' => ['name' => 5]]);
+            $this->fail('Expected SchemaValidationException.');
+        } catch (SchemaValidationException $e) {
+            $this->assertSame(
+                'Schema validation failed: /filters/name: The data (integer) must match the type: string',
+                $e->getMessage()
+            );
+            $this->assertSame(
+                ['/filters/name' => 'The data (integer) must match the type: string'],
+                $e->getErrors()
+            );
+        }
+    }
+
+    public function testMessageShowsThreePathsAndCountsTheRest(): void
+    {
+        $validator = new JsonSchemaValidator(new Validator(null, 10, false));
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'a' => ['type' => 'string'],
+                'b' => ['type' => 'string'],
+                'c' => ['type' => 'string'],
+                'd' => ['type' => 'string'],
+                'e' => ['type' => 'string'],
+            ],
+        ];
+
+        try {
+            $validator->validate($schema, ['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5]);
+            $this->fail('Expected SchemaValidationException.');
+        } catch (SchemaValidationException $e) {
+            $this->assertStringStartsWith('Schema validation failed: /a: ', $e->getMessage());
+            $this->assertStringContainsString('; /b: ', $e->getMessage());
+            $this->assertStringContainsString('; /c: ', $e->getMessage());
+            $this->assertStringNotContainsString('/d: ', $e->getMessage());
+            $this->assertStringEndsWith(' (+2 more)', $e->getMessage());
+            $this->assertCount(5, $e->getErrors());
+        }
+    }
 }

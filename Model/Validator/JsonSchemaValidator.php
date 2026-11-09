@@ -18,6 +18,8 @@ use Opis\JsonSchema\Validator;
  */
 class JsonSchemaValidator
 {
+    private const MESSAGE_MAX_PAIRS = 3;
+
     /**
      * @param Validator $validator
      */
@@ -65,10 +67,31 @@ class JsonSchemaValidator
         /** @var array<int|string, mixed> $errors */
         $errors = $formatter->format($error, false);
 
-        throw new SchemaValidationException(
-            'Schema validation failed.',
-            $errors
-        );
+        throw new SchemaValidationException($this->buildMessage($errors), $errors);
+    }
+
+    /**
+     * Name the failing arguments in the message itself; many clients show only the message.
+     *
+     * @param array<int|string, mixed> $errors
+     * @return string
+     */
+    private function buildMessage(array $errors): string
+    {
+        $pairs = [];
+        foreach ($errors as $path => $message) {
+            if (is_string($message)) {
+                $pairs[] = $path . ': ' . $message;
+            }
+        }
+        if ($pairs === []) {
+            return 'Schema validation failed.';
+        }
+
+        $shown = array_slice($pairs, 0, self::MESSAGE_MAX_PAIRS);
+        $more = count($pairs) - count($shown);
+        return 'Schema validation failed: ' . implode('; ', $shown)
+            . ($more > 0 ? sprintf(' (+%d more)', $more) : '');
     }
 
     /**
