@@ -75,14 +75,14 @@ class Grep implements ToolInterface
         return 'Search one log file for a literal piece of text — use it to find '
             . 'every mention of an order number, a SKU, a customer email, an '
             . 'exception class, or an error message. Get the file name from '
-            . '`system.log.list` first; only files in the log directory can be '
+            . '`system_log_list` first; only files in the log directory can be '
             . 'searched. `contains` is matched literally: no regular '
             . 'expressions, no `*` wildcards. The scan runs forward and stops as '
             . 'soon as a cap is reached, so `truncated: true` with '
             . '`stop_reason: max_matches` means more matches probably exist '
             . 'further down — make the search term more specific rather than '
             . 'raising the cap, and remember the newest entries are at the end of '
-            . 'the file (use `system.log.tail` for "what just happened"). On a '
+            . 'the file (use `system_log_tail` for "what just happened"). On a '
             . 'log too large to scan whole, the *newest* window is searched '
             . 'rather than the oldest bytes; `scan_window.covers_whole_file` '
             . 'tells you whether the whole file was covered, and when it is '
@@ -107,7 +107,7 @@ class Grep implements ToolInterface
                 ->minLength(1)
                 ->maxLength(self::MAX_FILE_NAME_LENGTH)
                 ->description('Log file name exactly as reported by '
-                    . '`system.log.list`, e.g. `exception.log`. A plain file '
+                    . '`system_log_list`, e.g. `exception.log`. A plain file '
                     . 'name only — no directories or paths.')
                 ->required()
             )

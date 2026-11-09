@@ -66,7 +66,7 @@ class TailTest extends TestCase
                     'minLength' => 1,
                     'maxLength' => 255,
                     'description' => 'Log file name exactly as reported by '
-                        . '`system.log.list`, e.g. `exception.log`. A plain file '
+                        . '`system_log_list`, e.g. `exception.log`. A plain file '
                         . 'name only — no directories or paths.',
                 ],
                 'lines' => [

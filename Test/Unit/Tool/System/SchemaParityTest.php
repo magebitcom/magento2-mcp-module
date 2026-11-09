@@ -68,7 +68,7 @@ class SchemaParityTest extends TestCase
                 'store_id' => [
                     'type' => 'integer',
                     'minimum' => 1,
-                    'description' => 'Numeric store view id (see `system.store.list`).',
+                    'description' => 'Numeric store view id (see `system_store_list`).',
                 ],
                 'store_code' => [
                     'type' => 'string',

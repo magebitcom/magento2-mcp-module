@@ -10,6 +10,8 @@ namespace Magebit\Mcp\Model\Validator;
 
 use Magebit\Mcp\Exception\SchemaValidationException;
 use Opis\JsonSchema\Errors\ErrorFormatter;
+use Opis\JsonSchema\Errors\ValidationError;
+use Opis\JsonSchema\ValidationResult;
 use Opis\JsonSchema\Validator;
 
 /**
@@ -18,6 +20,9 @@ use Opis\JsonSchema\Validator;
  */
 class JsonSchemaValidator
 {
+    private const MESSAGE_MAX_PAIRS = 3;
+    private const MAX_ERRORS = 20;
+
     /**
      * @param Validator $validator
      */
@@ -51,7 +56,7 @@ class JsonSchemaValidator
             throw new SchemaValidationException('Schema must decode to an object, boolean, or string.');
         }
 
-        $result = $this->validator->validate($dataObj, $schemaObj);
+        $result = $this->validateAll($dataObj, $schemaObj);
         if ($result->isValid()) {
             return;
         }
@@ -62,13 +67,118 @@ class JsonSchemaValidator
         }
 
         $formatter = new ErrorFormatter();
-        /** @var array<int|string, mixed> $errors */
-        $errors = $formatter->format($error, false);
+        $errors = $this->flattenErrors($formatter->format(
+            $error,
+            true,
+            fn (ValidationError $e, string $message): string => $this->formatErrorMessage($formatter, $e, $message)
+        ));
 
-        throw new SchemaValidationException(
-            'Schema validation failed.',
-            $errors
-        );
+        throw new SchemaValidationException($this->buildMessage($errors), $errors);
+    }
+
+    /**
+     * Collect every failing path, not only the first. The injected validator may be shared,
+     * so its own limits are restored afterwards.
+     *
+     * @param mixed $data
+     * @param object|bool|string $schema
+     * @return ValidationResult
+     */
+    private function validateAll(mixed $data, object|bool|string $schema): ValidationResult
+    {
+        $maxErrors = $this->validator->getMaxErrors();
+        $stopAtFirstError = $this->validator->getStopAtFirstError();
+        $this->validator->setMaxErrors(max($maxErrors, self::MAX_ERRORS));
+        $this->validator->setStopAtFirstError(false);
+        try {
+            return $this->validator->validate($data, $schema);
+        } finally {
+            $this->validator->setMaxErrors($maxErrors);
+            $this->validator->setStopAtFirstError($stopAtFirstError);
+        }
+    }
+
+    /**
+     * Opis lists a declared property as "additional" when that property itself failed
+     * (it is then never marked as checked). Name only the really undeclared ones, and
+     * return '' when none is left so the entry is dropped.
+     *
+     * @param ErrorFormatter $formatter
+     * @param ValidationError $error
+     * @param string $message
+     * @return string
+     */
+    private function formatErrorMessage(ErrorFormatter $formatter, ValidationError $error, string $message): string
+    {
+        $schema = $error->schema()->info()->data();
+        $args = $error->args();
+        if ($error->keyword() !== 'additionalProperties'
+            || $message !== $error->message()
+            || !is_object($schema)
+            || !isset($schema->properties)
+            || !is_object($schema->properties)
+            || !isset($args['properties'])
+            || !is_array($args['properties'])
+        ) {
+            return $formatter->formatErrorMessage($error, $message);
+        }
+
+        $declared = array_map('strval', array_keys(get_object_vars($schema->properties)));
+        $named = array_filter($args['properties'], static fn ($name): bool => is_string($name));
+        $unknown = array_values(array_diff($named, $declared));
+        if ($unknown === []) {
+            return '';
+        }
+        return str_replace('{properties}', implode(', ', $unknown), $message);
+    }
+
+    /**
+     * One entry per failing path, several messages for the same path joined into one string.
+     *
+     * @param array<int|string, mixed> $formatted
+     * @return array<int|string, mixed>
+     */
+    private function flattenErrors(array $formatted): array
+    {
+        $errors = [];
+        foreach ($formatted as $path => $messages) {
+            if (!is_array($messages)) {
+                $errors[$path] = $messages;
+                continue;
+            }
+            $strings = array_values(array_filter(
+                $messages,
+                static fn ($message): bool => is_string($message) && $message !== ''
+            ));
+            if ($strings !== []) {
+                $errors[$path] = implode('. ', $strings);
+            }
+        }
+        return $errors;
+    }
+
+    /**
+     * Name the failing arguments in the message itself; many clients show only the message.
+     *
+     * @param array<int|string, mixed> $errors
+     * @return string
+     */
+    private function buildMessage(array $errors): string
+    {
+        $pairs = [];
+        foreach ($errors as $path => $message) {
+            if (is_string($message)) {
+                $pairs[] = $path . ': ' . $message;
+            }
+        }
+        if ($pairs === []) {
+            return 'Schema validation failed.';
+        }
+
+        $shown = array_slice($pairs, 0, self::MESSAGE_MAX_PAIRS);
+        $more = count($pairs) - count($shown);
+        return 'Schema validation failed: ' . implode('; ', $shown)
+            . ($more > 0 ? sprintf(' (+%d more)', $more) : '');
     }
 
     /**

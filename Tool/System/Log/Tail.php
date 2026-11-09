@@ -67,10 +67,10 @@ class Tail implements ToolInterface
     {
         return 'Read the most recent lines of one log file — the fastest way to '
             . 'see what went wrong right after reproducing a problem. Get the '
-            . 'file name from `system.log.list` first; only files in the log '
+            . 'file name from `system_log_list` first; only files in the log '
             . 'directory can be read. Reads from the end of the file only, so it '
             . 'is safe on very large logs. Lines come back oldest-first, exactly '
-            . 'as written, newest at the bottom. Use `system.log.grep` instead '
+            . 'as written, newest at the bottom. Use `system_log_grep` instead '
             . 'when you already know the string to look for — tailing a busy log '
             . 'to find one old event will not work, because only the tail is '
             . 'read. `reached_start_of_file: false` means the file has earlier '
@@ -93,7 +93,7 @@ class Tail implements ToolInterface
                 ->minLength(1)
                 ->maxLength(self::MAX_FILE_NAME_LENGTH)
                 ->description('Log file name exactly as reported by '
-                    . '`system.log.list`, e.g. `exception.log`. A plain file '
+                    . '`system_log_list`, e.g. `exception.log`. A plain file '
                     . 'name only — no directories or paths.')
                 ->required()
             )

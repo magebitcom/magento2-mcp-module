@@ -68,7 +68,7 @@ class StoreList implements ToolInterface
     {
         return 'Enumerate every website, store group, and store view on this '
             . 'Magento instance. Use the returned ids to scope other tools '
-            . '(e.g. filter `sales.order.list` by `store_id`). Admin-scope id '
+            . '(e.g. filter `sales_order_list` by `store_id`). Admin-scope id '
             . '`0` is excluded. Optionally narrow the tree to one or more '
             . 'websites with `website_id`.';
     }

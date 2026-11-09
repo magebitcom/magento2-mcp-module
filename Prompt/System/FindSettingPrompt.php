@@ -79,7 +79,7 @@ class FindSettingPrompt implements PromptInterface
                 Map this to the most likely config path (e.g. trans_email/ident_general/email, web/secure/base_url, general/locale/code — section/group/field shape).
 
                 If you're confident which path the user means:
-                  1. Call system.config.get with that path at the relevant scope (default scope unless the request mentions a specific store).
+                  1. Call system_config_get with that path at the relevant scope (default scope unless the request mentions a specific store).
                   2. Report the value plainly: "Order confirmations come from billing@example.com."
 
                 If you're not confident or there are multiple plausible matches:

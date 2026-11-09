@@ -93,7 +93,7 @@ class StoreInfo implements ToolInterface
         return Schema::object()
             ->integer('store_id', fn (IntegerBuilder $i) => $i
                 ->minimum(1)
-                ->description('Numeric store view id (see `system.store.list`).')
+                ->description('Numeric store view id (see `system_store_list`).')
             )
             ->string('store_code', fn (StringBuilder $s) => $s
                 ->minLength(1)

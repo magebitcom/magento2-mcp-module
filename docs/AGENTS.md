@@ -93,10 +93,10 @@ bin/magento magebit:mcp:token:create \
   --name "<who or what is using this>" \
   [--allow-writes] \
   [--expires "+30 days"] \
-  [-s <tool.name> -s <tool.name>]
+  [-s <tool_name> -s <tool_name>]
 ```
 
-The plaintext token is printed once, on the last line, and is never recoverable. `--allow-writes` is layer two of the write gate — the config toggle from stage 2 is layer one, and **both** are needed before a write tool will run. Repeat `-s` to scope the token to specific tools; with no `-s`, it can reach every tool the admin's role permits.
+The plaintext token is printed once, on the last line, and is never recoverable. `--allow-writes` is layer two of the write gate — the config toggle from stage 2 is layer one, and **both** are needed before a write tool will run. Repeat `-s` to scope the token to specific tools, by the name `tools/list` shows or its dotted form; an unknown name fails the command and no token is created. With no `-s`, it can reach every tool the admin's role permits.
 
 **Check:**
 
@@ -205,7 +205,7 @@ curl -s -X POST "$BASE/mcp" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"system.whoami","arguments":{}}}'
 ```
 
-Good: `username` is the admin you named in stage 4a, and `allow_writes` is `true` only if you intended writes. This is the fastest way to confirm you are looking at the identity you think you are. `allow_writes: false` when you expected `true` means one of the two write layers is off — the config toggle from stage 2, or the token's own flag.
+Good: `username` is the admin you named in stage 4a, and `allow_writes` is `true` only if you intended writes. This is the fastest way to confirm you are looking at the identity you think you are. `allow_writes: false` when you expected `true` means one of the two write layers is off — the config toggle from stage 2, or the token's own flag; `store_allow_writes` and `token_allow_writes` show which.
 
 **Probe 4 — the tool surface, and the number that matters.**
 
@@ -223,7 +223,7 @@ Compare the number of tools here against the total from `magebit:mcp:tools:list`
 2. **Whole domains are missing** (every `sales.*`, say) → the admin's role lacks those tool permissions. Go back to stage 5.
 3. **Scattered individual tools are missing** → either the token was scoped with `-s`, or those tools were switched off in *System → MCP → Tools*, or their underlying admin-UI permission does not resolve on this install (`validate-acl` warns about the last case).
 
-A tool switched off is indistinguishable on the wire from one that was never installed — both are absent from `tools/list` and both answer `tools/call` with `-32010 TOOL_NOT_FOUND`. So absence alone never tells you which; check the config and the role.
+A tool switched off is indistinguishable on the wire from one that was never installed — both are absent from `tools/list` and both answer `tools/call` with `-32010 TOOL_NOT_FOUND`. A tool whose optional module is missing or disabled answers the same way, whatever the role. So absence alone never tells you which; check the config, the installed modules and the role.
 
 One naming detail: `tools/list` returns names in the underscore form (`system_whoami`) that some hosted clients require. Both that and the canonical dotted form (`system.whoami`) are accepted by `tools/call`.
 
@@ -274,13 +274,14 @@ Rotating a client secret is the exception: it deliberately leaves live tokens wo
 
 ## Where to look when something is wrong
 
-The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent or switched off), `-32012` write not allowed (one of the two write layers is off), `-32013` rate limited, `-32015` server disabled.
+The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent, switched off, or its optional module is off), `-32012` write not allowed (one of the two write layers is off; `error.data.reason` is `store_setting` or `token`), `-32013` rate limited, `-32015` server disabled.
 
 | Symptom | Look here |
 |---|---|
 | Any MCP-specific failure | `var/log/magebit_mcp.log` — the module's own channel |
-| "Did my call even arrive?" | the audit log, *System → MCP → Audit Log*. One row per request, including unauthenticated attempts, so an empty log means the request never reached MCP |
+| "Did my call even arrive?" | the audit log, *System → MCP → Audit Log*. One row per request, including unauthenticated attempts (except the `server/discover` connect probe, which answers `-32601` and is not logged), so an empty log means the request never reached MCP |
 | A tool errors mid-call | the audit row carries the error code and a redacted copy of the arguments |
+| Finding a tool's rows in the audit log | the tool column holds the dotted canonical name (`catalog.product.list`, not `catalog_product_list`), refused calls included; a name that matches no tool is stored as sent |
 | An unfamiliar error code | `Model/JsonRpc/ErrorCode` lists every module-specific code with its label |
 
 Argument values in the audit log are PII-redacted before storage — do not expect to read back exactly what was sent.

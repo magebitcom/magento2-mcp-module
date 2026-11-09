@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Tool\System;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolResultInterface;
 use Magebit\Mcp\Model\Auth\AuthenticatedContextProvider;
+use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\Tool\Schema\Schema;
 use Magebit\Mcp\Model\Tool\ToolResult;
@@ -58,7 +59,9 @@ class WhoAmI implements ToolInterface
     public function getDescription(): string
     {
         return 'Return the Magento administrator and MCP connection authenticated '
-            . 'for this request, including whether write tools are currently allowed. '
+            . 'for this request, including whether write tools are currently allowed '
+            . '(allow_writes) and which layer allows them: the store setting '
+            . '(store_allow_writes) and the token (token_allow_writes). '
             . 'Call this first whenever a request says "me", "my" or "mine" (e.g. '
             . '"my orders", "tickets assigned to me") so you can substitute the real '
             . 'admin identity instead of guessing.';
@@ -104,7 +107,8 @@ class WhoAmI implements ToolInterface
     {
         $context = $this->contextProvider->get();
         $adminUserId = $context->getAdminUserId();
-        $allowWrites = $this->config->isAllowWrites() && $context->token->getAllowWrites();
+        $writeAccess = WriteAccess::resolve($this->config, $context);
+        $allowWrites = $writeAccess->isAllowed();
         $payload = [
             'admin_user_id' => $adminUserId,
             'username' => $this->stringOrEmpty($context->adminUser->getUsername()),
@@ -113,6 +117,8 @@ class WhoAmI implements ToolInterface
             'lastname' => $this->stringOrEmpty($context->adminUser->getLastName()),
             'token_name' => $context->token->getName(),
             'allow_writes' => $allowWrites,
+            'store_allow_writes' => $writeAccess->storeAllowsWrites,
+            'token_allow_writes' => $writeAccess->tokenAllowsWrites,
         ];
 
         $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

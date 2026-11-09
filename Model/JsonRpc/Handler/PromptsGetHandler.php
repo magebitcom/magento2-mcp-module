@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Model\JsonRpc\Handler;
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magebit\Mcp\Api\PromptRegistryInterface;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
@@ -72,12 +73,13 @@ class PromptsGetHandler implements HandlerInterface
             );
         }
 
-        $writesAllowed = $this->config->isAllowWrites() && $context->token->getAllowWrites();
-        if ($prompt->getRequiresWrite() && !$writesAllowed) {
+        $writeAccess = WriteAccess::resolve($this->config, $context);
+        if ($prompt->getRequiresWrite() && !$writeAccess->isAllowed()) {
             return $this->fail(
                 $request,
                 ErrorCode::WRITE_NOT_ALLOWED,
-                'This prompt is disabled for read-only tokens.'
+                'This prompt needs write tools, which are ' . $writeAccess->describeClosedLayer() . '.',
+                ['reason' => $writeAccess->getClosedReason()]
             );
         }
 
@@ -126,12 +128,13 @@ class PromptsGetHandler implements HandlerInterface
      * @param Request $request
      * @param ErrorCode $code
      * @param string $message
+     * @param array<string, mixed>|null $data
      * @return Response
      */
-    private function fail(Request $request, ErrorCode $code, string $message): Response
+    private function fail(Request $request, ErrorCode $code, string $message, ?array $data = null): Response
     {
         $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
         $this->auditContext->errorCode = (string) $code->value;
-        return Response::failure($request->id, $code, $message);
+        return Response::failure($request->id, $code, $message, $data);
     }
 }

@@ -422,6 +422,85 @@ class ToolsCallHandlerTest extends TestCase
     }
 
     /**
+     * @dataProvider disabledToolRequestNames
+     * @param string $requested
+     */
+    public function testDisabledToolIsAuditedUnderItsCanonicalName(string $requested): void
+    {
+        $tool = $this->createMock(ToolInterface::class);
+        $tool->method('getName')->willReturn('catalog.category.list');
+        $tool->expects($this->never())->method('execute');
+
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')->with($requested)->willReturn('catalog.category.list');
+        $toolRegistry->method('get')->willReturn($tool);
+
+        $auditContext = new AuditContext();
+        $response = $this->auditHandler($toolRegistry, $auditContext, ['catalog.category.list'])->handle(
+            new Request(13, false, 'tools/call', ['name' => $requested, 'arguments' => []]),
+            new AuthenticatedContext($this->createMock(TokenInterface::class), $this->createMock(User::class))
+        );
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::TOOL_NOT_FOUND, $response->error->code);
+        $this->assertSame(sprintf('Tool "%s" is not registered.', $requested), $response->error->message);
+        $this->assertSame('catalog.category.list', $auditContext->toolName);
+    }
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function disabledToolRequestNames(): array
+    {
+        return [
+            'wire name' => ['catalog_category_list'],
+            'dotted name' => ['catalog.category.list'],
+        ];
+    }
+
+    public function testUnknownToolIsAuditedUnderTheVerbatimName(): void
+    {
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')->willReturn(null);
+
+        $auditContext = new AuditContext();
+        $this->auditHandler($toolRegistry, $auditContext, [])->handle(
+            new Request(14, false, 'tools/call', ['name' => 'no_such_tool', 'arguments' => []]),
+            new AuthenticatedContext($this->createMock(TokenInterface::class), $this->createMock(User::class))
+        );
+
+        $this->assertSame('no_such_tool', $auditContext->toolName);
+    }
+
+    /**
+     * @param ToolRegistryInterface $toolRegistry
+     * @param AuditContext $auditContext
+     * @param array $disabled
+     * @phpstan-param list<string> $disabled
+     * @return ToolsCallHandler
+     */
+    private function auditHandler(
+        ToolRegistryInterface $toolRegistry,
+        AuditContext $auditContext,
+        array $disabled
+    ): ToolsCallHandler {
+        return new ToolsCallHandler(
+            $toolRegistry,
+            $this->createMock(AclChecker::class),
+            $this->createMock(JsonSchemaValidator::class),
+            $this->createMock(RateLimiterInterface::class),
+            $this->createMock(EventManager::class),
+            $this->createMock(ModuleConfig::class),
+            $auditContext,
+            new AuthenticatedContextProvider(),
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools($disabled)
+        );
+    }
+
+    /**
      * @return ArgumentCoercer
      */
     private function stubArgumentCoercer(): ArgumentCoercer
