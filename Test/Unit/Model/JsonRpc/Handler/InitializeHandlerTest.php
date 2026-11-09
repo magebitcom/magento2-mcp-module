@@ -56,6 +56,43 @@ class InitializeHandlerTest extends TestCase
         self::assertStringStartsWith('Write tools are not allowed for this token', $instructions);
     }
 
+    public function testEchoesSupportedRequestedProtocolVersion(): void
+    {
+        self::assertSame('2025-03-26', $this->protocolVersion(['protocolVersion' => '2025-03-26']));
+    }
+
+    public function testAnswersLatestForUnsupportedRequestedProtocolVersion(): void
+    {
+        self::assertSame(ProtocolVersionValidator::LATEST, $this->protocolVersion(['protocolVersion' => '1999-01-01']));
+    }
+
+    public function testAnswersLatestWhenProtocolVersionIsMissing(): void
+    {
+        self::assertSame(ProtocolVersionValidator::LATEST, $this->protocolVersion([]));
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return mixed
+     */
+    private function protocolVersion(array $params): mixed
+    {
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getServerName')->willReturn('magento-mcp');
+        $config->method('isAllowWrites')->willReturn(true);
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getAllowWrites')->willReturn(true);
+
+        $handler = new InitializeHandler(new ProtocolVersionValidator(), $config, '1.0.0');
+        $response = $handler->handle(
+            new Request(1, false, 'initialize', $params),
+            new AuthenticatedContext($token, $this->createMock(User::class))
+        );
+
+        self::assertNotNull($response->result);
+        return $response->result['protocolVersion'] ?? null;
+    }
+
     /**
      * @param string|null $configured
      * @param bool $storeAllowsWrites

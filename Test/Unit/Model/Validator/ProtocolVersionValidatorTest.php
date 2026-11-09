@@ -50,4 +50,38 @@ class ProtocolVersionValidatorTest extends TestCase
     {
         $this->assertFalse($this->validator->isSupported('1999-01-01, 2000-01-01'));
     }
+
+    public function testNegotiateEchoesSupportedOlderVersion(): void
+    {
+        $this->assertSame('2025-03-26', $this->validator->negotiate('2025-03-26'));
+    }
+
+    public function testNegotiateEchoesLatest(): void
+    {
+        $this->assertSame('2025-06-18', $this->validator->negotiate('2025-06-18'));
+    }
+
+    /**
+     * @dataProvider unsupportedRequests
+     * @param mixed $requested
+     */
+    public function testNegotiateFallsBackToLatest(mixed $requested): void
+    {
+        $this->assertSame(ProtocolVersionValidator::LATEST, $this->validator->negotiate($requested));
+    }
+
+    /**
+     * @return array<string, array{0: mixed}>
+     */
+    public static function unsupportedRequests(): array
+    {
+        return [
+            'unknown' => ['1999-01-01'],
+            'missing' => [null],
+            'non-string' => [20250326],
+            'array' => [['2025-03-26']],
+            'folded list' => ['2025-03-26, 2025-06-18'],
+            'padded' => [' 2025-03-26'],
+        ];
+    }
 }

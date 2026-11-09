@@ -40,6 +40,21 @@ class ProtocolVersionValidator
     }
 
     /**
+     * Pick the version an `initialize` answer carries: the client's requested
+     * version when this server supports it exactly, otherwise the latest.
+     *
+     * @param mixed $requested Raw `params.protocolVersion` from the client
+     * @return string
+     */
+    public function negotiate(mixed $requested): string
+    {
+        if (is_string($requested) && in_array($requested, self::SUPPORTED, true)) {
+            return $requested;
+        }
+        return self::LATEST;
+    }
+
+    /**
      * @return string
      */
     public function getLatest(): string
