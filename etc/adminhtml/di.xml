@@ -14,4 +14,13 @@
                 type="Magebit\Mcp\Plugin\Backend\ReturnToConsentAfterLogin"
                 sortOrder="10"/>
     </type>
+    <type name="Magento\Backend\Model\UrlInterface">
+        <plugin name="magebit_mcp_startup_page_to_pending_consent"
+                type="Magebit\Mcp\Plugin\Backend\StartupPageToPendingConsent"/>
+    </type>
+    <type name="Magebit\Mcp\Model\OAuth\PendingConsent">
+        <arguments>
+            <argument name="session" xsi:type="object">Magento\Backend\Model\Session\Proxy</argument>
+        </arguments>
+    </type>
 </config>

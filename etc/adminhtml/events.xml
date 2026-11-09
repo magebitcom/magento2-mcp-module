@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!-- Fires after the generic predispatch observers, so a 2FA redirect has already set FLAG_NO_DISPATCH. -->
+    <event name="controller_action_predispatch_magebit_mcp_oauth_authorize">
+        <observer name="magebit_mcp_remember_pending_consent"
+                  instance="Magebit\Mcp\Observer\RememberPendingConsent"/>
+    </event>
+</config>
