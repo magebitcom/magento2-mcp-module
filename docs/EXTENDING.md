@@ -6,6 +6,7 @@ For a canonical satellite that ships a full catalog of read + write tools with c
 
 - The **field-resolver pattern** (`FieldResolverInterface` + `ResolverPipeline` in this module; per-entity sub-interfaces like `OrderFieldResolverInterface` in the satellite) for building tool responses out of DI-injected, 3rd-party-extendable fragments.
 - The **underlying-ACL layering** (`UnderlyingAclAwareInterface`) for write tools that should refuse calls from admins who wouldn't have the equivalent permission in the admin UI. `tools/list` filters on it too, so such a tool is never advertised to a role that cannot call it.
+- The **availability hook** (`AvailabilityAwareInterface`) for tools that need an optional module: while it is off the tool answers like an unregistered one.
 - The **contextual-ACL layering** (`ContextualAclAwareInterface`, described below) for tools whose required permission is not knowable until the arguments arrive.
 
 ## Step 1 — Implement `ToolInterface`
@@ -227,6 +228,46 @@ What the dispatcher does with the return value:
 - `[]` means "no extra gate" — the call proceeds on the strength of the tool's own ACL alone. Return it only when the tool itself refuses that input in `execute()`; otherwise the gate silently disappears. `Tool/System/ConfigSet` is the worked example: it returns `[]` for a config section that declares no `<resource>` (resolution must not throw), and `execute()` refuses that path outright, exactly as `Structure\Element\Section::isAllowed()` refuses it in the admin UI.
 - The resolver is called **once per tool call** with no caching in the dispatcher. Memoise inside your implementation if resolution is expensive.
 
+## Refusing a call at run time — `ForbiddenException`
+
+The ACL gates run before `execute()` and cannot see an entity's store or website. When `execute()` finds that the caller may not act on the entity, throw `Magebit\Mcp\Exception\ForbiddenException`:
+
+```php
+use Magebit\Mcp\Exception\ForbiddenException;
+
+if (!$this->scopeChecker->canEditStore($admin, $page->getStoreId())) {
+    throw new ForbiddenException(
+        'This page belongs to a store view outside your admin scope.',
+        ['reason' => 'scope', 'page_id' => (int) $page->getId()]
+    );
+}
+```
+
+For a missing permission, pass `['reason' => 'acl', 'resource' => 'Vendor_Module::resource_id']`.
+
+The client gets `-32004 FORBIDDEN` with your message, and `$data` as `error.data` (omitted when empty). The call is audited like an ACL refusal and not logged. Both reach the client verbatim, so keep internals out of them.
+
+- **`ForbiddenException`**: a scope or permission refusal.
+- **Soft error (`isError: true`)**: the call was allowed but cannot be done, for example a missing entity or an unmet precondition.
+- **`LocalizedException`**: `-32011` with its message. Any other exception is `-32011` with a generic message and is logged.
+
+## Tools that need an optional module — `AvailabilityAwareInterface`
+
+A tool that wraps an optional module (one that may be missing or disabled on a store) should implement `Magebit\Mcp\Api\AvailabilityAwareInterface` next to `ToolInterface`:
+
+```php
+use Magebit\Mcp\Api\AvailabilityAwareInterface;
+
+public function isAvailable(): bool
+{
+    return $this->moduleManager->isEnabled('Vendor_OptionalFeature');
+}
+```
+
+While `isAvailable()` returns `false` the tool counts as not installed, for every role: `tools/list` hides it and `tools/call` answers `-32010 TOOL_NOT_FOUND` ("Tool \"…\" is not registered."), the same answer as an unregistered or admin-disabled tool. The check runs before the token scope and ACL gates, so the client is never told that the admin role is the problem. `ToolInterface` is unchanged; tools that do not implement the interface are always available.
+
+A tool whose `getUnderlyingAclResource()` returns a resource that no `acl.xml` declares gets the same answer: no role can hold an undeclared resource, so the tool cannot run for anyone. Older children use this to hide a tool while its module is off; prefer the interface in new code. `magebit:mcp:tools:validate-acl` still lists such resources as not resolving.
+
 ## Step 3 — Register the tool with the MCP registry
 
 ```xml
@@ -310,7 +351,7 @@ To ship a write tool, return `WriteMode::WRITE` from `getWriteMode()`. The dispa
 - `magebit_mcp/general/allow_writes` is `1` in the Magento config (global kill-switch).
 - The acting token has `allow_writes = 1`.
 
-Both must pass; either fails → `-32012 Write not allowed`.
+Both must pass; either fails → `-32012 Write not allowed`, with `error.data.reason` = `store_setting` (the config switch, checked first) or `token`.
 
 Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. Read tools return `false`. See `Magebit_McpOrderTools` for a canonical example of both.
 

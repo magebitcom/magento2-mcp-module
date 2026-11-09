@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Console\Command;
 
+use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenGenerator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
@@ -34,12 +35,21 @@ class TokenCreateCommand extends Command
     private const OPT_EXPIRES = 'expires';
     private const OPT_SCOPE = 'scope';
 
+    /**
+     * @param AdminUserLookup $adminUserLookup
+     * @param TokenFactory $tokenFactory
+     * @param TokenGenerator $tokenGenerator
+     * @param TokenHasher $tokenHasher
+     * @param TokenRepository $tokenRepository
+     * @param ToolRegistryInterface $toolRegistry
+     */
     public function __construct(
         private readonly AdminUserLookup $adminUserLookup,
         private readonly TokenFactory $tokenFactory,
         private readonly TokenGenerator $tokenGenerator,
         private readonly TokenHasher $tokenHasher,
-        private readonly TokenRepository $tokenRepository
+        private readonly TokenRepository $tokenRepository,
+        private readonly ToolRegistryInterface $toolRegistry
     ) {
         parent::__construct();
     }
@@ -76,7 +86,8 @@ class TokenCreateCommand extends Command
                 self::OPT_SCOPE,
                 's',
                 InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
-                'Tool name the token is scoped to (repeatable). Empty means all tools the admin role grants.'
+                'Tool the token is scoped to, by its tools/list name (catalog_product_list) or dotted name'
+                . ' (catalog.product.list); repeatable. Empty means all tools the admin role grants.'
             );
     }
 
@@ -90,11 +101,12 @@ class TokenCreateCommand extends Command
         if (!is_array($scopes)) {
             $scopes = [];
         }
-        /** @var array<int, string> $scopeList */
-        $scopeList = array_values(array_filter(
+        /** @var array<int, string> $requestedScopes */
+        $requestedScopes = array_values(array_filter(
             $scopes,
             static fn($s): bool => is_string($s) && $s !== ''
         ));
+        $scopeList = $this->canonicalScopes($requestedScopes);
 
         $expiresAt = null;
         if (is_string($expiresRaw) && $expiresRaw !== '') {
@@ -155,6 +167,42 @@ class TokenCreateCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * Map every --scope value to the dotted canonical name the scope check compares with.
+     *
+     * Unknown names fail the command before a token is minted: a token scoped to a name that matches no tool
+     * could never call anything.
+     *
+     * @param array<int, string> $requested
+     * @return array<int, string>
+     */
+    private function canonicalScopes(array $requested): array
+    {
+        $canonical = [];
+        $unknown = [];
+        foreach ($requested as $name) {
+            $resolved = $this->toolRegistry->getCanonicalName(trim($name));
+            if ($resolved === null) {
+                $unknown[] = $name;
+                continue;
+            }
+            $canonical[$resolved] = $resolved;
+        }
+        if ($unknown !== []) {
+            throw new RuntimeException(sprintf(
+                'Unknown tool name(s) for --scope: %s. Use the names tools/list shows (catalog_product_list)'
+                . ' or the dotted names from magebit:mcp:tools:list. No token was created.',
+                implode(', ', $unknown)
+            ));
+        }
+        return array_values($canonical);
+    }
+
+    /**
+     * @param mixed $value
+     * @param string $flag
+     * @return string
+     */
     private function requiredString(mixed $value, string $flag): string
     {
         if (!is_string($value) || $value === '') {

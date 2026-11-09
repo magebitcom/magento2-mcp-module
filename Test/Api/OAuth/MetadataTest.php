@@ -150,6 +150,53 @@ class MetadataTest extends McpTestCase
         self::assertNotEmpty($this->arr($payload, 'authorization_servers'));
     }
 
+    public function testAuthorizationServerMetadataReachableAtPathScopedWellKnownUrl(): void
+    {
+        // The issuer is scoped to /mcp, so this is the URL clients derive from it.
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-authorization-server/mcp');
+
+        self::assertSame(200, $response['status'], 'Expected HTTP 200 from path-scoped authorization-server-metadata.');
+        $payload = $response['payload'];
+        self::assertStringEndsWith('/mcp', $this->str($payload, 'issuer'));
+        self::assertStringEndsWith('/mcp/oauth/token', $this->str($payload, 'token_endpoint'));
+    }
+
+    public function testAuthorizationServerMetadataReachableWithTrailingWellKnownSegment(): void
+    {
+        // Some clients append .well-known to the issuer instead of inserting it after the host.
+        $response = $this->getJson($this->baseUrl() . '/mcp/.well-known/oauth-authorization-server');
+
+        self::assertSame(200, $response['status'], 'Expected HTTP 200 from trailing-form authorization-server-metadata.');
+        self::assertStringEndsWith('/mcp', $this->str($response['payload'], 'issuer'));
+    }
+
+    public function testProtectedResourceNamesThePathScopedIssuer(): void
+    {
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-protected-resource/mcp');
+
+        self::assertSame(200, $response['status']);
+        $servers = $this->arr($response['payload'], 'authorization_servers');
+        self::assertCount(1, $servers);
+        self::assertIsString($servers[0]);
+        self::assertStringEndsWith('/mcp', $servers[0]);
+    }
+
+    public function testUnknownAuthorizationServerSuffixIsNotFound(): void
+    {
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-authorization-server/anything');
+
+        self::assertSame(404, $response['status'], 'Expected HTTP 404 for an unknown issuer suffix.');
+        self::assertSame(['error' => 'not_found'], $response['payload']);
+    }
+
+    public function testUnknownProtectedResourceSuffixIsNotFound(): void
+    {
+        $response = $this->getJson($this->baseUrl() . '/.well-known/oauth-protected-resource/anything');
+
+        self::assertSame(404, $response['status'], 'Expected HTTP 404 for an unknown resource suffix.');
+        self::assertSame(['error' => 'not_found'], $response['payload']);
+    }
+
     private function baseUrl(): string
     {
         if (!defined('TESTS_BASE_URL')) {

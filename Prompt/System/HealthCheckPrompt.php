@@ -73,9 +73,9 @@ class HealthCheckPrompt implements PromptInterface
                 The user wants to know if their store has any issues that could affect customers or admins.
 
                 Run these checks (in parallel where possible):
-                1. Call system.cache.list — note any cache type whose status is disabled.
-                2. Call system.index.list — note any indexer whose status indicates a reindex is required.
-                3. Call system.notification.list — note any unread notification at severity "critical" or "major".
+                1. Call system_cache_list — note any cache type whose status is disabled.
+                2. Call system_index_list — note any indexer whose status indicates a reindex is required.
+                3. Call system_notification_list — note any unread notification at severity "critical" or "major".
 
                 Reply in 1–2 short paragraphs (no bullet list unless there are 4+ issues) using store-owner language only. Translate technical terms:
                 - "cache disabled" → "page speed feature turned off"

@@ -49,7 +49,7 @@ class AclTest extends McpTestCase
         self::assertIsArray($tools);
         $names = array_column($tools, 'name');
         self::assertNotContains(
-            'system.store.list',
+            'system_store_list',
             $names,
             'Tool with denied ACL must not appear in tools/list output.'
         );

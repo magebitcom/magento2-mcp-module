@@ -25,9 +25,6 @@ namespace Magebit\Mcp\Test\Api\OAuth;
  */
 class TokenRefreshTest extends TokenEndpointTestCase
 {
-    private const RFC_VERIFIER  = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
-    private const RFC_CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
-
     /**
      * @magentoApiDataFixture Magento/User/_files/user_with_role.php
      */

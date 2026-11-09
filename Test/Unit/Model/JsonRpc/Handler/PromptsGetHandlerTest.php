@@ -69,6 +69,23 @@ class PromptsGetHandlerTest extends TestCase
 
         self::assertNotNull($response->error);
         self::assertSame(ErrorCode::WRITE_NOT_ALLOWED->value, $response->error->code->value);
+        self::assertStringContainsString('switched off for this store', $response->error->message);
+        self::assertSame(['reason' => 'store_setting'], $response->error->data);
+    }
+
+    public function testRejectsWritePromptForReadOnlyTokenNamingTheToken(): void
+    {
+        $prompt = $this->makePrompt('system.refresh_after_edit', requiresWrite: true);
+
+        $response = $this->makeHandler([$prompt])->handle(
+            new Request(1, false, 'prompts/get', ['name' => 'system.refresh_after_edit']),
+            $this->context(false)
+        );
+
+        self::assertNotNull($response->error);
+        self::assertSame(ErrorCode::WRITE_NOT_ALLOWED->value, $response->error->code->value);
+        self::assertStringContainsString('issued without write access', $response->error->message);
+        self::assertSame(['reason' => 'token'], $response->error->data);
     }
 
     public function testRejectsMissingRequiredArgument(): void

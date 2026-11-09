@@ -177,6 +177,56 @@ class RefreshTokenRotatorTest extends TestCase
         }
     }
 
+    public function testRotateOnRevokedAndExpiredTokenStillDetectsReuse(): void
+    {
+        $hasher = $this->createMock(TokenHasher::class);
+        $hasher->method('hash')->willReturn('h');
+
+        // Some databases reset expires_at to "now" when the row is revoked, so a replay looks expired too.
+        $reused = $this->createMock(RefreshToken::class);
+        $reused->method('getId')->willReturn(33);
+        $reused->method('getOAuthClientId')->willReturn(7);
+        $reused->method('isExpired')->willReturn(true);
+        $reused->method('isRevoked')->willReturn(true);
+
+        $child = $this->createMock(RefreshToken::class);
+        $child->method('getId')->willReturn(34);
+        $child->method('getAccessTokenId')->willReturn(101);
+
+        $refreshRepo = $this->createMock(RefreshTokenRepository::class);
+        $refreshRepo->method('getByHash')->willReturn($reused);
+        $refreshRepo->method('getChildren')->willReturnCallback(
+            static fn (int $id): array => $id === 33 ? [$child] : []
+        );
+        $refreshRepo->expects(self::once())->method('revoke')->with(34)->willReturn(true);
+
+        $tokenRepo = $this->createMock(TokenRepository::class);
+        $tokenRepo->expects(self::once())->method('revoke')->with(101);
+
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::never())->method('issue');
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())->method('warning');
+
+        $rotator = new RefreshTokenRotator(
+            $hasher,
+            $refreshRepo,
+            $tokenRepo,
+            $this->createMock(ClientRepository::class),
+            $issuer,
+            $logger
+        );
+
+        try {
+            $rotator->rotate('presented', 7);
+            self::fail('Expected OAuthException');
+        } catch (OAuthException $e) {
+            self::assertSame('invalid_grant', $e->oauthError);
+            self::assertSame('Refresh token reuse detected.', $e->getMessage());
+        }
+    }
+
     public function testRotateOnLostCasRaceTreatsAsReuseAndThrows(): void
     {
         $hasher = $this->createMock(TokenHasher::class);

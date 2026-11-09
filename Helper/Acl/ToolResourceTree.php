@@ -79,6 +79,7 @@ class ToolResourceTree
             if (!is_array($child)) {
                 continue;
             }
+            /** @var array<string, mixed> $child */
             $childId = isset($child['id']) && is_scalar($child['id']) ? (string) $child['id'] : '';
             $toolName = $toolsByAclId[$childId] ?? null;
             $hasOwnChildren = !empty($child['children']) && is_array($child['children']);

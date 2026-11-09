@@ -202,7 +202,8 @@
                 comment="Space-separated OAuth scope summary (e.g. 'mcp:read mcp:write'), derived from granted_tools_json"/>
         <column xsi:type="text" name="granted_tools_json" nullable="true"
                 comment="JSON array of MCP tool names granted at consent; replayed into the access token's scopes_json at exchange time"/>
-        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="false"/>
+        <column xsi:type="datetime" name="expires_at" on_update="false" nullable="false"
+                comment="UTC expiry; datetime so the first-timestamp-column auto ON UPDATE rule never resets it"/>
         <column xsi:type="timestamp" name="used_at" on_update="false" nullable="true"
                 comment="Set the moment the code is exchanged; codes are one-shot"/>
         <column xsi:type="timestamp" name="created_at" on_update="false"
@@ -242,7 +243,8 @@
                 comment="FK to the magebit_mcp_token row this refresh was paired with"/>
         <column xsi:type="int" name="parent_refresh_token_id" unsigned="true" nullable="true"
                 comment="The refresh token this row was rotated from; null on the first refresh issued for a grant. Used to walk the rotation chain when OAuth 2.1 §6.1 reuse is detected."/>
-        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="false"/>
+        <column xsi:type="datetime" name="expires_at" on_update="false" nullable="false"
+                comment="UTC expiry; datetime so the first-timestamp-column auto ON UPDATE rule never resets it"/>
         <column xsi:type="timestamp" name="revoked_at" on_update="false" nullable="true"/>
         <column xsi:type="timestamp" name="created_at" on_update="false"
                 default="CURRENT_TIMESTAMP"/>
@@ -320,7 +322,7 @@
                 comment="HMAC-SHA256 hash of the redirect-binding nonce; plaintext nonce travels only in the redirect URL"/>
         <column xsi:type="text" name="params_json" nullable="false"
                 comment="JSON-encoded validated OAuth params (client_id, redirect_uri, state, code_challenge*, scope, response_type)"/>
-        <column xsi:type="timestamp" name="expires_at" on_update="false" nullable="false"
+        <column xsi:type="datetime" name="expires_at" on_update="false" nullable="false"
                 comment="UTC expiry timestamp; expired rows are ignored on consume and purged by cron"/>
         <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
                 default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>

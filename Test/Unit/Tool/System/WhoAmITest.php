@@ -73,6 +73,8 @@ class WhoAmITest extends TestCase
         self::assertSame('Doe', $payload['lastname']);
         self::assertSame('Claude Web', $payload['token_name']);
         self::assertTrue($payload['allow_writes']);
+        self::assertTrue($payload['store_allow_writes']);
+        self::assertTrue($payload['token_allow_writes']);
         self::assertSame([
             'admin_user_id' => 42,
             'allow_writes' => true,
@@ -140,6 +142,8 @@ class WhoAmITest extends TestCase
         $payload = $this->decodeContent($result->getContent());
 
         self::assertSame($expected, $payload['allow_writes']);
+        self::assertSame($globalAllowWrites, $payload['store_allow_writes']);
+        self::assertSame($tokenAllowWrites, $payload['token_allow_writes']);
     }
 
     /**

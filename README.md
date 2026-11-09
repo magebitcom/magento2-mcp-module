@@ -23,6 +23,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
   - [Tax and currency module — `Magebit_McpTaxTools`](#tax-and-currency-module--magebit_mcptaxtools)
   - [Report module — `Magebit_McpReportTools`](#report-module--magebit_mcpreporttools)
   - [Google Analytics module — `Magebit_McpGoogleAnalyticsTools`](#google-analytics-module--magebit_mcpgoogleanalyticstools)
+  - [Hyvä Commerce module — `Magebit_McpHyvaCommerceTools`](#hyvä-commerce-module--magebit_mcphyvacommercetools)
   - [Database module — `Magebit_McpDbTools`](#database-module--magebit_mcpdbtools)
 - [Setup](#setup)
 - [Managing tools](#managing-tools)
@@ -49,11 +50,13 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 
 ## Quick start
 
-The fastest path from `composer require` to a connected AI is the interactive **[Quick Setup guide](https://magebitcom.github.io/magento2-mcp-module/quick-setup/)** — pick which AI you're using (Claude, ChatGPT, Cursor, Claude Code, or anything else MCP-compatible) and follow the per-client steps with copy-paste snippets and admin-screen screenshots.
+The fastest path from `composer require` to a connected AI is the interactive **[Quick Setup guide](https://magebit.com/magento-mcp)** — pick which AI you're using (Claude, ChatGPT, Cursor, Claude Code, or anything else MCP-compatible) and follow the per-client steps with copy-paste snippets and admin-screen screenshots.
 
 Not connecting? The **[Connection Checker](https://magebitcom.github.io/magento2-mcp-module/quick-setup/diagnose.html)** probes your store's MCP endpoints from the browser and flags redirects, unreachable hosts and base-URL mismatches; the **[MCP Inspector guide](https://magebitcom.github.io/magento2-mcp-module/quick-setup/inspector.html)** walks you through verifying the OAuth sign-in and bearer-token access end to end.
 
 For the long-form reference — every admin setting, the OAuth and bearer-token flows in detail, and the full tool catalog — see the [Wiki](https://github.com/magebitcom/magento2-mcp-module/wiki).
+
+**Setting this up with an AI coding agent?** Point it at [docs/AGENTS.md](docs/AGENTS.md) — the same install written as a command-line-only runbook, with a verification step after each stage so the agent can tell whether it worked instead of guessing.
 
 ## Installation
 
@@ -98,7 +101,7 @@ Two caveats worth knowing:
 - **`setup:upgrade` enables modules it has not seen before.** Adding the suite to an existing store lands all nine as `=> 1`. If some should be off, disable them in the same deploy, before the store serves traffic.
 - **Disabling a module is a blunt instrument.** To keep one installed but hide individual tools, use **System → MCP → Tools** in the admin, which toggles a single tool at a time behind its own ACL resource.
 
-The Google Analytics and database modules are deliberately **not** in the suite — the first needs a Google login and pulls in the Google SDKs, the second grants bulk database reads. Both are listed below and are one `composer require` away.
+The Google Analytics, Hyvä Commerce and database modules are deliberately **not** in the suite — the first needs a Google login and pulls in the Google SDKs, the second needs Hyvä Commerce, the third grants bulk database reads. All three are listed below and are one `composer require` away.
 
 ## Sub-modules
 
@@ -206,6 +209,20 @@ composer require magebitcom/magento2-mcp-report-tools
 composer require magebitcom/magento2-mcp-google-analytics-tools
 ```
 
+### Hyvä Commerce module — [`Magebit_McpHyvaCommerceTools`](https://github.com/magebitcom/magento2-mcp-hyva-commerce-tools)
+
+> **Needs Hyvä Commerce 1.4.** Read its [README](https://github.com/magebitcom/magento2-mcp-hyva-commerce-tools#readme) before enabling it.
+
+- Hyvä CMS pages and blocks: drafts, versions, schedules, publishing, translations and Page Builder migration
+- Menu Builder menus, Form Builder forms, email and newsletter templates
+- Store Credit balances, Linked Products groups and category product positions
+- Media Gallery assets and images, Media Optimization
+- Read-only AI Worker jobs, Advanced Admin Permissions and Admin Dashboard widgets
+
+```bash
+composer require magebitcom/magento2-mcp-hyva-commerce-tools
+```
+
 ### Database module — [`Magebit_McpDbTools`](https://github.com/magebitcom/magento2-mcp-db-tools)
 
 > **⚠️ Not a default install.** This module hands an MCP client bulk read access to your production database. Read its [README](https://github.com/magebitcom/magento2-mcp-db-tools#readme) in full before enabling it.
@@ -241,6 +258,19 @@ Configuration lives under **Stores → Configuration → Magebit → MCP Server*
 | **OAuth 2.1 → Authorization Code Lifetime** | `60` (seconds) | Increase only for debugging. |
 | **MCP Configuration Writer → Enable Configuration Writing** | No | Master switch for `system.config.set`. See [Configuration writing](#configuration-writing). |
 | **MCP Configuration Writer → Allowed Paths** | empty | The only config paths `system.config.set` may write. Empty refuses every write. |
+
+Every one of those settings is an ordinary Magento config path, so `bin/magento config:set` is an equivalent to clicking through the admin — useful for scripted installs and for AI agents doing the setup:
+
+```bash
+bin/magento config:set magebit_mcp/general/enabled 1
+bin/magento config:set magebit_mcp/general/allow_writes 1
+bin/magento config:set magebit_mcp/rate_limiting/enabled 1
+bin/magento config:set magebit_mcp/audit/retention_days 90
+bin/magento config:show magebit_mcp/general/enabled   # read one back
+bin/magento cache:flush config
+```
+
+`magebit_mcp/security/allowed_origins` is a multi-line value, so it is easier to set in the admin than on the command line.
 
 Five separate admin-role permissions gate the module so a token-manager role need not see the audit log and vice versa:
 
@@ -300,10 +330,10 @@ bin/magento magebit:mcp:token:create \
   --name "<label>" \
   [--allow-writes] \
   [--expires "+30 days"] \
-  [-s <tool.name>] [-s <tool.name>]
+  [-s <tool_name>] [-s <tool_name>]
 ```
 
-The plaintext is printed once and is never recoverable afterwards — store it securely. Manage tokens with:
+The plaintext is printed once and is never recoverable afterwards — store it securely. `-s` takes the tool name `tools/list` shows (`catalog_product_list`) or its dotted form (`catalog.product.list`); both are stored as the dotted name, and a name that matches no tool fails the command without creating a token. Manage tokens with:
 
 ```bash
 bin/magento magebit:mcp:token:list [-u <username>]
@@ -320,14 +350,47 @@ Configure your MCP client with:
 
 ### OAuth 2.1
 
-Manage OAuth clients under **System → MCP → OAuth Clients**. The module exposes:
+Register a client from the CLI (or under **System → MCP → OAuth Clients** in the admin):
+
+```bash
+# Known AI clients come as presets, which fill in the name and redirect URI
+bin/magento magebit:mcp:oauth:client:create --list-presets
+bin/magento magebit:mcp:oauth:client:create --preset claude_web --allow-all-tools
+
+# Or spell it out
+bin/magento magebit:mcp:oauth:client:create \
+  --name "<label>" \
+  --redirect-uri "https://<client-callback>" \
+  --tool catalog.product.list --tool sales.order.get
+```
+
+Pick the tool surface with repeated `--tool` flags, or `--allow-all-tools` to also cover tools installed later. `--auth-mode shared --service-admin-user <username>` pins every consent to one admin instead of letting each admin authorize for themselves; in the default personal mode, `--allowed-admin-user` / `--allowed-admin-role` narrow who may consent at all. Add `--disabled` to register a client without switching it on.
+
+The client secret is printed once and is never recoverable afterwards — only its hash is stored. Manage clients with:
+
+```bash
+bin/magento magebit:mcp:oauth:client:list
+bin/magento magebit:mcp:oauth:client:set-status <id> --disabled   # also revokes its live tokens
+bin/magento magebit:mcp:oauth:client:set-status <id> --enabled
+bin/magento magebit:mcp:oauth:client:rotate-secret <id> [--revoke-tokens]
+bin/magento magebit:mcp:oauth:client:delete <id> [--keep-tokens]
+```
+
+Two things worth knowing about revocation. Disabling a client blocks new grants, and the access tokens it already issued are refused on their next request because `/mcp` checks the client's disabled flag; `set-status --disabled` also revokes them, so they stay dead if the client is enabled again. Deleting a client, from the admin panel or the CLI, revokes its access tokens first, because the foreign key only clears the token's link to the client and would otherwise leave the token working. Only the CLI's `delete --keep-tokens` skips this and leaves them valid until they expire.
+
+The module exposes:
 
 | Endpoint | Purpose |
 |---|---|
-| `GET /.well-known/oauth-authorization-server` | Authorization-server metadata (RFC 8414). |
-| `GET /.well-known/oauth-protected-resource` | Protected-resource metadata (RFC 9728). |
+| `GET /.well-known/oauth-protected-resource/mcp` | Protected-resource metadata (RFC 9728). |
+| `GET /.well-known/oauth-protected-resource` | The same protected-resource metadata, without the `/mcp` suffix. |
+| `GET /.well-known/oauth-authorization-server/mcp` | Authorization-server metadata (RFC 8414). Its issuer is `https://<your-store>/mcp`. |
+| `GET /mcp/.well-known/oauth-authorization-server` | The same document, for clients that put `.well-known` after the issuer path. |
+| `GET /.well-known/oauth-authorization-server` | The same document with the store root as its issuer, still answering under the older root URL. |
 | `GET\|POST /mcp/oauth/authorize` | Interactive consent screen. Requires admin sign-in. |
 | `POST /mcp/oauth/token` | Token endpoint (`authorization_code` and `refresh_token` grants). |
+
+If another OAuth application on the same domain already answers at `/.well-known/oauth-authorization-server`, the two no longer collide. This server keeps its own copy one level down, at `/.well-known/oauth-authorization-server/mcp`, and sends clients there: the protected-resource document names `https://<your-store>/mcp` as the authorization server, and clients follow whatever it names. The plain root URL still answers as well, so a client that saved the old root address keeps working. If your store's base URL has a path, such as `https://example.com/lv/`, the older `/.well-known/oauth-authorization-server/lv` address keeps answering too. Any other suffix returns a JSON 404. Most clients re-check the address on their own, though, so after upgrading a connected client may ask an admin to approve it one more time.
 
 Two scopes are advertised:
 
@@ -346,7 +409,7 @@ Each OAuth client has its own scope cap and the consenting admin can narrow furt
 - **No raw SQL in the base module.** `db.query` ships only in the separately installed [`Magebit_McpDbTools`](#database-module--magebit_mcpdbtools), which is off by default and allowlist-only. Nothing in the base module or the domain sub-modules accepts an SQL string.
 - **Confirmation hint for destructive tools.** Write tools may flag themselves as requiring confirmation; clients that support it (e.g. Claude Desktop) prompt the operator.
 - **Per-(admin, tool) rate limiter.** Off by default; recommended for production.
-- **Audit log.** Every request is recorded — even unauthenticated attempts. Argument values are PII-redacted before storage.
+- **Audit log.** Every request is recorded — even unauthenticated attempts. Argument values are PII-redacted before storage. The one exception is the `server/discover` probe newer MCP clients send before `initialize`: its expected `-32601` answer is not written, so it does not count as an error. The tool column holds the dotted canonical name (`catalog.product.list`) whichever form the client sent, refused calls included; only a name that matches no tool is stored as sent.
 - **Separated admin permissions.** Token management, OAuth-client management, audit-log viewing, tool management and module configuration are five distinct ACLs.
 
 If you discover a security issue, please report it privately to [info@magebit.com](mailto:info@magebit.com) rather than opening a public issue.
@@ -360,7 +423,9 @@ The contract surface is:
 1. Implement `Magebit\Mcp\Api\ToolInterface` and declare an ACL resource for the tool. By convention, dots in the tool name become underscores in the ACL id (`catalog.product.get` → `Vendor_Module::mcp_tool_catalog_product_get`).
 2. Register the tool in `di.xml` under `Magebit\Mcp\Model\Tool\ToolRegistry`. The DI key must match the tool's `getName()` and conform to `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`.
 3. For write tools that wrap a Magento service contract, optionally implement `Magebit\Mcp\Api\UnderlyingAclAwareInterface` so the dispatcher also enforces the equivalent admin-UI permission. `tools/list` applies the same check, so a role that lacks the underlying permission is never offered the tool.
-4. Run `bin/magento magebit:mcp:tools:validate-acl` to confirm every tool's ACL resource resolves. It also warns about underlying resources that do not resolve on this install — those tools stay hidden from `tools/list` for every role.
+4. If the tool needs an optional module, implement `Magebit\Mcp\Api\AvailabilityAwareInterface`; while `isAvailable()` is false the tool is hidden and answers `-32010` like an unregistered one.
+5. If `execute()` finds that the caller may not act on the entity (for example it is outside the admin's store scope), throw `Magebit\Mcp\Exception\ForbiddenException`. It answers `-32004 FORBIDDEN` with your message and `error.data`. Use a soft error (`isError: true`) for anything else.
+6. Run `bin/magento magebit:mcp:tools:validate-acl` to confirm every tool's ACL resource resolves. It also warns about underlying resources that do not resolve on this install — those tools stay hidden from `tools/list` for every role.
 
 Publishing your module? Add the [`magebit-mcp-tools`](https://github.com/topics/magebit-mcp-tools) topic to its GitHub repository so it turns up alongside the rest of the ecosystem.
 

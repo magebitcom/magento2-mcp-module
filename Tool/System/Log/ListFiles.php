@@ -56,8 +56,8 @@ class ListFiles implements ToolInterface
     {
         return 'List the store\'s log files with their size and last-modified '
             . 'time. Start here when diagnosing an error whose cause is not yet '
-            . 'known, then read the chosen file with `system.log.tail` or search '
-            . 'it with `system.log.grep`. Typical files: `exception.log` (PHP '
+            . 'known, then read the chosen file with `system_log_tail` or search '
+            . 'it with `system_log_grep`. Typical files: `exception.log` (PHP '
             . 'exceptions and stack traces — usually the most informative), '
             . '`system.log` (application warnings and errors), `debug.log` '
             . '(developer-mode detail), `magebit_mcp.log` (this MCP server\'s own '

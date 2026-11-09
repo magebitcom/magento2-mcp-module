@@ -15,6 +15,7 @@ use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
 use Magebit\Mcp\Model\OAuth\AuthMode;
 use Magebit\Mcp\Model\OAuth\AuthorizationOptions;
+use Magebit\Mcp\Model\OAuth\AuthorizationOptionsValidator;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ClientCredentialIssuer;
 use Magebit\Mcp\Model\OAuth\ClientRepository;
@@ -30,7 +31,6 @@ use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Element\AbstractBlock;
-use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
 use Throwable;
 
 /**
@@ -47,7 +47,7 @@ class Save extends Action implements HttpPostActionInterface
      * @param ClientRepository $clientRepository
      * @param ToolRegistryInterface $toolRegistry
      * @param FormDataPersistence $formDataPersistence
-     * @param UserCollectionFactory $userCollectionFactory
+     * @param AuthorizationOptionsValidator $authorizationValidator
      * @param TokenRepository $tokenRepository
      * @param LoggerInterface $logger
      */
@@ -57,7 +57,7 @@ class Save extends Action implements HttpPostActionInterface
         private readonly ClientRepository $clientRepository,
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly FormDataPersistence $formDataPersistence,
-        private readonly UserCollectionFactory $userCollectionFactory,
+        private readonly AuthorizationOptionsValidator $authorizationValidator,
         private readonly TokenRepository $tokenRepository,
         private readonly LoggerInterface $logger
     ) {
@@ -95,7 +95,7 @@ class Save extends Action implements HttpPostActionInterface
         $idRaw = $request->getParam('id', 0);
         $editingId = is_scalar($idRaw) ? (int) $idRaw : 0;
 
-        $authError = $this->validateAuthorizationOptions($auth);
+        $authError = $this->authorizationValidator->validate($auth);
 
         if ($name === '' || $redirectUris === [] || $allowedTools === [] || $authError !== null) {
             $this->preserveFormData($raw, $allowedTools);
@@ -420,52 +420,5 @@ class Save extends Action implements HttpPostActionInterface
             $out[] = $int;
         }
         return $out;
-    }
-
-    /**
-     * @param AuthorizationOptions $auth
-     * @return string|null Error string on misconfiguration, null on success.
-     */
-    private function validateAuthorizationOptions(AuthorizationOptions $auth): ?string
-    {
-        if ($auth->mode === AuthMode::SHARED) {
-            if ($auth->serviceAdminUserId === null) {
-                return (string) __(
-                    'Shared mode requires a Service Admin User. Pick the admin every issued token should be'
-                    . ' bound to, or switch to Personal mode.'
-                );
-            }
-            if (!$this->isActiveAdminUser($auth->serviceAdminUserId)) {
-                return (string) __(
-                    'The selected Service Admin User must be an active admin. Pick a different admin.'
-                );
-            }
-        }
-
-        foreach ($auth->allowedAdminUserIds as $userId) {
-            if (!$this->isActiveAdminUser($userId)) {
-                return (string) __(
-                    'Allowed Admin Users contains an inactive or unknown admin. Refresh the page and reselect.'
-                );
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param int $userId
-     * @return bool
-     */
-    private function isActiveAdminUser(int $userId): bool
-    {
-        if ($userId <= 0) {
-            return false;
-        }
-        $collection = $this->userCollectionFactory->create();
-        $collection->addFieldToFilter('user_id', ['eq' => $userId]);
-        $collection->addFieldToFilter('is_active', ['eq' => 1]);
-        $collection->setPageSize(1);
-        return $collection->getSize() === 1;
     }
 }

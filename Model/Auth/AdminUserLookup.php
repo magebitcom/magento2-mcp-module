@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Auth;
 
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
+use Magento\User\Model\ResourceModel\User\CollectionFactory;
 use Magento\User\Model\User;
 use Magento\User\Model\UserFactory;
 use Magento\User\Model\ResourceModel\User as UserResource;
@@ -21,11 +21,11 @@ class AdminUserLookup
 {
     /**
      * @param UserFactory $userFactory
-     * @param UserCollectionFactory $userCollectionFactory
+     * @param CollectionFactory $userCollectionFactory
      */
     public function __construct(
         private readonly UserFactory $userFactory,
-        private readonly UserCollectionFactory $userCollectionFactory,
+        private readonly CollectionFactory $userCollectionFactory,
         private readonly UserResource $userResource
     ) {
     }

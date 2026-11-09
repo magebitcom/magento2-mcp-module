@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Controller\OAuth;
 use Magebit\Mcp\Model\Http\CorsResponder;
 use Magebit\Mcp\Model\OAuth\Scope;
 use Magebit\Mcp\Model\Url\PublicUrlBuilder;
+use Magebit\Mcp\Model\Url\WellKnownPathParser;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\Action\HttpOptionsActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
@@ -31,17 +32,21 @@ class AuthorizationServerMetadata implements
 {
     private const ALLOWED_METHODS = 'GET, OPTIONS';
 
+    private const MCP_PATH = 'mcp';
+
     /**
      * @param HttpRequest $request
      * @param HttpResponse $response
      * @param PublicUrlBuilder $urlBuilder
      * @param CorsResponder $corsResponder
+     * @param WellKnownPathParser $pathParser
      */
     public function __construct(
         private readonly HttpRequest $request,
         private readonly HttpResponse $response,
         private readonly PublicUrlBuilder $urlBuilder,
-        private readonly CorsResponder $corsResponder
+        private readonly CorsResponder $corsResponder,
+        private readonly WellKnownPathParser $pathParser
     ) {
     }
 
@@ -54,7 +59,10 @@ class AuthorizationServerMetadata implements
             return $this->corsResponder->emitPreflight($this->response, self::ALLOWED_METHODS);
         }
 
-        $issuer = $this->urlBuilder->getBaseUrl();
+        $issuer = $this->resolveIssuer();
+        if ($issuer === null) {
+            return $this->emitJson(404, '{"error":"not_found"}');
+        }
 
         $payload = [
             'issuer' => $issuer,
@@ -73,11 +81,57 @@ class AuthorizationServerMetadata implements
         ];
 
         $body = json_encode($payload, JSON_UNESCAPED_SLASHES);
-        $this->response->setHttpResponseCode(200);
+
+        return $this->emitJson(200, $body !== false ? $body : '{}');
+    }
+
+    /**
+     * The issuer must match the URL the client used, so it depends on the path.
+     * Null means the path names something this server does not serve.
+     *
+     * @return string|null
+     */
+    private function resolveIssuer(): ?string
+    {
+        $wellKnown = $this->pathParser->parse((string) $this->request->getPathInfo());
+        if ($wellKnown === null) {
+            // Direct controller route, not a discovery URL.
+            return $this->urlBuilder->getBaseUrl();
+        }
+
+        $path = $wellKnown->resourcePath;
+
+        // Root form, and the older store-path form, keep the base URL as issuer.
+        if ($path === '' || $path === $this->urlBuilder->getBasePath()) {
+            return $this->urlBuilder->getBaseUrl();
+        }
+
+        if ($path === $this->urlBuilder->getIssuerPath()) {
+            return $this->urlBuilder->getIssuerUrl();
+        }
+
+        // Magento strips a leading store code before routing, so a trailing
+        // form may arrive as plain `mcp` even when the store has a base path.
+        if ($wellKnown->trailing && $path === self::MCP_PATH) {
+            return $this->urlBuilder->getIssuerUrl();
+        }
+
+        return null;
+    }
+
+    /**
+     * @param int $code
+     * @param string $body
+     * @return ResponseInterface
+     */
+    private function emitJson(int $code, string $body): ResponseInterface
+    {
+        $this->response->setHttpResponseCode($code);
         $this->response->setHeader('Content-Type', 'application/json', true);
         $this->response->setHeader('Cache-Control', 'no-store, no-cache, max-age=0', true);
         $this->corsResponder->applyHeaders($this->response, self::ALLOWED_METHODS);
-        $this->response->setBody($body !== false ? $body : '{}');
+        $this->response->setBody($body);
+
         return $this->response;
     }
 

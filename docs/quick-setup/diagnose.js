@@ -43,11 +43,12 @@
         origin + '/.well-known/oauth-protected-resource' + resourcePath,
         origin + '/.well-known/oauth-protected-resource'
       ],
-      // RFC 8414 — try a store-path-scoped variant first, then the bare path.
-      asm: (basePath
-        ? [origin + '/.well-known/oauth-authorization-server' + basePath]
-        : []
-      ).concat([origin + '/.well-known/oauth-authorization-server'])
+      // RFC 8414 — the issuer is path-scoped to /mcp; the authority-root
+      // document is the legacy fallback.
+      asm: [
+        origin + '/.well-known/oauth-authorization-server' + resourcePath,
+        origin + '/.well-known/oauth-authorization-server'
+      ]
     };
   }
 
@@ -115,6 +116,9 @@
       return withTimeout(function (signal) {
         return fetch(list[i], { method: 'GET', mode: 'cors', redirect: 'follow', signal: signal, cache: 'no-store' });
       }).then(function (res) {
+        // A 404 can carry a JSON body, which would otherwise parse and look
+        // like a valid document. Treat any non-2xx as a failed candidate.
+        if (!res.ok) throw new Error('http ' + res.status);
         return res.json().then(function (json) {
           return { url: res.url, redirected: res.redirected, data: json };
         });
@@ -162,7 +166,7 @@
           'Every advertised URL must be this store, on the same scheme. Check Magento’s base_url (Stores → Configuration → Web).');
       }
     }
-    return result('pass', okDetail(data));
+    return result('pass', okDetail(data, res.url));
   }
 
   // ---- The checks ---------------------------------------------------------
@@ -184,7 +188,7 @@
     },
     {
       id: 'prm',
-      target: function (t) { return 'GET ' + t.origin + '/.well-known/oauth-protected-resource'; },
+      target: function (t) { return 'GET ' + t.origin + '/.well-known/oauth-protected-resource/…'; },
       run: function (t) {
         return fetchJson(t.prm).then(function (res) {
           return checkMetadata(res, t,
@@ -195,12 +199,21 @@
     },
     {
       id: 'asm',
-      target: function (t) { return 'GET ' + t.origin + '/.well-known/oauth-authorization-server'; },
+      target: function (t) { return 'GET ' + t.origin + '/.well-known/oauth-authorization-server/…'; },
       run: function (t) {
         return fetchJson(t.asm).then(function (res) {
           return checkMetadata(res, t,
             [['issuer', 'issuer'], ['authorization_endpoint', 'authorization_endpoint'], ['token_endpoint', 'token_endpoint']],
-            function (d) { return 'Accessible and valid. token_endpoint = ' + (d.token_endpoint || '—'); });
+            function (d, url) {
+              var expected = String(url || '').split('/.well-known/')[0];
+              var suffix = String(url || '').split('/.well-known/oauth-authorization-server')[1] || '';
+              if (suffix) expected = expected + suffix;
+              if (d.issuer && d.issuer.replace(/\/+$/, '') !== expected.replace(/\/+$/, '')) {
+                return 'Accessible, but issuer "' + d.issuer + '" does not match the document URL '
+                  + url + '. RFC 8414 §3.3 requires them to match, and strict clients reject the mismatch.';
+              }
+              return 'Accessible and valid. issuer = ' + (d.issuer || '—');
+            });
         });
       }
     },

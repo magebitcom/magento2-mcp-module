@@ -16,7 +16,7 @@ use Magebit\Mcp\Model\OAuth\ToolGrantResolver;
 use Magento\Backend\Model\Auth;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
-use Magento\User\Model\ResourceModel\User\CollectionFactory as UserCollectionFactory;
+use Magento\User\Model\ResourceModel\User\CollectionFactory;
 use Magento\User\Model\User;
 
 /**
@@ -30,14 +30,14 @@ class ConsentViewModel implements ArgumentInterface
      * @param ToolRegistryInterface $toolRegistry
      * @param Auth $auth
      * @param Json $jsonSerializer
-     * @param UserCollectionFactory $userCollectionFactory
+     * @param CollectionFactory $userCollectionFactory
      */
     public function __construct(
         private readonly ToolResourceTree $toolResourceTree,
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly Auth $auth,
         private readonly Json $jsonSerializer,
-        private readonly UserCollectionFactory $userCollectionFactory
+        private readonly CollectionFactory $userCollectionFactory
     ) {
     }
 

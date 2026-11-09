@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this module is
 
-Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpTaxTools`, `Magebit_McpReportTools`, `Magebit_McpGoogleAnalyticsTools`, and `Magebit_McpDbTools` — the last one ships raw read-only SQL, is off by default, and is the canonical `ContextualAclAwareInterface` consumer); this repo ships its own set of 19 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`), and allowlisted config writing (`system.config.set`).
+Magento 2 implementation of the Model Context Protocol (MCP, spec version `2025-06-18`). Ships the **transport, auth, ACL, audit, and tool registry** — a single `POST /mcp` endpoint that speaks JSON-RPC 2.0 over HTTP with bearer auth. Domain tools live in satellite modules (`Magebit_McpOrderTools`, `Magebit_McpCatalogTools`, `Magebit_McpCustomerTools`, `Magebit_McpCmsTools`, `Magebit_McpMarketingTools`, `Magebit_McpTaxTools`, `Magebit_McpReportTools`, `Magebit_McpGoogleAnalyticsTools`, `Magebit_McpHyvaCommerceTools`, and `Magebit_McpDbTools` — the last one ships raw read-only SQL, is off by default, and is the canonical `ContextualAclAwareInterface` consumer); this repo ships its own set of 19 core `system.*` tools — store/config info, cache and indexer control, admin notifications, connection identity (`system.whoami`), scheduled-job diagnostics (`system.cron.status`), read-only log access (`system.log.list` / `system.log.tail` / `system.log.grep`), and allowlisted config writing (`system.config.set`).
 
 The repo is checked out as a Magento module at `app/code/Magebit/Mcp`. The Magento root is `/var/www/demo` — Composer, `bin/magento`, and `vendor/bin/*` all run from there, not from this directory. Read the root `README.md` for protocol-level detail and client-onboarding snippets — this file complements it with architecture and workflow notes.
 
@@ -24,6 +24,8 @@ bin/magento magebit:mcp:tools:list            # Every registered tool, ACL, writ
 bin/magento magebit:mcp:tools:validate-acl    # CI gate: tool ACLs must resolve + names must match regex
 bin/magento magebit:mcp:token:create --admin-user=<u> --name='<label>'
 bin/magento magebit:mcp:token:{list,revoke,delete}
+bin/magento magebit:mcp:oauth:client:create --preset=claude_web --allow-all-tools
+bin/magento magebit:mcp:oauth:client:{list,rotate-secret,set-status,delete}
 
 # Static analysis — PHPStan level 9 on this module
 vendor/bin/phpstan analyse app/code/Magebit/Mcp -c app/code/Magebit/Mcp/phpstan.neon
@@ -40,7 +42,7 @@ Local smoke-testing via MCP Inspector: see `dev/inspector/README.md`. For self-s
 
 ## Request pipeline (Controller/Index/Index.php)
 
-Every `POST /mcp` runs this fixed sequence. Every stage has an audit row flushed from the `finally` block — unauthenticated attempts leave a trail:
+Every `POST /mcp` runs this fixed sequence. Every stage has an audit row flushed from the `finally` block — unauthenticated attempts leave a trail; the only exception is a `server/discover` probe answered `-32601`, which is not written:
 
 1. **Origin header** — `Model/Validator/OriginValidator`, DNS-rebinding defense, allowlist in store config.
 2. **Bearer auth** — `Model/Auth/TokenAuthenticator`. 401 + `WWW-Authenticate: Bearer` on failure. Tokens are HMAC-SHA256 hashed at rest (keyed by the install's `crypt/key`).
@@ -93,15 +95,21 @@ Issued access tokens are written to `magebit_mcp_token` with `oauth_client_id` s
 
 Tables: `magebit_mcp_oauth_client`, `magebit_mcp_oauth_auth_code`, `magebit_mcp_oauth_refresh_token`. Cleanup cron: `magebit_mcp_purge_oauth` (daily 04:00).
 
-Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth_clients`).
+Admin UI: System → MCP → OAuth Clients (separate ACL `Magebit_Mcp::mcp_oauth_clients`). The same CRUD is on the CLI as `magebit:mcp:oauth:client:*` — `Console/Command/OAuthClient*Command`. Both paths share `Model/OAuth/ClientCredentialIssuer` and `Model/OAuth/AuthorizationOptionsValidator`, so a misconfiguration is refused identically either way.
+
+A disabled client's tokens are refused on the next request (`TokenAuthenticator` checks the client's disabled flag); `set-status --disabled` also revokes them so they stay dead if the client is re-enabled. `delete` (admin panel and CLI) revokes them first, because the FK (`ON DELETE SET NULL`) alone would leave them working; only CLI `--keep-tokens` skips this. `rotate-secret` deliberately does not, so a client can pick up a new secret without an outage; pass `--revoke-tokens` when the old one may have leaked.
+
+`docs/AGENTS.md` is the agent-facing setup runbook — CLI-only, with a verification step per stage. Keep it in sync when a setup-relevant command or config path changes.
 
 ## Core extensibility surface
 
 Satellite modules must reuse these contracts — never duplicate them.
 
 - **`Api/ToolInterface`** — every MCP tool. Registered by DI array into `Model/Tool/ToolRegistry`. The registry validates at construction that the di.xml key matches `getName()` and matches `^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$`. Duplicates fail `setup:di:compile`.
-- **`Api/UnderlyingAclAwareInterface`** — opt-in second ACL check. If a tool wraps a Magento service contract (e.g. an invoice-create tool wrapping `InvoiceOrderInterface`), return the underlying Magento admin-UI resource here. `ToolsCallHandler` then enforces *both* the MCP-specific ACL AND the admin-UI ACL, and `ToolsListHandler` filters `tools/list` on both so a role is never offered a tool it cannot call. Invariant: "MCP cannot do what the admin UI cannot." A resource that isn't in the merged ACL tree reads as denied, hiding the tool for every role — `magebit:mcp:tools:validate-acl` warns about those.
+- **`Api/UnderlyingAclAwareInterface`** — opt-in second ACL check. If a tool wraps a Magento service contract (e.g. an invoice-create tool wrapping `InvoiceOrderInterface`), return the underlying Magento admin-UI resource here. `ToolsCallHandler` then enforces *both* the MCP-specific ACL AND the admin-UI ACL, and `ToolsListHandler` filters `tools/list` on both so a role is never offered a tool it cannot call. Invariant: "MCP cannot do what the admin UI cannot." A resource that isn't in the merged ACL tree makes the tool unavailable (`Model/Tool/ToolAvailability`): hidden from `tools/list` and answered `-32010` for every role — `magebit:mcp:tools:validate-acl` warns about those.
+- **`Api/AvailabilityAwareInterface`** — opt-in for tools that need an optional module; while `isAvailable()` is false, `ToolAvailability` treats the tool as unregistered (hidden, `-32010`), before scope and ACL checks.
 - **`Api/ContextualAclAwareInterface`** — third ACL check for tools whose required Magento resource depends on the call arguments (e.g. a config writer needing the target section's own `<resource>`). Returns a list; every entry must pass. Resolved *before* schema validation, so implementations must tolerate malformed arguments and return `[]` when nothing can be determined. Fail-closed: a throw, a blank entry, or a non-string entry is a `-32004` denial with its own message (never an internal error).
+- **`Exception/ForbiddenException`** — thrown from `execute()` for a run-time scope or permission refusal. `ToolsCallHandler` answers `-32004` with `getData()` as `error.data`, audits it like the pre-execution gates and does not log it.
 - **`Api/FieldResolverInterface`** — marker for the field-resolver pattern used by satellite read tools. Each resolver owns a named slice of the response (`totals`, `items`, …). `Model/Util/ResolverPipeline` walks heterogeneous resolver arrays and orders them by `getSortOrder()` (default 100). Satellites define entity-typed sub-interfaces (`OrderFieldResolverInterface` etc.); the pipeline only needs the marker.
 - **`Api/ToolRegistryInterface`** / **`ToolResultInterface`** — registry + result envelope.
 - **Events `magebit_mcp_tool_call_before` / `_after`** — cross-cutting concerns (result masking, custom audit sinks, bespoke throttling on top of the shipped limiter). Params are read-only; arguments have already been redacted for audit when the event fires, so mutating them desyncs the audit row from what ran.

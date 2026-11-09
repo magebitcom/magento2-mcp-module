@@ -7,7 +7,7 @@
         "php": ">=8.1",
         "magento/framework": "^103.0",
         "magebitcom/pii-redactor": "^1.1",
-        "opis/json-schema": "^2.3",
+        "opis/json-schema": "^2.4",
         "magebitcom/magento2-core": "*"
     },
     "suggest": {
@@ -20,6 +20,7 @@
         "magebitcom/magento2-mcp-report-tools": "Sub-module for reporting-related MCP tools",
         "magebitcom/magento2-mcp-tax-tools": "Sub-module for tax and currency MCP tools",
         "magebitcom/magento2-mcp-google-analytics-tools": "Sub-module for Google Analytics 4 MCP tools",
+        "magebitcom/magento2-mcp-hyva-commerce-tools": "Sub-module for Hyvä Commerce MCP tools",
         "magebitcom/magento2-mcp-db-tools": "Sub-module exposing a guarded read-only SQL tool"
     },
     "autoload": {

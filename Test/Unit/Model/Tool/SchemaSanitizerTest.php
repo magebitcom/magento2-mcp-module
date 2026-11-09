@@ -174,4 +174,177 @@ class SchemaSanitizerTest extends TestCase
         self::assertIsArray($address);
         self::assertInstanceOf(\stdClass::class, $address['properties']);
     }
+
+    public function testDropsIntegerEnumAndFoldsValuesIntoDescription(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'status' => [
+                    'type' => 'integer',
+                    'enum' => [1, 2],
+                    'description' => 'Product status.',
+                ],
+            ],
+            'required' => ['status'],
+        ];
+
+        $expected = [
+            'type' => 'object',
+            'properties' => [
+                'status' => [
+                    'type' => 'integer',
+                    'description' => 'Product status. Allowed values: 1, 2.',
+                ],
+            ],
+            'required' => ['status'],
+        ];
+
+        self::assertSame($expected, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
+
+    public function testValidationSchemaKeepsIntegerEnum(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'status' => ['type' => 'integer', 'enum' => [1, 2]],
+            ],
+        ];
+
+        self::assertSame($schema, $this->sanitizer->sanitize('test.tool', $schema));
+    }
+
+    public function testDroppedEnumWithoutDescriptionGetsOne(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'visibility' => ['type' => 'integer', 'enum' => [1, 2, 3, 4]],
+            ],
+        ];
+
+        $expected = [
+            'type' => 'object',
+            'properties' => [
+                'visibility' => [
+                    'type' => 'integer',
+                    'description' => 'Allowed values: 1, 2, 3, 4.',
+                ],
+            ],
+        ];
+
+        self::assertSame($expected, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
+
+    public function testKeepsStringEnumUntouched(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'sort_dir' => [
+                    'type' => 'string',
+                    'enum' => ['asc', 'desc'],
+                    'description' => 'Sort direction.',
+                ],
+            ],
+        ];
+
+        self::assertSame($schema, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
+
+    public function testDropsEnumNestedInsideArrayItems(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'items' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'sku' => ['type' => 'string'],
+                            'backorders' => [
+                                'type' => 'integer',
+                                'enum' => [0, 1, 2],
+                                'description' => '0 = no, 1 = allow.',
+                            ],
+                        ],
+                        'required' => ['sku'],
+                    ],
+                ],
+            ],
+            'required' => ['items'],
+        ];
+
+        $expected = [
+            'type' => 'object',
+            'properties' => [
+                'items' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'sku' => ['type' => 'string'],
+                            'backorders' => [
+                                'type' => 'integer',
+                                'description' => '0 = no, 1 = allow. Allowed values: 0, 1, 2.',
+                            ],
+                        ],
+                        'required' => ['sku'],
+                    ],
+                ],
+            ],
+            'required' => ['items'],
+        ];
+
+        self::assertSame($expected, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
+
+    public function testDropsEnumMixingStringsAndNumbers(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'mode' => ['type' => 'string', 'enum' => ['all', 0]],
+            ],
+        ];
+
+        $expected = [
+            'type' => 'object',
+            'properties' => [
+                'mode' => [
+                    'type' => 'string',
+                    'description' => 'Allowed values: "all", 0.',
+                ],
+            ],
+        ];
+
+        self::assertSame($expected, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
+
+    public function testLeavesPropertyNamedEnumAlone(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'enum' => ['type' => 'string', 'description' => 'A field named enum.'],
+            ],
+            'required' => ['enum'],
+        ];
+
+        self::assertSame($schema, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
+
+    public function testLeavesPropertyNamedEnumWithNumericKeywordsAlone(): void
+    {
+        $schema = [
+            'type' => 'object',
+            'properties' => [
+                'enum' => ['type' => 'integer', 'minimum' => 1],
+            ],
+        ];
+
+        self::assertSame($schema, $this->sanitizer->sanitizeForClient('test.tool', $schema));
+    }
 }

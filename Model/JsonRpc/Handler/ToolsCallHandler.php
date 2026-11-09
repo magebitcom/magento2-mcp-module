@@ -15,11 +15,13 @@ use Magebit\Mcp\Api\RateLimiterInterface;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
+use Magebit\Mcp\Exception\ForbiddenException;
 use Magebit\Mcp\Exception\RateLimitedException;
 use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Auth\AuthenticatedContextProvider;
+use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
@@ -28,6 +30,7 @@ use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
 use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
+use Magebit\Mcp\Model\Tool\ToolAvailability;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
@@ -41,13 +44,13 @@ use Throwable;
  * `null` to let the next gate run, or a {@see Response} to short-circuit.
  *
  * Order:
- *   1. Resolve params + tool from registry.
+ *   1. Resolve params + tool from registry; a disabled or unavailable tool answers like an unregistered one.
  *   2. Token scope narrows allowed tools.
  *   3. ACL — admin role + optional underlying-Magento and argument-derived contextual ACLs.
  *   4. Write gate (WRITE tools require both server config and token flag).
  *   5. Input schema validation.
  *   6. Rate limiter.
- *   7. Dispatch with before/after events.
+ *   7. Dispatch with before/after events; a {@see ForbiddenException} from the tool is a `-32004` refusal.
  */
 class ToolsCallHandler implements HandlerInterface
 {
@@ -64,6 +67,7 @@ class ToolsCallHandler implements HandlerInterface
      * @param ArgumentCoercer $argumentCoercer
      * @param SchemaSanitizer $schemaSanitizer
      * @param DisabledTools $disabledTools
+     * @param ToolAvailability|null $toolAvailability Optional so existing callers keep working; wired in di.xml
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -77,7 +81,8 @@ class ToolsCallHandler implements HandlerInterface
         private readonly LoggerInterface $logger,
         private readonly ArgumentCoercer $argumentCoercer,
         private readonly SchemaSanitizer $schemaSanitizer,
-        private readonly DisabledTools $disabledTools
+        private readonly DisabledTools $disabledTools,
+        private readonly ?ToolAvailability $toolAvailability = null
     ) {
     }
 
@@ -140,6 +145,9 @@ class ToolsCallHandler implements HandlerInterface
         if ($canonical === null) {
             return $this->failNotRegistered($request, $requested);
         }
+        // One name per tool in the audit log: the dotted canonical name, whichever form the client sent
+        // and whether or not the call is refused below.
+        $this->auditContext->toolName = $canonical;
         // An admin-disabled tool is indistinguishable from an unregistered one on the wire.
         if ($this->disabledTools->isDisabled($canonical)) {
             return $this->failNotRegistered($request, $requested);
@@ -149,7 +157,10 @@ class ToolsCallHandler implements HandlerInterface
         } catch (NoSuchEntityException) {
             return $this->failNotRegistered($request, $requested);
         }
-        $this->auditContext->toolName = $canonical;
+        // A tool whose optional feature is missing is not installed for any role, so it is not a role refusal.
+        if ($this->toolAvailability !== null && !$this->toolAvailability->isAvailable($tool)) {
+            return $this->failNotRegistered($request, $requested);
+        }
 
         $argsRaw = $request->params['arguments'] ?? [];
         if (!is_array($argsRaw)) {
@@ -286,11 +297,13 @@ class ToolsCallHandler implements HandlerInterface
         if ($tool->getWriteMode() !== WriteMode::WRITE) {
             return null;
         }
-        if (!$this->config->isAllowWrites() || !$context->token->getAllowWrites()) {
+        $writeAccess = WriteAccess::resolve($this->config, $context);
+        if (!$writeAccess->isAllowed()) {
             return $this->fail(
                 $request,
                 ErrorCode::WRITE_NOT_ALLOWED,
-                'Write tools are disabled for this server or token.'
+                'Write tools are ' . $writeAccess->describeClosedLayer() . '.',
+                ['reason' => $writeAccess->getClosedReason()]
             );
         }
         return null;
@@ -384,6 +397,16 @@ class ToolsCallHandler implements HandlerInterface
         ]);
 
         if ($exception !== null) {
+            // A run-time scope or permission refusal answers exactly like the pre-execution ACL gates.
+            if ($exception instanceof ForbiddenException) {
+                $data = $exception->getData();
+                return $this->fail(
+                    $request,
+                    ErrorCode::FORBIDDEN,
+                    $exception->getMessage(),
+                    $data === [] ? null : $data
+                );
+            }
             // LocalizedException messages are the tool's published contract — safe to
             // surface. Anything else may embed stack traces / SQL / paths; log + generic.
             if ($exception instanceof LocalizedException) {

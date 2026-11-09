@@ -67,7 +67,7 @@ class ListStoresPrompt implements PromptInterface
             new PromptMessage(
                 PromptMessage::ROLE_USER,
                 <<<TXT
-                Call system.store.list. Format the result as a friendly Website → Store → Store View nesting, where each view shows:
+                Call system_store_list. Format the result as a friendly Website → Store → Store View nesting, where each view shows:
                 - public address (the customer-facing URL)
                 - default language
                 - default currency

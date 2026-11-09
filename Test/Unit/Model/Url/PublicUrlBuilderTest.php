@@ -122,7 +122,7 @@ class PublicUrlBuilderTest extends TestCase
     {
         $this->withBaseUrl('https://example.com/lv/');
         self::assertSame(
-            'https://example.com/.well-known/oauth-authorization-server/lv',
+            'https://example.com/.well-known/oauth-authorization-server/lv/mcp',
             $this->builder->getAuthServerWellKnownUrl()
         );
     }
@@ -131,9 +131,37 @@ class PublicUrlBuilderTest extends TestCase
     {
         $this->withBaseUrl('https://example.com/');
         self::assertSame(
-            'https://example.com/.well-known/oauth-authorization-server',
+            'https://example.com/.well-known/oauth-authorization-server/mcp',
             $this->builder->getAuthServerWellKnownUrl()
         );
+    }
+
+    public function testIssuerUrlIsPathScopedToTheMcpEndpoint(): void
+    {
+        $this->withBaseUrl('https://example.com/');
+
+        self::assertSame('https://example.com/mcp', $this->builder->getIssuerUrl());
+    }
+
+    public function testIssuerUrlKeepsTheStoreBasePath(): void
+    {
+        $this->withBaseUrl('https://example.com/lv/');
+
+        self::assertSame('https://example.com/lv/mcp', $this->builder->getIssuerUrl());
+    }
+
+    public function testIssuerPathIsMcpOnARootInstall(): void
+    {
+        $this->withBaseUrl('https://example.com/');
+
+        self::assertSame('mcp', $this->builder->getIssuerPath());
+    }
+
+    public function testIssuerPathKeepsTheStoreBasePath(): void
+    {
+        $this->withBaseUrl('https://example.com/lv/');
+
+        self::assertSame('lv/mcp', $this->builder->getIssuerPath());
     }
 
     /**

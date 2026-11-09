@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
@@ -19,8 +20,10 @@ use stdClass;
 /**
  * Handles the `initialize` JSON-RPC method. Advertises the `tools` and
  * `prompts` capabilities; `resources`, `sampling`, `logging` are deliberately
- * omitted. `protocolVersion` is sourced from {@see ProtocolVersionValidator}
- * so the two places that need to agree on the version never drift.
+ * omitted. `protocolVersion` echoes the client's requested version when it is
+ * supported and falls back to the latest otherwise, as the MCP lifecycle
+ * requires; {@see ProtocolVersionValidator} owns the supported list so the
+ * header check and this answer never drift.
  */
 class InitializeHandler implements HandlerInterface
 {
@@ -49,8 +52,6 @@ class InitializeHandler implements HandlerInterface
      */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
-        unset($context);
-
         $serverInfo = [
             'name' => $this->moduleConfig->getServerName(),
             'version' => $this->serverVersion,
@@ -77,7 +78,9 @@ class InitializeHandler implements HandlerInterface
         }
 
         $payload = [
-            'protocolVersion' => $this->protocolVersionValidator->getLatest(),
+            'protocolVersion' => $this->protocolVersionValidator->negotiate(
+                $request->params['protocolVersion'] ?? null
+            ),
             'capabilities' => [
                 'tools' => new stdClass(),
                 'prompts' => ['listChanged' => false],
@@ -86,6 +89,12 @@ class InitializeHandler implements HandlerInterface
         ];
 
         $instructions = $this->moduleConfig->getServerInstructions();
+        $writeAccess = WriteAccess::resolve($this->moduleConfig, $context);
+        if (!$writeAccess->isAllowed()) {
+            $writesOff = 'Write tools are ' . $writeAccess->describeClosedLayer()
+                . '. Only read tools are available in this session.';
+            $instructions = $instructions === null ? $writesOff : $instructions . "\n\n" . $writesOff;
+        }
         if ($instructions !== null) {
             $payload['instructions'] = $instructions;
         }
