@@ -227,6 +227,29 @@ What the dispatcher does with the return value:
 - `[]` means "no extra gate" — the call proceeds on the strength of the tool's own ACL alone. Return it only when the tool itself refuses that input in `execute()`; otherwise the gate silently disappears. `Tool/System/ConfigSet` is the worked example: it returns `[]` for a config section that declares no `<resource>` (resolution must not throw), and `execute()` refuses that path outright, exactly as `Structure\Element\Section::isAllowed()` refuses it in the admin UI.
 - The resolver is called **once per tool call** with no caching in the dispatcher. Memoise inside your implementation if resolution is expensive.
 
+## Refusing a call at run time — `ForbiddenException`
+
+The ACL gates run before `execute()` and cannot see an entity's store or website. When `execute()` finds that the caller may not act on the entity, throw `Magebit\Mcp\Exception\ForbiddenException`:
+
+```php
+use Magebit\Mcp\Exception\ForbiddenException;
+
+if (!$this->scopeChecker->canEditStore($admin, $page->getStoreId())) {
+    throw new ForbiddenException(
+        'This page belongs to a store view outside your admin scope.',
+        ['reason' => 'scope', 'page_id' => (int) $page->getId()]
+    );
+}
+```
+
+For a missing permission, pass `['reason' => 'acl', 'resource' => 'Vendor_Module::resource_id']`.
+
+The client gets `-32004 FORBIDDEN` with your message, and `$data` as `error.data` (omitted when empty). The call is audited like an ACL refusal and not logged. Both reach the client verbatim, so keep internals out of them.
+
+- **`ForbiddenException`**: a scope or permission refusal.
+- **Soft error (`isError: true`)**: the call was allowed but cannot be done, for example a missing entity or an unmet precondition.
+- **`LocalizedException`**: `-32011` with its message. Any other exception is `-32011` with a generic message and is logged.
+
 ## Step 3 — Register the tool with the MCP registry
 
 ```xml

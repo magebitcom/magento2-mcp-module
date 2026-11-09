@@ -15,6 +15,7 @@ use Magebit\Mcp\Api\RateLimiterInterface;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
+use Magebit\Mcp\Exception\ForbiddenException;
 use Magebit\Mcp\Exception\RateLimitedException;
 use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
@@ -47,7 +48,7 @@ use Throwable;
  *   4. Write gate (WRITE tools require both server config and token flag).
  *   5. Input schema validation.
  *   6. Rate limiter.
- *   7. Dispatch with before/after events.
+ *   7. Dispatch with before/after events; a {@see ForbiddenException} from the tool is a `-32004` refusal.
  */
 class ToolsCallHandler implements HandlerInterface
 {
@@ -384,6 +385,16 @@ class ToolsCallHandler implements HandlerInterface
         ]);
 
         if ($exception !== null) {
+            // A run-time scope or permission refusal answers exactly like the pre-execution ACL gates.
+            if ($exception instanceof ForbiddenException) {
+                $data = $exception->getData();
+                return $this->fail(
+                    $request,
+                    ErrorCode::FORBIDDEN,
+                    $exception->getMessage(),
+                    $data === [] ? null : $data
+                );
+            }
             // LocalizedException messages are the tool's published contract — safe to
             // surface. Anything else may embed stack traces / SQL / paths; log + generic.
             if ($exception instanceof LocalizedException) {
