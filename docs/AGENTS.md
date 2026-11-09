@@ -274,7 +274,7 @@ Rotating a client secret is the exception: it deliberately leaves live tokens wo
 
 ## Where to look when something is wrong
 
-The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission), `-32010` tool not found (absent or switched off), `-32012` write not allowed (one of the two write layers is off), `-32013` rate limited, `-32015` server disabled.
+The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent or switched off), `-32012` write not allowed (one of the two write layers is off), `-32013` rate limited, `-32015` server disabled.
 
 | Symptom | Look here |
 |---|---|
