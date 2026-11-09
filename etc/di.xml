@@ -527,4 +527,14 @@
         </arguments>
     </type>
 
+    <type name="Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler">
+        <arguments>
+            <argument name="toolAvailability" xsi:type="object">Magebit\Mcp\Model\Tool\ToolAvailability</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler">
+        <arguments>
+            <argument name="toolAvailability" xsi:type="object">Magebit\Mcp\Model\Tool\ToolAvailability</argument>
+        </arguments>
+    </type>
 </config>

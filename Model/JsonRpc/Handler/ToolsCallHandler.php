@@ -30,6 +30,7 @@ use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
 use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
+use Magebit\Mcp\Model\Tool\ToolAvailability;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Validator\ArgumentCoercer;
 use Magebit\Mcp\Model\Validator\JsonSchemaValidator;
@@ -43,7 +44,7 @@ use Throwable;
  * `null` to let the next gate run, or a {@see Response} to short-circuit.
  *
  * Order:
- *   1. Resolve params + tool from registry.
+ *   1. Resolve params + tool from registry; a disabled or unavailable tool answers like an unregistered one.
  *   2. Token scope narrows allowed tools.
  *   3. ACL — admin role + optional underlying-Magento and argument-derived contextual ACLs.
  *   4. Write gate (WRITE tools require both server config and token flag).
@@ -66,6 +67,7 @@ class ToolsCallHandler implements HandlerInterface
      * @param ArgumentCoercer $argumentCoercer
      * @param SchemaSanitizer $schemaSanitizer
      * @param DisabledTools $disabledTools
+     * @param ToolAvailability|null $toolAvailability Optional so existing callers keep working; wired in di.xml
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -79,7 +81,8 @@ class ToolsCallHandler implements HandlerInterface
         private readonly LoggerInterface $logger,
         private readonly ArgumentCoercer $argumentCoercer,
         private readonly SchemaSanitizer $schemaSanitizer,
-        private readonly DisabledTools $disabledTools
+        private readonly DisabledTools $disabledTools,
+        private readonly ?ToolAvailability $toolAvailability = null
     ) {
     }
 
@@ -149,6 +152,10 @@ class ToolsCallHandler implements HandlerInterface
         try {
             $tool = $this->toolRegistry->get($canonical);
         } catch (NoSuchEntityException) {
+            return $this->failNotRegistered($request, $requested);
+        }
+        // A tool whose optional feature is missing is not installed for any role, so it is not a role refusal.
+        if ($this->toolAvailability !== null && !$this->toolAvailability->isAvailable($tool)) {
             return $this->failNotRegistered($request, $requested);
         }
         $this->auditContext->toolName = $canonical;

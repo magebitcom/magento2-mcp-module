@@ -20,6 +20,7 @@ use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
 use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
+use Magebit\Mcp\Model\Tool\ToolAvailability;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Model\Util\ToolDomain;
 
@@ -33,6 +34,7 @@ class ToolsListHandler implements HandlerInterface
      * @param LoggerInterface $logger
      * @param ToolDomain $toolDomain
      * @param DisabledTools $disabledTools
+     * @param ToolAvailability|null $toolAvailability Optional so existing callers keep working; wired in di.xml
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -41,7 +43,8 @@ class ToolsListHandler implements HandlerInterface
         private readonly SchemaSanitizer $schemaSanitizer,
         private readonly LoggerInterface $logger,
         private readonly ToolDomain $toolDomain,
-        private readonly DisabledTools $disabledTools
+        private readonly DisabledTools $disabledTools,
+        private readonly ?ToolAvailability $toolAvailability = null
     ) {
     }
 
@@ -62,9 +65,14 @@ class ToolsListHandler implements HandlerInterface
         $writesAllowed = $this->config->isAllowWrites() && $context->token->getAllowWrites();
         $tools = [];
         $hiddenByUnderlyingAcl = [];
+        $unavailable = [];
 
         foreach ($this->toolRegistry->all() as $tool) {
             if ($this->disabledTools->isDisabled($tool->getName())) {
+                continue;
+            }
+            if ($this->toolAvailability !== null && !$this->toolAvailability->isAvailable($tool)) {
+                $unavailable[] = $tool->getName();
                 continue;
             }
             if ($scopes !== null && !in_array($tool->getName(), $scopes, true)) {
@@ -105,6 +113,7 @@ class ToolsListHandler implements HandlerInterface
             [
                 'tools' => array_column($tools, 'name'),
                 'hidden_by_underlying_acl' => $hiddenByUnderlyingAcl,
+                'unavailable' => $unavailable,
             ]
         );
 

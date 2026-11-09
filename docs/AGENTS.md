@@ -223,7 +223,7 @@ Compare the number of tools here against the total from `magebit:mcp:tools:list`
 2. **Whole domains are missing** (every `sales.*`, say) → the admin's role lacks those tool permissions. Go back to stage 5.
 3. **Scattered individual tools are missing** → either the token was scoped with `-s`, or those tools were switched off in *System → MCP → Tools*, or their underlying admin-UI permission does not resolve on this install (`validate-acl` warns about the last case).
 
-A tool switched off is indistinguishable on the wire from one that was never installed — both are absent from `tools/list` and both answer `tools/call` with `-32010 TOOL_NOT_FOUND`. So absence alone never tells you which; check the config and the role.
+A tool switched off is indistinguishable on the wire from one that was never installed — both are absent from `tools/list` and both answer `tools/call` with `-32010 TOOL_NOT_FOUND`. A tool whose optional module is missing or disabled answers the same way, whatever the role. So absence alone never tells you which; check the config, the installed modules and the role.
 
 One naming detail: `tools/list` returns names in the underscore form (`system_whoami`) that some hosted clients require. Both that and the canonical dotted form (`system.whoami`) are accepted by `tools/call`.
 
@@ -274,7 +274,7 @@ Rotating a client secret is the exception: it deliberately leaves live tokens wo
 
 ## Where to look when something is wrong
 
-The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent or switched off), `-32012` write not allowed (one of the two write layers is off; `error.data.reason` is `store_setting` or `token`), `-32013` rate limited, `-32015` server disabled.
+The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent, switched off, or its optional module is off), `-32012` write not allowed (one of the two write layers is off; `error.data.reason` is `store_setting` or `token`), `-32013` rate limited, `-32015` server disabled.
 
 | Symptom | Look here |
 |---|---|
