@@ -23,6 +23,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
   - [Tax and currency module — `Magebit_McpTaxTools`](#tax-and-currency-module--magebit_mcptaxtools)
   - [Report module — `Magebit_McpReportTools`](#report-module--magebit_mcpreporttools)
   - [Google Analytics module — `Magebit_McpGoogleAnalyticsTools`](#google-analytics-module--magebit_mcpgoogleanalyticstools)
+  - [Hyvä Commerce module — `Magebit_McpHyvaCommerceTools`](#hyvä-commerce-module--magebit_mcphyvacommercetools)
   - [Database module — `Magebit_McpDbTools`](#database-module--magebit_mcpdbtools)
 - [Setup](#setup)
 - [Managing tools](#managing-tools)
@@ -100,7 +101,7 @@ Two caveats worth knowing:
 - **`setup:upgrade` enables modules it has not seen before.** Adding the suite to an existing store lands all nine as `=> 1`. If some should be off, disable them in the same deploy, before the store serves traffic.
 - **Disabling a module is a blunt instrument.** To keep one installed but hide individual tools, use **System → MCP → Tools** in the admin, which toggles a single tool at a time behind its own ACL resource.
 
-The Google Analytics and database modules are deliberately **not** in the suite — the first needs a Google login and pulls in the Google SDKs, the second grants bulk database reads. Both are listed below and are one `composer require` away.
+The Google Analytics, Hyvä Commerce and database modules are deliberately **not** in the suite — the first needs a Google login and pulls in the Google SDKs, the second needs Hyvä Commerce, the third grants bulk database reads. All three are listed below and are one `composer require` away.
 
 ## Sub-modules
 
@@ -206,6 +207,20 @@ composer require magebitcom/magento2-mcp-report-tools
 
 ```bash
 composer require magebitcom/magento2-mcp-google-analytics-tools
+```
+
+### Hyvä Commerce module — [`Magebit_McpHyvaCommerceTools`](https://github.com/magebitcom/magento2-mcp-hyva-commerce-tools)
+
+> **Needs Hyvä Commerce 1.4.** Read its [README](https://github.com/magebitcom/magento2-mcp-hyva-commerce-tools#readme) before enabling it.
+
+- Hyvä CMS pages and blocks: drafts, versions, schedules, publishing, translations and Page Builder migration
+- Menu Builder menus, Form Builder forms, email and newsletter templates
+- Store Credit balances, Linked Products groups and category product positions
+- Media Gallery assets and images, Media Optimization
+- Read-only AI Worker jobs, Advanced Admin Permissions and Admin Dashboard widgets
+
+```bash
+composer require magebitcom/magento2-mcp-hyva-commerce-tools
 ```
 
 ### Database module — [`Magebit_McpDbTools`](https://github.com/magebitcom/magento2-mcp-db-tools)
