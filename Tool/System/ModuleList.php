@@ -77,8 +77,8 @@ class ModuleList implements ToolInterface
             . 'one is enabled. Use it to check what the store actually supports '
             . 'before choosing a tool — for example, filter by `Magento_Inventory` '
             . 'to see whether Multi-Source Inventory is active, which decides '
-            . 'whether stock is managed through `inventory.source_item.set` or the '
-            . 'legacy `catalog.product.stock.set`. Defaults to enabled modules; '
+            . 'whether stock is managed through `inventory_source_item_set` or the '
+            . 'legacy `catalog_product_stock_set`. Defaults to enabled modules; '
             . 'pass `status` to include disabled ones. `name_like` is a '
             . 'case-insensitive substring match on the module name.';
     }

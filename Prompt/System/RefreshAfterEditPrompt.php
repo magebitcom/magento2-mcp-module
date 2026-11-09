@@ -71,8 +71,8 @@ class RefreshAfterEditPrompt implements PromptInterface
                 The user has just edited products, prices, or settings and wants those changes to become visible to customers.
 
                 Do this in order, narrating each step in one short plain-English sentence (avoid the words "cache", "indexer", "FPC", "flush" in your output to the user):
-                1. Call system.cache.flush with no arguments (flushes everything).
-                2. Call system.index.list, then for each indexer whose status indicates it needs a reindex, call system.index.reindex with that indexer id.
+                1. Call system_cache_flush with no arguments (flushes everything).
+                2. Call system_index_list, then for each indexer whose status indicates it needs a reindex, call system_index_reindex with that indexer id.
 
                 Finish with one sentence ("Your changes are live now."). If a step fails, describe what failed in plain language and stop — don't continue past a failure.
                 TXT

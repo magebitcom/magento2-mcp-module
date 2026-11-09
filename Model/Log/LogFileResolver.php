@@ -106,7 +106,7 @@ class LogFileResolver
             || str_contains($name, '..')
         ) {
             throw new LocalizedException(__(
-                'Log file "%1" is invalid — pass a plain file name from `system.log.list`, without any directory part.',
+                'Log file "%1" is invalid — pass a plain file name from `system_log_list`, without any directory part.',
                 $this->describe($name)
             ));
         }
@@ -143,7 +143,7 @@ class LogFileResolver
         $resolved = $this->realPath($prefix . $name);
         if ($resolved === null) {
             throw new LocalizedException(__(
-                'Log file "%1" was not found in the log directory. Call `system.log.list` for the available files.',
+                'Log file "%1" was not found in the log directory. Call `system_log_list` for the available files.',
                 $this->describe($name)
             ));
         }
