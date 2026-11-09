@@ -45,6 +45,9 @@ define([
             initialSelection: []
         },
 
+        /** True while _syncParentStates runs; the cascade handlers skip then. */
+        _syncingParents: false,
+
         _create: function () {
             this._bindToggleAllResources();
             this._bindAllowAllButton();
@@ -89,6 +92,12 @@ define([
                 Array.isArray(selection) ? selection : []
             );
 
+            element.off('.mcpScopesTree');
+            element.on('select_node.jstree.mcpScopesTree', $.proxy(this._selectChildNodes, this));
+            element.on('deselect_node.jstree.mcpScopesTree', $.proxy(this._deselectChildNodes, this));
+            element.on('ready.jstree.mcpScopesTree', $.proxy(this._onTreeChanged, this));
+            element.on('changed.jstree.mcpScopesTree', $.proxy(this._onTreeChanged, this));
+
             element.jstree({
                 plugins: ['checkbox'],
                 checkbox: {
@@ -107,11 +116,60 @@ define([
                     }
                 }
             });
+        },
 
-            element.off('.mcpScopesTree');
-            element.on('select_node.jstree.mcpScopesTree', $.proxy(this._selectChildNodes, this));
-            element.on('deselect_node.jstree.mcpScopesTree', $.proxy(this._deselectChildNodes, this));
-            element.on('changed.jstree.mcpScopesTree', $.proxy(this._syncSelections, this));
+        _onTreeChanged: function () {
+            this._syncParentStates();
+            this._syncSelections();
+        },
+
+        /**
+         * Tick every parent whose enabled children are all ticked, untick the
+         * rest. Bottom-up, so nested parents see their children's final state.
+         * jstree's `supress_event` only silences `changed.jstree`; the
+         * `select_node` / `deselect_node` events still fire, so the guard keeps
+         * the child cascade handlers out of this sync. Otherwise unticking a
+         * parent here would untick every sibling of the child the user cleared.
+         */
+        _syncParentStates: function () {
+            var instance = this.element.jstree(true),
+                nodes,
+                i;
+            if (!instance) {
+                return;
+            }
+            nodes = instance.get_json('#', { flat: true }) || [];
+            this._syncingParents = true;
+            try {
+                for (i = nodes.length - 1; i >= 0; i--) {
+                    this._syncParentState(instance, instance.get_node(nodes[i].id));
+                }
+            } finally {
+                this._syncingParents = false;
+            }
+        },
+
+        _syncParentState: function (instance, node) {
+            var enabled,
+                allTicked;
+            if (!node || !Array.isArray(node.children) || !node.children.length) {
+                return;
+            }
+            enabled = node.children
+                .map(function (id) {
+                    return instance.get_node(id);
+                })
+                .filter(function (child) {
+                    return child && !(child.state && child.state.disabled);
+                });
+            allTicked = enabled.length > 0 && enabled.every(function (child) {
+                return instance.is_selected(child);
+            });
+            if (allTicked && !instance.is_selected(node)) {
+                instance.select_node(node, true, true);
+            } else if (!allTicked && instance.is_selected(node)) {
+                instance.deselect_node(node, true);
+            }
         },
 
         _cloneTree: function (nodes) {
@@ -144,21 +202,32 @@ define([
             return nodes;
         },
 
+        /**
+         * Cascade a user tick down to the enabled children. The children are
+         * ticked silently: the `changed.jstree` of the clicked node fires after
+         * this handler and runs one parent sync for the whole tree.
+         */
         _selectChildNodes: function (event, selected) {
+            if (this._syncingParents) {
+                return;
+            }
             selected.instance.open_node(selected.node);
             selected.node.children.forEach(function (id) {
                 var child = selected.instance.get_node(id);
                 if (child && (!child.state || !child.state.disabled)) {
-                    selected.instance.select_node(child);
+                    selected.instance.select_node(child, true);
                 }
             });
         },
 
         _deselectChildNodes: function (event, selected) {
+            if (this._syncingParents) {
+                return;
+            }
             selected.node.children.forEach(function (id) {
                 var child = selected.instance.get_node(id);
                 if (child) {
-                    selected.instance.deselect_node(child);
+                    selected.instance.deselect_node(child, true);
                 }
             });
         },
