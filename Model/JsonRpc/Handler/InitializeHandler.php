@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\JsonRpc\Handler;
 
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
+use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
@@ -49,8 +50,6 @@ class InitializeHandler implements HandlerInterface
      */
     public function handle(Request $request, AuthenticatedContext $context): Response
     {
-        unset($context);
-
         $serverInfo = [
             'name' => $this->moduleConfig->getServerName(),
             'version' => $this->serverVersion,
@@ -86,6 +85,12 @@ class InitializeHandler implements HandlerInterface
         ];
 
         $instructions = $this->moduleConfig->getServerInstructions();
+        $writeAccess = WriteAccess::resolve($this->moduleConfig, $context);
+        if (!$writeAccess->isAllowed()) {
+            $writesOff = 'Write tools are ' . $writeAccess->describeClosedLayer()
+                . '. Only read tools are available in this session.';
+            $instructions = $instructions === null ? $writesOff : $instructions . "\n\n" . $writesOff;
+        }
         if ($instructions !== null) {
             $payload['instructions'] = $instructions;
         }

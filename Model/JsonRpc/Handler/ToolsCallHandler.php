@@ -21,6 +21,7 @@ use Magebit\Mcp\Exception\SchemaValidationException;
 use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Auth\AuthenticatedContextProvider;
+use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
@@ -287,11 +288,13 @@ class ToolsCallHandler implements HandlerInterface
         if ($tool->getWriteMode() !== WriteMode::WRITE) {
             return null;
         }
-        if (!$this->config->isAllowWrites() || !$context->token->getAllowWrites()) {
+        $writeAccess = WriteAccess::resolve($this->config, $context);
+        if (!$writeAccess->isAllowed()) {
             return $this->fail(
                 $request,
                 ErrorCode::WRITE_NOT_ALLOWED,
-                'Write tools are disabled for this server or token.'
+                'Write tools are ' . $writeAccess->describeClosedLayer() . '.',
+                ['reason' => $writeAccess->getClosedReason()]
             );
         }
         return null;

@@ -333,7 +333,7 @@ To ship a write tool, return `WriteMode::WRITE` from `getWriteMode()`. The dispa
 - `magebit_mcp/general/allow_writes` is `1` in the Magento config (global kill-switch).
 - The acting token has `allow_writes = 1`.
 
-Both must pass; either fails → `-32012 Write not allowed`.
+Both must pass; either fails → `-32012 Write not allowed`, with `error.data.reason` = `store_setting` (the config switch, checked first) or `token`.
 
 Write tools SHOULD return `getConfirmationRequired(): true` so MCP clients that support user confirmation (Claude Desktop does) prompt the human before executing. Read tools return `false`. See `Magebit_McpOrderTools` for a canonical example of both.
 

@@ -205,7 +205,7 @@ curl -s -X POST "$BASE/mcp" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"system.whoami","arguments":{}}}'
 ```
 
-Good: `username` is the admin you named in stage 4a, and `allow_writes` is `true` only if you intended writes. This is the fastest way to confirm you are looking at the identity you think you are. `allow_writes: false` when you expected `true` means one of the two write layers is off — the config toggle from stage 2, or the token's own flag.
+Good: `username` is the admin you named in stage 4a, and `allow_writes` is `true` only if you intended writes. This is the fastest way to confirm you are looking at the identity you think you are. `allow_writes: false` when you expected `true` means one of the two write layers is off — the config toggle from stage 2, or the token's own flag; `store_allow_writes` and `token_allow_writes` show which.
 
 **Probe 4 — the tool surface, and the number that matters.**
 
@@ -274,7 +274,7 @@ Rotating a client secret is the exception: it deliberately leaves live tokens wo
 
 ## Where to look when something is wrong
 
-The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent or switched off), `-32012` write not allowed (one of the two write layers is off), `-32013` rate limited, `-32015` server disabled.
+The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or expired credential), `-32002` origin rejected, `-32004` forbidden (the role lacks the permission or store scope), `-32010` tool not found (absent or switched off), `-32012` write not allowed (one of the two write layers is off; `error.data.reason` is `store_setting` or `token`), `-32013` rate limited, `-32015` server disabled.
 
 | Symptom | Look here |
 |---|---|
