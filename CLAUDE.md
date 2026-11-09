@@ -42,7 +42,7 @@ Local smoke-testing via MCP Inspector: see `dev/inspector/README.md`. For self-s
 
 ## Request pipeline (Controller/Index/Index.php)
 
-Every `POST /mcp` runs this fixed sequence. Every stage has an audit row flushed from the `finally` block — unauthenticated attempts leave a trail:
+Every `POST /mcp` runs this fixed sequence. Every stage has an audit row flushed from the `finally` block — unauthenticated attempts leave a trail; the only exception is a `server/discover` probe answered `-32601`, which is not written:
 
 1. **Origin header** — `Model/Validator/OriginValidator`, DNS-rebinding defense, allowlist in store config.
 2. **Bearer auth** — `Model/Auth/TokenAuthenticator`. 401 + `WWW-Authenticate: Bearer` on failure. Tokens are HMAC-SHA256 hashed at rest (keyed by the install's `crypt/key`).

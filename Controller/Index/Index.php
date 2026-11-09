@@ -37,6 +37,11 @@ use Magento\Framework\App\ResponseInterface;
  */
 class Index implements HttpPostActionInterface, CsrfAwareActionInterface
 {
+    /**
+     * Discovery probes newer MCP clients send on connect before falling back to `initialize`.
+     * Their -32601 answer is expected, so it is not written to the audit log as an error.
+     */
+    private const UNAUDITED_DISCOVERY_PROBES = ['server/discover'];
 
     /**
      * @param HttpRequest $request
@@ -70,6 +75,7 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
     public function execute(): ResponseInterface
     {
         $this->seedAuditEnvironment();
+        $skipAudit = false;
 
         try {
             if (!$this->config->isEnabled()) {
@@ -162,11 +168,15 @@ class Index implements HttpPostActionInterface, CsrfAwareActionInterface
             if ($rpcResponse->error !== null) {
                 $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
                 $this->auditContext->errorCode = (string) $rpcResponse->error->code->value;
+                $skipAudit = $rpcResponse->error->code === ErrorCode::METHOD_NOT_FOUND
+                    && in_array($rpcRequest->method, self::UNAUDITED_DISCOVERY_PROBES, true);
             }
 
             return $this->writeJson(200, $rpcResponse->toArray());
         } finally {
-            $this->auditLogger->write($this->auditContext);
+            if (!$skipAudit) {
+                $this->auditLogger->write($this->auditContext);
+            }
         }
     }
 

@@ -279,7 +279,7 @@ The codes you are most likely to meet: `-32001` unauthorized (bad, revoked or ex
 | Symptom | Look here |
 |---|---|
 | Any MCP-specific failure | `var/log/magebit_mcp.log` — the module's own channel |
-| "Did my call even arrive?" | the audit log, *System → MCP → Audit Log*. One row per request, including unauthenticated attempts, so an empty log means the request never reached MCP |
+| "Did my call even arrive?" | the audit log, *System → MCP → Audit Log*. One row per request, including unauthenticated attempts (except the `server/discover` connect probe, which answers `-32601` and is not logged), so an empty log means the request never reached MCP |
 | A tool errors mid-call | the audit row carries the error code and a redacted copy of the arguments |
 | An unfamiliar error code | `Model/JsonRpc/ErrorCode` lists every module-specific code with its label |
 
