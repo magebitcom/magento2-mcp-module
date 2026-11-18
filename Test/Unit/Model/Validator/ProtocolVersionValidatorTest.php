@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Test\Unit\Model\Validator;
 
 use Magebit\Mcp\Model\Validator\ProtocolVersionValidator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ProtocolVersionValidatorTest extends TestCase
@@ -65,6 +66,7 @@ class ProtocolVersionValidatorTest extends TestCase
      * @dataProvider unsupportedRequests
      * @param mixed $requested
      */
+    #[DataProvider('unsupportedRequests')]
     public function testNegotiateFallsBackToLatest(mixed $requested): void
     {
         $this->assertSame(ProtocolVersionValidator::LATEST, $this->validator->negotiate($requested));

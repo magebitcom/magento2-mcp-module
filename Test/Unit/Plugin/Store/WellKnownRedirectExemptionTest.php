@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\Url\WellKnownPathParser;
 use Magebit\Mcp\Plugin\Store\WellKnownRedirectExemption;
 use Magento\Framework\App\Request\Http as HttpRequest;
 use Magento\Store\Model\BaseUrlChecker;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -31,6 +32,7 @@ class WellKnownRedirectExemptionTest extends TestCase
      * @param string $pathInfo
      * @return void
      */
+    #[DataProvider('exemptPathProvider')]
     public function testExemptsDiscoveryPathsFromRedirect(string $pathInfo): void
     {
         self::assertTrue($this->plugin->afterExecute($this->subject, false, [], $this->request($pathInfo)));
@@ -58,6 +60,7 @@ class WellKnownRedirectExemptionTest extends TestCase
      * @param string $pathInfo
      * @return void
      */
+    #[DataProvider('unroutedPathProvider')]
     public function testLeavesPathsTheRouterDoesNotServeUntouched(string $pathInfo): void
     {
         self::assertFalse($this->plugin->afterExecute($this->subject, false, [], $this->request($pathInfo)));

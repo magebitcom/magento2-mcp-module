@@ -23,6 +23,7 @@ use Magento\Config\Model\ConfigFactory;
 use Magento\Framework\App\Config\ScopeCodeResolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Exception\LocalizedException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -344,6 +345,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string $scope
      * @return void
      */
+    #[DataProvider('unknownScopeProvider')]
     public function testAnUnknownScopeNameIsRejectedRatherThanTreatedAsDefault(string $scope): void
     {
         $writer = $this->writerRefusingToCreate();
@@ -402,6 +404,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string $path
      * @return void
      */
+    #[DataProvider('malformedPathProvider')]
     public function testAMalformedPathIsNeverWritten(string $path): void
     {
         $writer = $this->writerRefusingToCreate();
@@ -415,6 +418,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string $path
      * @return void
      */
+    #[DataProvider('malformedPathProvider')]
     public function testAMalformedPathHasNoSection(string $path): void
     {
         $structure = $this->createMock(Structure::class);
@@ -596,6 +600,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string|null $type
      * @return void
      */
+    #[DataProvider('fileUploadFieldProvider')]
     public function testAFileUploadFieldIsRefused(?string $backendModel, ?string $type): void
     {
         $structure = $this->structure(
@@ -629,6 +634,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string|null $type
      * @return void
      */
+    #[DataProvider('ordinaryFieldProvider')]
     public function testAnOrdinaryFieldIsStillWritable(?string $backendModel, ?string $type): void
     {
         $structure = $this->structure(
@@ -806,6 +812,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string $scope
      * @return void
      */
+    #[DataProvider('unknownScopeProvider')]
     public function testCurrentValueRejectsAnUnknownScopeWithoutReading(string $scope): void
     {
         $scopeConfig = $this->createMock(ScopeConfigInterface::class);
@@ -854,6 +861,7 @@ class ConfigPathWriterTest extends TestCase
      * @param string|null $expected
      * @return void
      */
+    #[DataProvider('currentValueProvider')]
     public function testCurrentValueStringifiesScalarsAndDropsTheRest(mixed $stored, ?string $expected): void
     {
         $scopeConfig = $this->createMock(ScopeConfigInterface::class);

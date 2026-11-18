@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Model\Config;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -124,6 +125,7 @@ class ConfigStructureWiringTest extends TestCase
      * @param string $class
      * @return void
      */
+    #[DataProvider('structureConsumerProvider')]
     public function testEveryStructureConsumerGetsTheAdminhtmlStructure(string $class): void
     {
         $this->assertSame(

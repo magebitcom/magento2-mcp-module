@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\Url\PublicUrlBuilder;
 use Magento\Framework\UrlInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -76,6 +77,7 @@ class PublicUrlBuilderTest extends TestCase
      * @param string $expected
      * @return void
      */
+    #[DataProvider('basePathProvider')]
     public function testGetBasePath(string $baseUrl, string $expected): void
     {
         $this->withBaseUrl($baseUrl);

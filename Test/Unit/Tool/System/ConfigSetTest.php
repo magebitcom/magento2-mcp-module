@@ -15,6 +15,7 @@ use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Tool\System\ConfigSet;
 use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Framework\Exception\LocalizedException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -285,6 +286,7 @@ class ConfigSetTest extends TestCase
      * @param string $expected
      * @return void
      */
+    #[DataProvider('missingArgumentProvider')]
     public function testMissingOrMistypedArgumentsAreRefused(array $arguments, string $expected): void
     {
         $this->openEveryOtherGate();
@@ -362,6 +364,7 @@ class ConfigSetTest extends TestCase
      * @param array<string, mixed> $arguments
      * @return void
      */
+    #[DataProvider('unusablePathProvider')]
     public function testContextualAclIsEmptyWithoutAUsablePath(array $arguments): void
     {
         $this->writer->expects($this->never())->method('sectionFor');

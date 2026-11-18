@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Test\Unit\Model\Log;
 use Magebit\Mcp\Model\Log\LogReader;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class LogReaderTest extends TestCase
@@ -213,6 +214,7 @@ class LogReaderTest extends TestCase
      * @param int $contextLines
      * @return void
      */
+    #[DataProvider('contextWidthProvider')]
     public function testGrepHonoursTheCapAtEveryContextWidth(int $contextLines): void
     {
         $path = $this->write('system.log', str_repeat("ERROR boom\n", 200));

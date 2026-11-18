@@ -32,6 +32,7 @@ use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\User\Model\User;
 use Opis\JsonSchema\Validator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ToolsCallHandlerTest extends TestCase
@@ -425,6 +426,7 @@ class ToolsCallHandlerTest extends TestCase
      * @dataProvider disabledToolRequestNames
      * @param string $requested
      */
+    #[DataProvider('disabledToolRequestNames')]
     public function testDisabledToolIsAuditedUnderItsCanonicalName(string $requested): void
     {
         $tool = $this->createMock(ToolInterface::class);

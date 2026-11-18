@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\Config\ConfigWriteConfig;
 use Magebit\Mcp\Model\Config\ConfigWritePolicy;
 use Magebit\Mcp\Model\Util\ConfigPathFormat;
 use Magento\Framework\Exception\LocalizedException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ConfigWritePolicyTest extends TestCase
@@ -115,6 +116,7 @@ class ConfigWritePolicyTest extends TestCase
      * @return void
      * @dataProvider malformedPathProvider
      */
+    #[DataProvider('malformedPathProvider')]
     public function testAMalformedPathIsRefusedByTheShapeGuard(string $path): void
     {
         $this->expectException(LocalizedException::class);
@@ -198,6 +200,7 @@ class ConfigWritePolicyTest extends TestCase
      * @return void
      * @dataProvider whitespacePaddedProtectedPathProvider
      */
+    #[DataProvider('whitespacePaddedProtectedPathProvider')]
     public function testFindProtectedPrefixIsNotFooledByWhitespace(string $path): void
     {
         $this->assertSame('admin', $this->policy([])->findProtectedPrefix($path));

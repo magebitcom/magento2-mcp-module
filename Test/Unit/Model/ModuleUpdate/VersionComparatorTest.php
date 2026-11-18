@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\ModuleUpdate;
 
 use Composer\Semver\VersionParser;
 use Magebit\Mcp\Model\ModuleUpdate\VersionComparator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class VersionComparatorTest extends TestCase
@@ -31,6 +32,7 @@ class VersionComparatorTest extends TestCase
      * @param bool $expected
      * @return void
      */
+    #[DataProvider('versionProvider')]
     public function testIsNewer(string $candidate, string $current, bool $expected): void
     {
         $this->assertSame($expected, $this->comparator->isNewer($candidate, $current));
@@ -39,7 +41,7 @@ class VersionComparatorTest extends TestCase
     /**
      * @return array<string, array{string, string, bool}>
      */
-    public function versionProvider(): array
+    public static function versionProvider(): array
     {
         return [
             'bare newer'                 => ['0.0.3', '0.0.1', true],
