@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\Url;
 
 use Magebit\Mcp\Model\Url\WellKnownPath;
 use Magebit\Mcp\Model\Url\WellKnownPathParser;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class WellKnownPathParserTest extends TestCase
@@ -29,6 +30,7 @@ class WellKnownPathParserTest extends TestCase
      * @param bool $trailing
      * @return void
      */
+    #[DataProvider('servedPathProvider')]
     public function testParsesServedPaths(
         string $pathInfo,
         string $document,
@@ -111,6 +113,7 @@ class WellKnownPathParserTest extends TestCase
      * @param string $pathInfo
      * @return void
      */
+    #[DataProvider('unservedPathProvider')]
     public function testReturnsNullForPathsTheModuleDoesNotServe(string $pathInfo): void
     {
         self::assertNull($this->parser->parse($pathInfo));

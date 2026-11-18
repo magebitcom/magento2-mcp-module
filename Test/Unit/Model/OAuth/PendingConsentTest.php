@@ -12,6 +12,7 @@ use Magebit\Mcp\Model\OAuth\AuthorizeHandoffStorage;
 use Magebit\Mcp\Model\OAuth\PendingConsent;
 use Magento\Backend\Model\Session;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class PendingConsentTest extends TestCase
@@ -99,6 +100,7 @@ class PendingConsentTest extends TestCase
      * @param mixed $nonce
      * @return void
      */
+    #[DataProvider('malformedNonceProvider')]
     public function testMalformedNonceIsNotRemembered(mixed $nonce): void
     {
         $this->pendingConsent->remember($nonce);
@@ -125,6 +127,7 @@ class PendingConsentTest extends TestCase
      * @param mixed $value
      * @return void
      */
+    #[DataProvider('tamperedSessionValueProvider')]
     public function testTamperedSessionValueIsIgnored(mixed $value): void
     {
         $this->session->setData('magebit_mcp_pending_consent', $value);

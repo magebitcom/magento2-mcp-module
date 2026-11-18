@@ -36,7 +36,7 @@ class DispatcherTest extends TestCase
     private function stubHandler(string $method): HandlerInterface&MockObject
     {
         $handler = $this->createMock(HandlerInterface::class);
-        $handler->expects($this->any())->method('method')->willReturn($method);
+        $handler->method('method')->willReturn($method);
         return $handler;
     }
 
@@ -84,7 +84,7 @@ class DispatcherTest extends TestCase
     public function testWrapsHandlerExceptionInInternalError(): void
     {
         $handler = $this->stubHandler('boom');
-        $handler->expects($this->any())->method('handle')->willThrowException(new RuntimeException('kaboom'));
+        $handler->method('handle')->willThrowException(new RuntimeException('kaboom'));
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
@@ -102,7 +102,7 @@ class DispatcherTest extends TestCase
     public function testSwallowsHandlerExceptionOnNotification(): void
     {
         $handler = $this->stubHandler('boom');
-        $handler->expects($this->any())->method('handle')->willThrowException(new RuntimeException('kaboom'));
+        $handler->method('handle')->willThrowException(new RuntimeException('kaboom'));
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');

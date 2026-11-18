@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\Validator;
 
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\Validator\OriginValidator;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -77,6 +78,7 @@ class OriginValidatorTest extends TestCase
     /**
      * @dataProvider dnsRebindingAttemptProvider
      */
+    #[DataProvider('dnsRebindingAttemptProvider')]
     public function testRejectsDnsRebindingShapes(string $origin): void
     {
         $this->assertFalse($this->validator()->isAllowed($origin));

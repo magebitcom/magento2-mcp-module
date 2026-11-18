@@ -125,10 +125,9 @@ class SaveTest extends TestCase
     {
         $this->request = $this->createMock(HttpRequest::class);
         $this->messageManager = $this->createMock(MessageManagerInterface::class);
-        $this->session = $this->getMockBuilder(Session::class)
+        $this->session = $this->getMockBuilder(SessionWithData::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['getData'])
-            ->addMethods(['setData'])
+            ->onlyMethods(['getData', 'setData'])
             ->getMock();
         $this->redirect = $this->getMockBuilder(Redirect::class)
             ->disableOriginalConstructor()

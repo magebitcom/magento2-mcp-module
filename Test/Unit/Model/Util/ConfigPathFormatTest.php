@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Test\Unit\Model\Util;
 
 use Magebit\Mcp\Model\Util\ConfigPathFormat;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ConfigPathFormatTest extends TestCase
@@ -57,6 +58,7 @@ class ConfigPathFormatTest extends TestCase
      * @param bool $expected
      * @return void
      */
+    #[DataProvider('pathProvider')]
     public function testIsCanonical(string $path, bool $expected): void
     {
         $this->assertSame($expected, $this->format?->isCanonical($path));

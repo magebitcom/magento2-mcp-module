@@ -14,6 +14,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Filesystem\DirectoryList;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -113,6 +114,7 @@ class LogFileResolverTest extends TestCase
      * @return void
      * @dataProvider rejectedNameProvider
      */
+    #[DataProvider('rejectedNameProvider')]
     public function testRejectsUnsafeName(string $file): void
     {
         $this->expectException(LocalizedException::class);
@@ -127,6 +129,7 @@ class LogFileResolverTest extends TestCase
      * @return void
      * @dataProvider rejectedNameProvider
      */
+    #[DataProvider('rejectedNameProvider')]
     public function testNormalizeRejectsEverythingResolveRejects(string $file): void
     {
         if ($file === 'nosuchfile.log') {
@@ -199,6 +202,7 @@ class LogFileResolverTest extends TestCase
      * @return void
      * @dataProvider nonStringProvider
      */
+    #[DataProvider('nonStringProvider')]
     public function testRejectsNonStringName(mixed $file): void
     {
         $this->expectException(LocalizedException::class);
@@ -281,6 +285,7 @@ class LogFileResolverTest extends TestCase
      * @return void
      * @dataProvider leakProvider
      */
+    #[DataProvider('leakProvider')]
     public function testRejectionMessagesNeverDiscloseTheFilesystemLayout(string $file): void
     {
         try {

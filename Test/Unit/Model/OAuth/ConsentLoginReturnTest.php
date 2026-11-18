@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\OAuth;
 
 use Magebit\Mcp\Model\OAuth\ConsentLoginReturn;
 use Magento\Backend\Model\UrlInterface as BackendUrl;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -50,6 +51,7 @@ class ConsentLoginReturnTest extends TestCase
      * @param mixed $nonce
      * @return void
      */
+    #[DataProvider('keepMagentoResponseProvider')]
     public function testKeepsMagentoResponse(
         bool $loginSubmitted,
         bool $wasLoggedIn,

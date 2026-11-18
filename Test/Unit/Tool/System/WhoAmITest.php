@@ -16,6 +16,7 @@ use Magebit\Mcp\Model\Tool\WriteMode;
 use Magebit\Mcp\Tool\System\WhoAmI;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\User\Model\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class WhoAmITest extends TestCase
@@ -117,6 +118,7 @@ class WhoAmITest extends TestCase
     /**
      * @dataProvider effectiveWritePermissionProvider
      */
+    #[DataProvider('effectiveWritePermissionProvider')]
     public function testWritePermissionRequiresGlobalAndTokenPermission(
         bool $globalAllowWrites,
         bool $tokenAllowWrites,

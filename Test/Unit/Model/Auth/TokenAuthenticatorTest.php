@@ -19,6 +19,7 @@ use Magebit\Mcp\Model\Token;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\User\Model\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -89,6 +90,7 @@ class TokenAuthenticatorTest extends TestCase
     /**
      * @dataProvider malformedHeaderProvider
      */
+    #[DataProvider('malformedHeaderProvider')]
     public function testRejectsMalformedHeader(?string $header): void
     {
         $this->expectException(UnauthorizedException::class);

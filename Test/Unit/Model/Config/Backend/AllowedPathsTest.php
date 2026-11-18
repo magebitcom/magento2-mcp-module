@@ -18,6 +18,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\ActionValidator\RemoveAction;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Registry;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 
@@ -64,6 +65,7 @@ class AllowedPathsTest extends TestCase
      * @param string $value
      * @return void
      */
+    #[DataProvider('acceptedProvider')]
     public function testWellFormedValuesSave(string $value): void
     {
         $field = $this->field();
@@ -95,6 +97,7 @@ class AllowedPathsTest extends TestCase
      * @param string $reported
      * @return void
      */
+    #[DataProvider('rejectedProvider')]
     public function testMalformedPathsAreRefusedAtSaveTime(string $value, string $reported): void
     {
         $field = $this->field();

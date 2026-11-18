@@ -13,6 +13,7 @@ use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Auth\WriteAccess;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magento\User\Model\User;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class WriteAccessTest extends TestCase
@@ -20,6 +21,7 @@ class WriteAccessTest extends TestCase
     /**
      * @dataProvider layerProvider
      */
+    #[DataProvider('layerProvider')]
     public function testReportsTheClosedLayer(bool $store, bool $token, bool $allowed, ?string $reason): void
     {
         $access = new WriteAccess($store, $token);

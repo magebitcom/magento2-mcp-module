@@ -10,6 +10,7 @@ namespace Magebit\Mcp\Test\Unit\Model\Config;
 
 use Magebit\Mcp\Model\Config\ConfigWriteConfig;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -48,6 +49,7 @@ class ConfigWriteConfigTest extends TestCase
      * @return void
      * @dataProvider allowedPathsProvider
      */
+    #[DataProvider('allowedPathsProvider')]
     public function testGetAllowedPathsParsesTheTextarea(mixed $raw, array $expected): void
     {
         $this->scopeConfig->expects($this->once())
