@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Test\Unit\Model\JsonRpc;
 
+use Closure;
 use InvalidArgumentException;
 use Magebit\Mcp\Api\Data\TokenInterface;
 use Magebit\Mcp\Api\LoggerInterface;
@@ -18,7 +19,6 @@ use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
 use Magento\User\Model\User;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use stdClass;
@@ -33,11 +33,25 @@ class DispatcherTest extends TestCase
         );
     }
 
-    private function stubHandler(string $method): HandlerInterface&MockObject
+    private function stubHandler(string $method, ?Closure $handle = null): HandlerInterface
     {
-        $handler = $this->createMock(HandlerInterface::class);
-        $handler->method('method')->willReturn($method);
-        return $handler;
+        return new class ($method, $handle) implements HandlerInterface {
+            public function __construct(
+                private readonly string $methodName,
+                private readonly ?Closure $handleCallback
+            ) {
+            }
+
+            public function method(): string
+            {
+                return $this->methodName;
+            }
+
+            public function handle(Request $request, AuthenticatedContext $context): ?Response
+            {
+                return $this->handleCallback !== null ? ($this->handleCallback)($request, $context) : null;
+            }
+        };
     }
 
     public function testRoutesToMatchingHandler(): void
@@ -46,15 +60,19 @@ class DispatcherTest extends TestCase
         $request = new Request(1, false, 'foo', []);
         $expected = Response::success(1, ['ok' => true]);
 
-        $handler = $this->stubHandler('foo');
-        $handler->expects($this->once())
-            ->method('handle')
-            ->with($request, $ctx)
-            ->willReturn($expected);
+        $calls = [];
+        $handler = $this->stubHandler(
+            'foo',
+            static function (Request $request, AuthenticatedContext $context) use (&$calls, $expected): Response {
+                $calls[] = [$request, $context];
+                return $expected;
+            }
+        );
 
         $dispatcher = new Dispatcher([$handler], $this->createStub(LoggerInterface::class));
 
         $this->assertSame($expected, $dispatcher->dispatch($request, $ctx));
+        $this->assertSame([[$request, $ctx]], $calls);
     }
 
     public function testReturnsMethodNotFoundForUnknownRequest(): void
@@ -83,8 +101,9 @@ class DispatcherTest extends TestCase
 
     public function testWrapsHandlerExceptionInInternalError(): void
     {
-        $handler = $this->stubHandler('boom');
-        $handler->method('handle')->willThrowException(new RuntimeException('kaboom'));
+        $handler = $this->stubHandler('boom', static function (): never {
+            throw new RuntimeException('kaboom');
+        });
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
@@ -101,8 +120,9 @@ class DispatcherTest extends TestCase
 
     public function testSwallowsHandlerExceptionOnNotification(): void
     {
-        $handler = $this->stubHandler('boom');
-        $handler->method('handle')->willThrowException(new RuntimeException('kaboom'));
+        $handler = $this->stubHandler('boom', static function (): never {
+            throw new RuntimeException('kaboom');
+        });
 
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->once())->method('error');
