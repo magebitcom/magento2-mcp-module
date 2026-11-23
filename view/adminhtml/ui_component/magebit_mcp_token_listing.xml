@@ -106,7 +106,7 @@
                 <label translate="true">Name</label>
             </settings>
         </column>
-        <column name="revoked_at" sortOrder="40" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenStatus">
+        <column name="status" sortOrder="40" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenStatus">
             <settings>
                 <label translate="true">Status</label>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
