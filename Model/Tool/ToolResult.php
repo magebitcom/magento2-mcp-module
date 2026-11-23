@@ -8,23 +8,25 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model\Tool;
 
-use Magebit\Mcp\Api\ToolResultInterface;
+use Magebit\Mcp\Api\StructuredToolResultInterface;
 
 /**
- * Immutable default implementation of {@see ToolResultInterface}.
+ * Immutable default implementation of {@see StructuredToolResultInterface}.
  */
-class ToolResult implements ToolResultInterface
+class ToolResult implements StructuredToolResultInterface
 {
     /**
      * @param array<int, array<string, mixed>> $content
      * @param bool $isError
      * @param array<string, mixed> $auditSummary
+     * @param array<string, mixed>|null $structuredContent
      * @return void
      */
     public function __construct(
         private readonly array $content,
         private readonly bool $isError = false,
-        private readonly array $auditSummary = []
+        private readonly array $auditSummary = [],
+        private readonly ?array $structuredContent = null
     ) {
     }
 
@@ -64,5 +66,13 @@ class ToolResult implements ToolResultInterface
     public function getAuditSummary(): array
     {
         return $this->auditSummary;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getStructuredContent(): ?array
+    {
+        return $this->structuredContent;
     }
 }

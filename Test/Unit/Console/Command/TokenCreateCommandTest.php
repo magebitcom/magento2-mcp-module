@@ -13,6 +13,7 @@ use Magebit\Mcp\Console\Command\TokenCreateCommand;
 use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenGenerator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
+use Magebit\Mcp\Model\OAuth\ConsentOfferedTools;
 use Magebit\Mcp\Model\Token;
 use Magebit\Mcp\Model\TokenFactory;
 use Magebit\Mcp\Model\TokenRepository;
@@ -28,6 +29,9 @@ class TokenCreateCommandTest extends TestCase
 
     /** @var list<array<int, string>|null> */
     private array $savedScopes = [];
+
+    /** @var list<array<int, string>|null> */
+    private array $savedOffered = [];
 
     public function testWireNamesAreStoredAsDottedNames(): void
     {
@@ -50,6 +54,20 @@ class TokenCreateCommandTest extends TestCase
         $this->mint([]);
 
         self::assertSame([null], $this->savedScopes);
+    }
+
+    /**
+     * The tools that admin could be offered are recorded at creation, so later drift counts only new tools.
+     */
+    public function testRecordsTheToolsTheAdminCouldBeOffered(): void
+    {
+        $this->mint(['-s' => ['catalog_product_list']]);
+        $this->mint([]);
+
+        self::assertSame(
+            [['catalog.product.list', 'system.whoami'], ['catalog.product.list', 'system.whoami']],
+            $this->savedOffered
+        );
     }
 
     public function testUnknownNameFailsAndMintsNoToken(): void
@@ -100,6 +118,15 @@ class TokenCreateCommandTest extends TestCase
                 return $token;
             }
         );
+        $token->method('setOfferedTools')->willReturnCallback(
+            function (?array $offered) use ($token): Token {
+                /** @var array<int, string>|null $offered */
+                $this->savedOffered[] = $offered;
+                return $token;
+            }
+        );
+        $offeredTools = $this->createMock(ConsentOfferedTools::class);
+        $offeredTools->method('forAdmin')->with($admin)->willReturn(self::CANONICAL);
         $factory = $this->getMockBuilder(TokenFactory::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['create'])
@@ -112,7 +139,8 @@ class TokenCreateCommandTest extends TestCase
             $generator,
             $hasher,
             $this->createMock(TokenRepository::class),
-            $registry
+            $registry,
+            $offeredTools
         );
         $tester = new CommandTester($command);
         $tester->execute(['--admin-user' => 'admin', '--name' => 'test'] + $options);

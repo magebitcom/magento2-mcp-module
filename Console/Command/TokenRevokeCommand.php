@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Console\Command;
 
+use Magebit\Mcp\Model\Job\JobCanceller;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use RuntimeException;
@@ -27,7 +28,8 @@ class TokenRevokeCommand extends Command
     private const ARG_ID = 'id';
 
     public function __construct(
-        private readonly TokenRepository $tokenRepository
+        private readonly TokenRepository $tokenRepository,
+        private readonly JobCanceller $jobCanceller
     ) {
         parent::__construct();
     }
@@ -50,12 +52,18 @@ class TokenRevokeCommand extends Command
         $id = (int) $raw;
 
         try {
+            $wasActive = $this->tokenRepository->getById($id)->getRevokedAt() === null;
             $token = $this->tokenRepository->revoke($id);
         } catch (NoSuchEntityException) {
             throw new RuntimeException(sprintf('Token %d not found.', $id));
         }
 
         $output->writeln(sprintf('<info>Token %d revoked at %s (UTC).</info>', $id, $token->getRevokedAt() ?? '?'));
+
+        $cancelled = $wasActive ? $this->jobCanceller->cancelForRevokedToken($token) : 0;
+        if ($cancelled > 0) {
+            $output->writeln(sprintf('%d background job(s) were cancelled.', $cancelled));
+        }
 
         return Command::SUCCESS;
     }

@@ -12,7 +12,8 @@
             "revoked_at": true,
             "created_at": true,
             "oauth_client_id": true,
-            "granted_scope": true
+            "granted_scope": true,
+            "offered_tools_json": true
         },
         "index": {
             "MAGEBIT_MCP_TOKEN_ADMIN_USER_ID_REVOKED_AT": true,
@@ -95,7 +96,8 @@
             "granted_tools_json": true,
             "expires_at": true,
             "used_at": true,
-            "created_at": true
+            "created_at": true,
+            "offered_tools_json": true
         },
         "index": {
             "MAGEBIT_MCP_OAUTH_AUTH_CODE_EXPIRES_AT": true
@@ -143,6 +145,74 @@
         "constraint": {
             "PRIMARY": true,
             "MAGEBIT_MCP_OAUTH_AUTHORIZE_HANDOFF_NONCE_HASH": true
+        }
+    },
+    "magebit_mcp_job": {
+        "column": {
+            "entity_id": true,
+            "job_id": true,
+            "tool_name": true,
+            "admin_user_id": true,
+            "token_id": true,
+            "oauth_client_id": true,
+            "state": true,
+            "run_id": true,
+            "dry_run": true,
+            "items_json": true,
+            "total": true,
+            "ok": true,
+            "failed": true,
+            "skipped": true,
+            "next_index": true,
+            "cancel_requested": true,
+            "error": true,
+            "created_at": true,
+            "started_at": true,
+            "heartbeat_at": true,
+            "finished_at": true
+        },
+        "index": {
+            "MAGEBIT_MCP_JOB_ADMIN_USER_ID_CREATED_AT": true,
+            "MAGEBIT_MCP_JOB_STATE_HEARTBEAT_AT": true,
+            "MAGEBIT_MCP_JOB_CREATED_AT": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_JOB_JOB_ID": true,
+            "MAGEBIT_MCP_JOB_ADMIN_USER_ID_ADMIN_USER_USER_ID": true,
+            "MAGEBIT_MCP_JOB_TOKEN_ID_MAGEBIT_MCP_TOKEN_ID": true,
+            "MAGEBIT_MCP_JOB_OAUTH_CLIENT_ID_MAGEBIT_MCP_OAUTH_CLIENT_ID": true
+        }
+    },
+    "magebit_mcp_job_item": {
+        "column": {
+            "entity_id": true,
+            "job_id": true,
+            "item_index": true,
+            "item_key": true,
+            "status": true,
+            "error_code": true,
+            "message": true,
+            "result_id": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_JOB_ITEM_JOB_ID_ITEM_INDEX": true,
+            "MAGEBIT_MCP_JOB_ITEM_JOB_ID_MAGEBIT_MCP_JOB_JOB_ID": true
+        }
+    },
+    "magebit_mcp_job_snapshot": {
+        "column": {
+            "entity_id": true,
+            "job_id": true,
+            "format": true,
+            "payload": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "MAGEBIT_MCP_JOB_SNAPSHOT_JOB_ID": true,
+            "MAGEBIT_MCP_JOB_SNAPSHOT_JOB_ID_MAGEBIT_MCP_JOB_JOB_ID": true
         }
     }
 }

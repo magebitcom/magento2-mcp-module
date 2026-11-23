@@ -128,4 +128,14 @@ class DisabledToolsTest extends TestCase
             explode("\n", $savedValues[1])
         );
     }
+
+    public function testParseIsTheSharedReaderOfTheRawValue(): void
+    {
+        $this->assertSame(
+            ['cms.page.update', 'sales.order.cancel'],
+            DisabledTools::parse(" cms.page.update\r\n\n sales.order.cancel\rcms.page.update ")
+        );
+        $this->assertSame([], DisabledTools::parse(null));
+        $this->assertSame([], DisabledTools::parse('  '));
+    }
 }

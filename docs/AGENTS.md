@@ -67,13 +67,39 @@ Leave `magebit_mcp/security/allowed_origins` alone unless you have been asked to
 ## Stage 3 — Confirm the tool surface is sound
 
 ```bash
-bin/magento magebit:mcp:tools:validate-acl
+bin/magento magebit:mcp:tools:validate
 bin/magento magebit:mcp:tools:list
 ```
 
-**Check:** `validate-acl` prints `OK — every registered MCP tool has its ACL resource declared.` and exits 0. It is a build gate: a failure means a tool references a permission that does not exist, and that tool is invisible to every role. Fix that before going further.
+**Check:** `validate` (the older name `validate-acl` still works as an alias) prints `OK — every registered MCP tool has its ACL resource declared and meets the contract.` and exits 0. It is a build gate: a failure means a tool references a permission that does not exist (that tool is invisible to every role), names a tool with dots in its description, or breaks the bulk tool contract. Fix that before going further.
 
 `tools:list` prints every registered tool with its ACL resource and write mode. **Note the total** — you will compare it against what the server actually serves in stage 6, and the difference is the most informative number in this whole runbook.
+
+### 3b — Start the queue worker for background jobs
+
+Bulk tools hand batches above their sync cap to a background job, which a queue consumer runs. Check whether the store already starts it:
+
+```bash
+bin/magento queue:consumers:list | grep magebit_mcp_job_runner
+php -r '$e = require "app/etc/env.php"; var_export($e["cron_consumers_runner"] ?? null);'
+```
+
+The second command runs from the Magento root and reads the deployment config key `cron_consumers_runner` in `app/etc/env.php` (`config:show` cannot read it: it only reads system configuration).
+
+**Check:** the first command prints `magebit_mcp_job_runner`. Read the second command's output:
+
+- `NULL` (key missing): Magento's default, cron starts the consumers and nothing more is needed.
+- an array with `'cron_run' => false` (or `0`): cron does not start consumers, so start a worker yourself.
+- an array whose non-empty `'consumers'` list does not contain `magebit_mcp_job_runner`: cron does not start this consumer, so start a worker yourself.
+- anything else (for example `'cron_run' => true` and no `consumers` list, or a list that includes it): cron starts it.
+
+To start a worker yourself, under a supervisor in production:
+
+```bash
+bin/magento queue:consumers:start magebit_mcp_job_runner
+```
+
+Without a worker, jobs stay `queued`; `system_job_get` then reports a notice after 5 minutes. Cron also needs to run for `magebit_mcp_job_mark_stale` and `magebit_mcp_job_purge`. See the README's "Background jobs".
 
 ## Stage 4 — Choose an authentication path
 
@@ -202,7 +228,7 @@ curl -s -X POST "$BASE/mcp" \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -H 'Mcp-Protocol-Version: 2025-06-18' \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"system.whoami","arguments":{}}}'
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"system_whoami","arguments":{}}}'
 ```
 
 Good: `username` is the admin you named in stage 4a, and `allow_writes` is `true` only if you intended writes. This is the fastest way to confirm you are looking at the identity you think you are. `allow_writes: false` when you expected `true` means one of the two write layers is off — the config toggle from stage 2, or the token's own flag; `store_allow_writes` and `token_allow_writes` show which.
@@ -271,6 +297,8 @@ Two things to know about revocation:
 - **Deleting an OAuth client** revokes its tokens first, from the admin panel and the CLI, because the database only clears the token's link to the client. Only the CLI's `delete --keep-tokens` leaves them valid until they expire.
 
 Rotating a client secret is the exception: it deliberately leaves live tokens working, so a client can pick up the new secret without an outage. Pass `--revoke-tokens` when the old secret may have leaked.
+
+Revoking or deleting a token, and every client-wide revoke above (including `rotate-secret --revoke-tokens`), also cancels the background jobs those connections started.
 
 ## Where to look when something is wrong
 

@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Test\Unit\Model\OAuth;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ClientFactory;
 use Magebit\Mcp\Model\OAuth\ClientRepository;
+use Magebit\Mcp\Model\OAuth\GrantDriftCache;
 use Magebit\Mcp\Model\OAuth\ResourceModel\Client as ClientResource;
 use Magebit\Mcp\Model\OAuth\ResourceModel\Client\CollectionFactory;
 use Magebit\Mcp\Model\TokenRepository;
@@ -38,6 +39,12 @@ class ClientRepositoryTest extends TestCase
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private TokenRepository&MockObject $tokenRepository;
 
+    /**
+     * @phpstan-var GrantDriftCache&MockObject
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
+    private GrantDriftCache&MockObject $driftCache;
+
     private ClientRepository $repository;
 
     /**
@@ -48,13 +55,38 @@ class ClientRepositoryTest extends TestCase
         $this->factory = $this->createMock(ClientFactory::class);
         $this->resource = $this->createMock(ClientResource::class);
         $this->tokenRepository = $this->createMock(TokenRepository::class);
+        $this->driftCache = $this->createMock(GrantDriftCache::class);
 
         $this->repository = new ClientRepository(
             $this->factory,
             $this->resource,
             $this->createMock(CollectionFactory::class),
-            $this->tokenRepository
+            $this->tokenRepository,
+            $this->driftCache
         );
+    }
+
+    /**
+     * A client's allowed-tools cap bounds its tokens' grant drift, so saving the client clears the cached count.
+     *
+     * @return void
+     */
+    public function testSaveClearsTheCachedGrantDriftCount(): void
+    {
+        $client = $this->createMock(Client::class);
+        $calls = [];
+        $this->resource->expects(self::once())->method('save')->with($client)
+            ->willReturnCallback(function () use (&$calls): ClientResource {
+                $calls[] = 'save';
+                return $this->resource;
+            });
+        $this->driftCache->expects(self::once())->method('invalidate')
+            ->willReturnCallback(static function () use (&$calls): void {
+                $calls[] = 'invalidate';
+            });
+
+        self::assertSame($client, $this->repository->save($client));
+        self::assertSame(['save', 'invalidate'], $calls);
     }
 
     /**

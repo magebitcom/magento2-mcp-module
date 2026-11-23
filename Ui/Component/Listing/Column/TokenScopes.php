@@ -8,14 +8,21 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Ui\Component\Listing\Column;
 
+use Magebit\Mcp\Model\OAuth\GrantDrift;
+use Magebit\Mcp\Model\Token;
+use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Escaper;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Renders `scopes_json` as tool-name chips; empty/null renders as "(all granted)".
- * See {@see \Magebit\Mcp\Api\Data\TokenInterface::getScopes()}.
+ * Renders the token's grant (`scopes_json`, column label "Grant").
+ *
+ * A wildcard grant reads "All tools (follows role)". A literal grant reads "N tools" plus its tool-name chips, and
+ * "N tools, M missing" when the admin's role allows tools the grant lacks ({@see GrantDrift}); the missing names
+ * are in the `title` in wire form. Revoked and expired rows show the plain count. The page's tokens are loaded in
+ * one query. See {@see \Magebit\Mcp\Api\Data\TokenInterface::getScopes()}.
  */
 class TokenScopes extends Column
 {
@@ -25,6 +32,8 @@ class TokenScopes extends Column
      * @param ContextInterface $context
      * @param UiComponentFactory $uiComponentFactory
      * @param Escaper $escaper
+     * @param TokenRepository $tokenRepository
+     * @param GrantDrift $grantDrift
      * @param array<string, mixed> $components
      * @param array<string, mixed> $data
      */
@@ -32,6 +41,8 @@ class TokenScopes extends Column
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         private readonly Escaper $escaper,
+        private readonly TokenRepository $tokenRepository,
+        private readonly GrantDrift $grantDrift,
         array $components = [],
         array $data = []
     ) {
@@ -49,10 +60,13 @@ class TokenScopes extends Column
         }
 
         $name = $this->getName();
+        $tokens = $this->loadTokens($dataSource['data']['items']);
 
         foreach ($dataSource['data']['items'] as &$item) {
             $raw = $item[$name] ?? null;
-            $item[$name] = $this->renderCell($raw);
+            $id = $this->rowId($item);
+            $drift = isset($tokens[$id]) ? $this->grantDrift->forToken($tokens[$id]) : null;
+            $item[$name] = $this->renderCell($raw, $drift);
         }
         unset($item);
 
@@ -60,17 +74,54 @@ class TokenScopes extends Column
     }
 
     /**
+     * @param array<int, array<string, mixed>> $items
+     * @return array<int, Token>
+     */
+    private function loadTokens(array $items): array
+    {
+        $ids = [];
+        foreach ($items as $item) {
+            $id = $this->rowId($item);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        if ($ids === []) {
+            return [];
+        }
+        $tokens = [];
+        foreach ($this->tokenRepository->listByIds($ids) as $token) {
+            $tokenId = $token->getId();
+            if ($tokenId !== null) {
+                $tokens[$tokenId] = $token;
+            }
+        }
+        return $tokens;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @return int
+     */
+    private function rowId(array $item): int
+    {
+        $id = $item['id'] ?? null;
+        return is_scalar($id) ? (int) $id : 0;
+    }
+
+    /**
      * @param mixed $raw
+     * @param array{granted: int, missing: list<string>}|null $drift
      * @return string
      */
-    private function renderCell(mixed $raw): string
+    private function renderCell(mixed $raw, ?array $drift): string
     {
         if (!is_string($raw) || $raw === '') {
-            return '<span class="mcp-audit-muted">(all granted)</span>';
+            return $this->renderWildcard();
         }
         $decoded = json_decode($raw, true);
         if (!is_array($decoded) || $decoded === []) {
-            return '<span class="mcp-audit-muted">(all granted)</span>';
+            return $this->renderWildcard();
         }
 
         $names = [];
@@ -80,13 +131,51 @@ class TokenScopes extends Column
             }
         }
         if ($names === []) {
-            return '<span class="mcp-audit-muted">(all granted)</span>';
+            return $this->renderWildcard();
         }
 
+        $out = $this->renderCount(count($names), $drift === null ? [] : $drift['missing']) . ' ';
         if (count($names) <= self::INLINE_LIST_THRESHOLD) {
-            return $this->renderInlineChips($names);
+            return $out . $this->renderInlineChips($names);
         }
-        return $this->renderDomainSummary($names);
+        return $out . $this->renderDomainSummary($names);
+    }
+
+    /**
+     * @return string
+     */
+    private function renderWildcard(): string
+    {
+        return '<span class="mcp-audit-muted">'
+            . HtmlEscape::toString($this->escaper->escapeHtml((string) __('All tools (follows role)')))
+            . '</span>';
+    }
+
+    /**
+     * "N tools", or "N tools, M missing" with the missing wire names and a hint in the title.
+     *
+     * @param int $granted
+     * @param list<string> $missing
+     * @return string
+     */
+    private function renderCount(int $granted, array $missing): string
+    {
+        $countLabel = $granted === 1 ? (string) __('1 tool') : (string) __('%1 tools', $granted);
+        if ($missing === []) {
+            return '<span class="mcp-scope-count">'
+                . HtmlEscape::toString($this->escaper->escapeHtml($countLabel))
+                . '</span>';
+        }
+
+        $label = (string) __('%1, %2 missing', $countLabel, count($missing));
+        $wireNames = array_map(static fn (string $name): string => str_replace('.', '_', $name), $missing);
+        $title = (string) __('Missing: %1', implode(', ', $wireNames))
+            . "\n" . (string) __('Re-authorise to pick up new tools.');
+        return '<span class="mcp-scope-count mcp-scope-drift" title="'
+            . HtmlEscape::toString($this->escaper->escapeHtmlAttr($title))
+            . '"><strong>'
+            . HtmlEscape::toString($this->escaper->escapeHtml($label))
+            . '</strong></span>';
     }
 
     /**
@@ -111,14 +200,10 @@ class TokenScopes extends Column
     {
         $byDomain = $this->groupByDomain($names);
 
-        $countLabel = sprintf('%d tools', count($names));
-        $out = '<span class="mcp-scope-count">'
-            . HtmlEscape::toString($this->escaper->escapeHtml($countLabel))
-            . '</span>';
-
+        $parts = [];
         foreach ($byDomain as $domain => $tools) {
             $tooltip = implode("\n", $tools);
-            $out .= ' <span class="mcp-scope-domain" title="'
+            $parts[] = '<span class="mcp-scope-domain" title="'
                 . HtmlEscape::toString($this->escaper->escapeHtmlAttr($tooltip))
                 . '">'
                 . HtmlEscape::toString($this->escaper->escapeHtml((string) $domain))
@@ -126,7 +211,7 @@ class TokenScopes extends Column
                 . count($tools)
                 . ')</em></span>';
         }
-        return $out;
+        return implode(' ', $parts);
     }
 
     /**

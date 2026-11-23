@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\OAuth;
 
 use Magebit\Mcp\Api\LoggerInterface;
+use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Exception\OAuthException;
 use Magebit\Mcp\Model\Auth\TokenHasher;
 use Magebit\Mcp\Model\TokenRepository;
@@ -32,6 +33,7 @@ class RefreshTokenRotator
      * @param ClientRepository $clientRepository
      * @param AccessTokenIssuer $accessTokenIssuer
      * @param LoggerInterface $logger
+     * @param ToolRegistryInterface $toolRegistry
      */
     public function __construct(
         private readonly TokenHasher $tokenHasher,
@@ -39,7 +41,8 @@ class RefreshTokenRotator
         private readonly TokenRepository $tokenRepository,
         private readonly ClientRepository $clientRepository,
         private readonly AccessTokenIssuer $accessTokenIssuer,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly ToolRegistryInterface $toolRegistry
     ) {
     }
 
@@ -90,6 +93,9 @@ class RefreshTokenRotator
             throw new OAuthException('invalid_client', 'Client no longer exists.', 401);
         }
 
+        // Resolved before anything is revoked, so a refused refresh leaves the pair untouched.
+        $toolNames = $this->replayableToolNames($oldAccessToken->getScopes());
+
         // CAS revoke. Lost race → another caller already rotated this refresh: the row they
         // minted is downstream, so revoke the chain and signal §6.1 reuse to the caller.
         if (!$this->refreshTokenRepository->revoke($storedId)) {
@@ -100,15 +106,45 @@ class RefreshTokenRotator
 
         // Preserve the original grant across rotation. The OAuth-protocol scope summary
         // is recomputed by the issuer from the tool list, so we only need to forward
-        // the per-tool allowlist + write flag here.
+        // the per-tool allowlist + write flag here, plus the record of what consent offered
+        // (unchanged, so grant drift keeps counting from the original consent).
         return $this->accessTokenIssuer->issue(
             oauthClientId: $oauthClientId,
             oauthClientName: $client->getName(),
             adminUserId: $oldAccessToken->getAdminUserId(),
             allowWrites: $oldAccessToken->getAllowWrites(),
-            toolNames: $oldAccessToken->getScopes(),
-            parentRefreshTokenId: $storedId
+            toolNames: $toolNames,
+            parentRefreshTokenId: $storedId,
+            offeredTools: $oldAccessToken->getOfferedTools()
         );
+    }
+
+    /**
+     * The grant to replay. A wildcard (null) stays the wildcard, so the connection keeps seeing new tools.
+     * A literal list loses the names that are no longer registered and never gains any. A literal list
+     * that loses every name is refused: replaying `[]` would be stored as the wildcard. A stored `[]` is
+     * legacy data the issuer already treats as the wildcard and is passed through unchanged.
+     *
+     * @param array<int, string>|null $scopes
+     * @return array<int, string>|null
+     * @throws OAuthException
+     */
+    private function replayableToolNames(?array $scopes): ?array
+    {
+        if ($scopes === null || $scopes === []) {
+            return $scopes;
+        }
+        $kept = array_values(array_filter(
+            $scopes,
+            fn (string $name): bool => $this->toolRegistry->has($name)
+        ));
+        if ($kept === []) {
+            throw new OAuthException(
+                'invalid_grant',
+                'None of the tools this connection was granted exist any more; re-authorise the connection.'
+            );
+        }
+        return $kept;
     }
 
     /**

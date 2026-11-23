@@ -23,6 +23,10 @@ use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler;
 use Magebit\Mcp\Model\JsonRpc\Request;
+use Magebit\Mcp\Model\JsonRpc\StructuredOutputPolicy;
+use Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapter;
+use Magebit\Mcp\Model\Tool\Bulk\JobToolGate;
+use Magebit\Mcp\Model\Tool\ToolResult;
 use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -497,6 +501,225 @@ class ToolsCallHandlerTest extends TestCase
             $this->stubArgumentCoercer(),
             $this->stubSchemaSanitizer(),
             $this->stubDisabledTools($disabled)
+        );
+    }
+
+    public function testStructuredContentEmittedFor20250618(): void
+    {
+        $result = $this->callWithResult(
+            new ToolResult([['type' => 'text', 'text' => '{}']], false, [], ['summary' => ['total' => 1]]),
+            '2025-06-18'
+        );
+
+        $this->assertSame(['summary' => ['total' => 1]], $result['structuredContent']);
+        $this->assertSame([['type' => 'text', 'text' => '{}']], $result['content']);
+        $this->assertFalse($result['isError']);
+    }
+
+    public function testStructuredContentOmittedFor20250326(): void
+    {
+        $result = $this->callWithResult(
+            new ToolResult([['type' => 'text', 'text' => '{}']], false, [], ['summary' => ['total' => 1]]),
+            '2025-03-26'
+        );
+
+        $this->assertSame(['content', 'isError'], array_keys($result));
+    }
+
+    public function testPlainResultNeverGetsStructuredContent(): void
+    {
+        $result = $this->callWithResult(ToolResult::text('ok'), '2025-06-18');
+
+        $this->assertSame(['content', 'isError'], array_keys($result));
+    }
+
+    public function testEmptyStructuredContentStaysAJsonObject(): void
+    {
+        $result = $this->callWithResult(
+            new ToolResult([['type' => 'text', 'text' => '{}']], false, [], []),
+            '2025-06-18'
+        );
+
+        $this->assertSame('{}', json_encode($result['structuredContent']));
+    }
+
+    /**
+     * @param ToolResultInterface $toolResult
+     * @param string $protocolVersion
+     * @return array<string, mixed>
+     */
+    private function callWithResult(ToolResultInterface $toolResult, string $protocolVersion): array
+    {
+        $tool = $this->createMock(ToolInterface::class);
+        $tool->method('getName')->willReturn('system.store.list');
+        $tool->method('getAclResource')->willReturn('Magebit_Mcp::tool_system_store_list');
+        $tool->method('getWriteMode')->willReturn(WriteMode::READ);
+        $tool->method('getInputSchema')->willReturn(['type' => 'object']);
+        $tool->method('execute')->willReturn($toolResult);
+
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')->willReturn('system.store.list');
+        $toolRegistry->method('get')->willReturn($tool);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getScopes')->willReturn(null);
+        $token->method('getAllowWrites')->willReturn(false);
+        $aclChecker = $this->createMock(AclChecker::class);
+        $aclChecker->method('isAllowed')->willReturn(true);
+
+        $auditContext = new AuditContext();
+        $auditContext->protocolVersion = $protocolVersion;
+
+        $handler = new ToolsCallHandler(
+            $toolRegistry,
+            $aclChecker,
+            $this->createMock(JsonSchemaValidator::class),
+            $this->createMock(RateLimiterInterface::class),
+            $this->createMock(EventManager::class),
+            $this->createMock(ModuleConfig::class),
+            $auditContext,
+            new AuthenticatedContextProvider(),
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools(),
+            null,
+            new StructuredOutputPolicy()
+        );
+
+        $response = $handler->handle(
+            new Request(9, false, 'tools/call', ['name' => 'system_store_list', 'arguments' => []]),
+            new AuthenticatedContext($token, $this->createMock(User::class))
+        );
+
+        $this->assertNull($response->error);
+        $this->assertNotNull($response->result);
+        return $response->result;
+    }
+
+    public function testJobToolCallAllowedForLiteralGrantWithAsyncTool(): void
+    {
+        $response = $this->callJobTool('system_job_get', ['catalog.product.bulk_update'], asyncCapable: true);
+
+        $this->assertNull($response->error);
+        $this->assertNotNull($response->result);
+    }
+
+    public function testJobToolCallRefusedForLiteralGrantWithoutAsyncTool(): void
+    {
+        $response = $this->callJobTool('system_job_get', ['catalog.product.bulk_update'], asyncCapable: false);
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::FORBIDDEN, $response->error->code);
+        $this->assertSame('Token scope does not include this tool.', $response->error->message);
+    }
+
+    public function testJobCancelStillHitsTheWriteGate(): void
+    {
+        $response = $this->callJobTool(
+            'system_job_cancel',
+            ['catalog.product.bulk_update'],
+            asyncCapable: true,
+            allowWrites: false
+        );
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::WRITE_NOT_ALLOWED, $response->error->code);
+    }
+
+    public function testJobToolCallStillNeedsTheRoleAcl(): void
+    {
+        $response = $this->callJobTool(
+            'system_job_get',
+            ['catalog.product.bulk_update'],
+            asyncCapable: true,
+            denied: ['Magebit_Mcp::tools', 'Magebit_Mcp::tool_bulk']
+        );
+
+        $this->assertNotNull($response->error);
+        $this->assertSame(ErrorCode::FORBIDDEN, $response->error->code);
+        $this->assertSame('Your admin role does not permit this tool.', $response->error->message);
+    }
+
+    /**
+     * @param string $wireName
+     * @param array $scopes
+     * @phpstan-param list<string> $scopes
+     * @param bool $asyncCapable
+     * @param bool $allowWrites
+     * @param array $denied
+     * @phpstan-param list<string> $denied
+     * @return \Magebit\Mcp\Model\JsonRpc\Response
+     */
+    private function callJobTool(
+        string $wireName,
+        array $scopes,
+        bool $asyncCapable,
+        bool $allowWrites = true,
+        array $denied = []
+    ): \Magebit\Mcp\Model\JsonRpc\Response {
+        $result = $this->createMock(ToolResultInterface::class);
+        $result->method('getContent')->willReturn([['type' => 'text', 'text' => 'ok']]);
+        $result->method('isError')->willReturn(false);
+        $result->method('getAuditSummary')->willReturn([]);
+
+        $tools = [];
+        foreach (['system.job.get' => WriteMode::READ, 'system.job.cancel' => WriteMode::WRITE] as $name => $mode) {
+            $tool = $this->createMock(ToolInterface::class);
+            $tool->method('getName')->willReturn($name);
+            $tool->method('getAclResource')->willReturn('Magebit_Mcp::tools');
+            $tool->method('getWriteMode')->willReturn($mode);
+            $tool->method('getInputSchema')->willReturn(['type' => 'object']);
+            $tool->method('execute')->willReturn($result);
+            $tools[$name] = $tool;
+        }
+        $bulk = $this->createMock(BulkToolAdapter::class);
+        $bulk->method('getName')->willReturn('catalog.product.bulk_update');
+        $bulk->method('getAclResource')->willReturn('Magebit_Mcp::tool_bulk');
+        $bulk->method('isAsyncCapable')->willReturn($asyncCapable);
+        $tools['catalog.product.bulk_update'] = $bulk;
+
+        $toolRegistry = $this->createMock(ToolRegistryInterface::class);
+        $toolRegistry->method('getCanonicalName')->willReturnCallback(
+            static fn (string $name): ?string => isset($tools[str_replace('_job_', '.job.', $name)])
+                ? str_replace('_job_', '.job.', $name)
+                : null
+        );
+        $toolRegistry->method('all')->willReturn($tools);
+        $toolRegistry->method('has')->willReturnCallback(static fn (string $name): bool => isset($tools[$name]));
+        $toolRegistry->method('get')->willReturnCallback(static fn (string $name): ToolInterface => $tools[$name]);
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getScopes')->willReturn($scopes);
+        $token->method('getAllowWrites')->willReturn($allowWrites);
+        $aclChecker = $this->createMock(AclChecker::class);
+        $aclChecker->method('isAllowed')->willReturnCallback(
+            static fn (User $_user, string $resource): bool => !in_array($resource, $denied, true)
+        );
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('isAllowWrites')->willReturn($allowWrites);
+
+        $handler = new ToolsCallHandler(
+            $toolRegistry,
+            $aclChecker,
+            $this->createMock(JsonSchemaValidator::class),
+            $this->createMock(RateLimiterInterface::class),
+            $this->createMock(EventManager::class),
+            $config,
+            new AuditContext(),
+            new AuthenticatedContextProvider(),
+            $this->createMock(LoggerInterface::class),
+            $this->stubArgumentCoercer(),
+            $this->stubSchemaSanitizer(),
+            $this->stubDisabledTools(),
+            null,
+            null,
+            new JobToolGate($toolRegistry, $aclChecker)
+        );
+
+        return $handler->handle(
+            new Request(11, false, 'tools/call', ['name' => $wireName, 'arguments' => []]),
+            new AuthenticatedContext($token, $this->createMock(User::class))
         );
     }
 

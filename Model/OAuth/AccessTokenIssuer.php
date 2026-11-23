@@ -53,6 +53,8 @@ class AccessTokenIssuer
      * @param bool $allowWrites
      * @param array<int, string>|null $toolNames
      * @param int|null $parentRefreshTokenId
+     * @param array<int, string>|null $offeredTools The "offered at grant" record to keep on the token; null keeps
+     *                                              none (grant drift then uses the rule for older rows).
      * @return IssuedTokenPair
      */
     public function issue(
@@ -61,7 +63,8 @@ class AccessTokenIssuer
         int $adminUserId,
         bool $allowWrites,
         ?array $toolNames = null,
-        ?int $parentRefreshTokenId = null
+        ?int $parentRefreshTokenId = null,
+        ?array $offeredTools = null
     ): IssuedTokenPair {
         // Refresh-token rotation already revokes the predecessor — re-applying the policy
         // here would nuke the token being replaced and break long-lived sessions.
@@ -97,6 +100,7 @@ class AccessTokenIssuer
         $token->setExpiresAt($accessExpiresAt);
         $token->setOAuthClientId($oauthClientId);
         $token->setScopes($normalizedTools);
+        $token->setOfferedTools($offeredTools);
 
         $this->tokenRepository->save($token);
         $accessTokenId = $token->getId();

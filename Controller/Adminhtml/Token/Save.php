@@ -16,6 +16,7 @@ use Magebit\Mcp\Helper\Acl\ToolResourceTree;
 use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenGenerator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
+use Magebit\Mcp\Model\OAuth\ConsentOfferedTools;
 use Magebit\Mcp\Model\TokenFactory;
 use Magebit\Mcp\Model\TokenRepository;
 use Magebit\Mcp\Model\Acl\AclChecker;
@@ -53,6 +54,7 @@ class Save extends Action implements HttpPostActionInterface
      * @param ToolRegistryInterface $toolRegistry
      * @param AclChecker $aclChecker
      * @param FormDataPersistence $formDataPersistence
+     * @param ConsentOfferedTools $consentOfferedTools
      */
     public function __construct(
         Context $context,
@@ -63,7 +65,8 @@ class Save extends Action implements HttpPostActionInterface
         private readonly TokenRepository $tokenRepository,
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly AclChecker $aclChecker,
-        private readonly FormDataPersistence $formDataPersistence
+        private readonly FormDataPersistence $formDataPersistence,
+        private readonly ConsentOfferedTools $consentOfferedTools
     ) {
         parent::__construct($context);
     }
@@ -115,6 +118,8 @@ class Save extends Action implements HttpPostActionInterface
         $token->setTokenHash($hash);
         $token->setAllowWrites($allowWrites);
         $token->setScopes($scopeToolNames === [] ? null : $scopeToolNames);
+        // The scope tree this form shows for the admin, so grant drift later counts only tools that appeared since.
+        $token->setOfferedTools($this->consentOfferedTools->forAdmin($admin));
         if ($expiresAt !== null) {
             $token->setExpiresAt($expiresAt);
         }

@@ -16,6 +16,7 @@ use Magebit\Mcp\Model\Adminhtml\FormDataPersistence;
 use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenGenerator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
+use Magebit\Mcp\Model\OAuth\ConsentOfferedTools;
 use Magebit\Mcp\Model\Token;
 use Magebit\Mcp\Model\TokenFactory;
 use Magebit\Mcp\Model\TokenRepository;
@@ -119,6 +120,12 @@ class SaveTest extends TestCase
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
     private FormDataPersistence&MockObject $formDataPersistence;
 
+    /**
+     * @phpstan-var ConsentOfferedTools&MockObject
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
+    private ConsentOfferedTools&MockObject $consentOfferedTools;
+
     private Save $controller;
 
     protected function setUp(): void
@@ -172,6 +179,7 @@ class SaveTest extends TestCase
         $this->toolRegistry = $this->createMock(ToolRegistryInterface::class);
         $this->aclChecker = $this->createMock(AclChecker::class);
         $this->formDataPersistence = $this->createMock(FormDataPersistence::class);
+        $this->consentOfferedTools = $this->createMock(ConsentOfferedTools::class);
 
         $this->controller = new Save(
             $this->context,
@@ -182,7 +190,8 @@ class SaveTest extends TestCase
             $this->tokenRepository,
             $this->toolRegistry,
             $this->aclChecker,
-            $this->formDataPersistence
+            $this->formDataPersistence,
+            $this->consentOfferedTools
         );
     }
 
@@ -239,6 +248,42 @@ class SaveTest extends TestCase
         $this->tokenFactory->method('create')->willReturn($token);
         $token->expects($this->once())
             ->method('setScopes')
+            ->with(['system.store.list', 'system.store.info']);
+
+        $this->tokenRepository->expects($this->once())->method('save')->with($token);
+
+        $this->controller->execute();
+    }
+
+    /**
+     * The scope tree the form showed for this admin is recorded, so later drift counts only new tools.
+     */
+    public function testRecordsTheToolsTheScopeTreeOffered(): void
+    {
+        $this->primeRequest([
+            'admin_user_id' => '7',
+            'name' => 'Scoped Token',
+            'expires_at' => '',
+            'allow_writes' => '0',
+            'all_resources' => '0',
+            'resource' => ['Magebit_Mcp::tool_system_store_list'],
+        ]);
+        $admin = $this->primeAdmin(7);
+        $this->aclChecker->method('isAllowed')->willReturn(true);
+        $this->toolRegistry->method('all')->willReturn([
+            $this->makeTool('system.store.list', 'Magebit_Mcp::tool_system_store_list'),
+            $this->makeTool('system.store.info', 'Magebit_Mcp::tool_system_store_info'),
+        ]);
+        $this->consentOfferedTools->expects($this->once())->method('forAdmin')->with($admin)
+            ->willReturn(['system.store.list', 'system.store.info']);
+        $this->tokenGenerator->method('generate')->willReturn('plaintext');
+        $this->tokenHasher->method('hash')->willReturn('hash');
+
+        $token = $this->createMock(Token::class);
+        $token->method('getId')->willReturn(456);
+        $this->tokenFactory->method('create')->willReturn($token);
+        $token->expects($this->once())->method('setScopes')->with(['system.store.list']);
+        $token->expects($this->once())->method('setOfferedTools')
             ->with(['system.store.list', 'system.store.info']);
 
         $this->tokenRepository->expects($this->once())->method('save')->with($token);
@@ -315,11 +360,12 @@ class SaveTest extends TestCase
         $this->request->method('getPostValue')->willReturn($values);
     }
 
-    private function primeAdmin(int $id): void
+    private function primeAdmin(int $id): User
     {
         $admin = $this->createMock(User::class);
         $admin->method('getIsActive')->willReturn(1);
         $this->adminUserLookup->method('getById')->with($id)->willReturn($admin);
+        return $admin;
     }
 
     private function makeTool(string $name, string $aclResource): ToolInterface

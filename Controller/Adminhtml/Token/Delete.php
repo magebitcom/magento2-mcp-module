@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Controller\Adminhtml\Token;
 
+use Magebit\Mcp\Model\Job\JobCanceller;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
@@ -20,7 +21,8 @@ use Throwable;
 /**
  * POST `magebit_mcp/token/delete/id/<n>` — hard-removes the row. Prefer
  * {@see Revoke} when compliance needs the `token_id` linkage preserved on
- * audit rows (`ON DELETE SET NULL`).
+ * audit rows (`ON DELETE SET NULL`). A live token's background jobs are cancelled
+ * first, while the job rows still point at it.
  */
 class Delete extends Action implements HttpPostActionInterface
 {
@@ -29,10 +31,12 @@ class Delete extends Action implements HttpPostActionInterface
     /**
      * @param Context $context
      * @param TokenRepository $tokenRepository
+     * @param JobCanceller $jobCanceller
      */
     public function __construct(
         Context $context,
-        private readonly TokenRepository $tokenRepository
+        private readonly TokenRepository $tokenRepository,
+        private readonly JobCanceller $jobCanceller
     ) {
         parent::__construct($context);
     }
@@ -52,7 +56,14 @@ class Delete extends Action implements HttpPostActionInterface
         }
         $id = (int) $raw;
 
+        $cancelled = 0;
         try {
+            $token = $this->tokenRepository->getById($id);
+            // The FK clears job.token_id on delete, so cancel now. An already-revoked token's jobs were handled
+            // when it was revoked. The canceller never throws, so it cannot block the delete.
+            if ($token->getRevokedAt() === null) {
+                $cancelled = $this->jobCanceller->cancelForRevokedToken($token);
+            }
             $this->tokenRepository->deleteById($id);
         } catch (NoSuchEntityException) {
             $this->messageManager->addErrorMessage(
@@ -66,9 +77,11 @@ class Delete extends Action implements HttpPostActionInterface
             return $redirect->setPath('*/*/index');
         }
 
-        $this->messageManager->addSuccessMessage(
-            (string) __('Connection #%1 deleted.', $id)
-        );
+        $message = (string) __('Connection #%1 deleted.', $id);
+        if ($cancelled > 0) {
+            $message .= ' ' . (string) __('%1 background job(s) were cancelled.', $cancelled);
+        }
+        $this->messageManager->addSuccessMessage($message);
         return $redirect->setPath('*/*/index');
     }
 }

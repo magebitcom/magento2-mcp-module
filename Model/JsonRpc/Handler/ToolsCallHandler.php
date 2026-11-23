@@ -12,6 +12,7 @@ use Magebit\Mcp\Api\ContextualAclAwareInterface;
 use Magebit\Mcp\Api\Data\AuditEntryInterface;
 use Magebit\Mcp\Api\LoggerInterface;
 use Magebit\Mcp\Api\RateLimiterInterface;
+use Magebit\Mcp\Api\StructuredToolResultInterface;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Api\UnderlyingAclAwareInterface;
@@ -28,6 +29,8 @@ use Magebit\Mcp\Model\JsonRpc\ErrorCode;
 use Magebit\Mcp\Model\JsonRpc\HandlerInterface;
 use Magebit\Mcp\Model\JsonRpc\Request;
 use Magebit\Mcp\Model\JsonRpc\Response;
+use Magebit\Mcp\Model\JsonRpc\StructuredOutputPolicy;
+use Magebit\Mcp\Model\Tool\Bulk\JobToolGate;
 use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\ToolAvailability;
@@ -45,7 +48,7 @@ use Throwable;
  *
  * Order:
  *   1. Resolve params + tool from registry; a disabled or unavailable tool answers like an unregistered one.
- *   2. Token scope narrows allowed tools.
+ *   2. Token scope narrows allowed tools; `system.job.*` passes when the grant holds an async-capable bulk tool.
  *   3. ACL — admin role + optional underlying-Magento and argument-derived contextual ACLs.
  *   4. Write gate (WRITE tools require both server config and token flag).
  *   5. Input schema validation.
@@ -68,6 +71,8 @@ class ToolsCallHandler implements HandlerInterface
      * @param SchemaSanitizer $schemaSanitizer
      * @param DisabledTools $disabledTools
      * @param ToolAvailability|null $toolAvailability Optional so existing callers keep working; wired in di.xml
+     * @param StructuredOutputPolicy|null $structuredOutputPolicy Optional; wired in di.xml, null never emits
+     * @param JobToolGate|null $jobToolGate Optional; wired in di.xml, null leaves job tools to the literal scope
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
@@ -82,7 +87,9 @@ class ToolsCallHandler implements HandlerInterface
         private readonly ArgumentCoercer $argumentCoercer,
         private readonly SchemaSanitizer $schemaSanitizer,
         private readonly DisabledTools $disabledTools,
-        private readonly ?ToolAvailability $toolAvailability = null
+        private readonly ?ToolAvailability $toolAvailability = null,
+        private readonly ?StructuredOutputPolicy $structuredOutputPolicy = null,
+        private readonly ?JobToolGate $jobToolGate = null
     ) {
     }
 
@@ -182,10 +189,17 @@ class ToolsCallHandler implements HandlerInterface
     private function checkTokenScope(Request $request, AuthenticatedContext $context, ToolInterface $tool): ?Response
     {
         $scopes = $context->token->getScopes();
-        if ($scopes !== null && !in_array($tool->getName(), $scopes, true)) {
-            return $this->fail($request, ErrorCode::FORBIDDEN, 'Token scope does not include this tool.');
+        if ($scopes === null || in_array($tool->getName(), $scopes, true)) {
+            return null;
         }
-        return null;
+        // Job tools follow the jobs the grant can start; role ACL and the write gate still run after this.
+        if ($this->jobToolGate !== null
+            && $this->jobToolGate->isJobTool($tool->getName())
+            && $this->jobToolGate->allowedForScopes($scopes)
+        ) {
+            return null;
+        }
+        return $this->fail($request, ErrorCode::FORBIDDEN, 'Token scope does not include this tool.');
     }
 
     /**
@@ -202,7 +216,7 @@ class ToolsCallHandler implements HandlerInterface
         ToolInterface $tool,
         array $arguments
     ): ?Response {
-        if (!$this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource())) {
+        if (!$this->isRoleAllowed($tool, $context)) {
             return $this->fail($request, ErrorCode::FORBIDDEN, 'Your admin role does not permit this tool.');
         }
 
@@ -424,10 +438,23 @@ class ToolsCallHandler implements HandlerInterface
             $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
         }
 
-        return Response::success($request->id, [
+        $payload = [
             'content' => $result->getContent(),
             'isError' => $result->isError(),
-        ]);
+        ];
+        if (
+            $result instanceof StructuredToolResultInterface
+            && $this->structuredOutputPolicy !== null
+            && $this->structuredOutputPolicy->isSupported($this->auditContext->protocolVersion)
+        ) {
+            $structured = $result->getStructuredContent();
+            if ($structured !== null) {
+                // An empty array would encode as `[]`; the spec wants an object.
+                $payload['structuredContent'] = $structured === [] ? new \stdClass() : $structured;
+            }
+        }
+
+        return Response::success($request->id, $payload);
     }
 
     /**
@@ -461,5 +488,19 @@ class ToolsCallHandler implements HandlerInterface
         $this->auditContext->responseStatus = AuditEntryInterface::STATUS_ERROR;
         $this->auditContext->errorCode = (string) $code->value;
         return Response::failure($request->id, $code, $message, $data);
+    }
+
+    /**
+     * Outer role check; job tools also pass with an async-capable bulk tool's resource (JobToolGate).
+     *
+     * @param ToolInterface $tool
+     * @param AuthenticatedContext $context
+     * @return bool
+     */
+    private function isRoleAllowed(ToolInterface $tool, AuthenticatedContext $context): bool
+    {
+        return $this->jobToolGate !== null
+            ? $this->jobToolGate->isRoleAllowed($context->adminUser, $tool)
+            : $this->aclChecker->isAllowed($context->adminUser, $tool->getAclResource());
     }
 }

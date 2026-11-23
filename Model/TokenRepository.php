@@ -8,8 +8,12 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Model;
 
+use Magebit\Mcp\Api\Data\TokenInterface;
+use Magebit\Mcp\Model\Job\JobCanceller;
+use Magebit\Mcp\Model\OAuth\GrantDriftCache;
 use Magebit\Mcp\Model\ResourceModel\Token as TokenResource;
 use Magebit\Mcp\Model\ResourceModel\Token\CollectionFactory;
+use Magento\Framework\Data\Collection;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use RuntimeException;
@@ -17,21 +21,42 @@ use RuntimeException;
 /**
  * CRUD + lookup service for {@see Token} entities.
  *
- * {@see self::getByHash()} relies on the UNIQUE index on `token_hash` for O(1) lookup.
+ * {@see self::getByHash()} relies on the UNIQUE index on `token_hash` for O(1) lookup. Every write that issues,
+ * revokes or deletes a token clears the cached grant drift count ({@see GrantDriftCache}) here, so no caller has to;
+ * the other invalidation point is {@see \Magebit\Mcp\Model\OAuth\ClientRepository::save()}.
  */
 class TokenRepository
 {
+    /** Rows per page of {@see getActiveWithLiteralGrantPages()}. */
+    public const DRIFT_PAGE_SIZE = 500;
+
+    /** The columns {@see \Magebit\Mcp\Model\OAuth\GrantDrift::forToken()} reads. */
+    public const DRIFT_COLUMNS = [
+        TokenInterface::ID,
+        TokenInterface::ADMIN_USER_ID,
+        TokenInterface::OAUTH_CLIENT_ID,
+        TokenInterface::SCOPES_JSON,
+        TokenInterface::OFFERED_TOOLS_JSON,
+        TokenInterface::ALLOW_WRITES,
+        TokenInterface::EXPIRES_AT,
+        TokenInterface::REVOKED_AT,
+    ];
+
     /**
      * @param TokenFactory $tokenFactory
      * @param TokenResource $resource
      * @param CollectionFactory $collectionFactory
      * @param DateTime $dateTime
+     * @param JobCanceller $jobCanceller
+     * @param GrantDriftCache $grantDriftCache
      */
     public function __construct(
         private readonly TokenFactory $tokenFactory,
         private readonly TokenResource $resource,
         private readonly CollectionFactory $collectionFactory,
-        private readonly DateTime $dateTime
+        private readonly DateTime $dateTime,
+        private readonly JobCanceller $jobCanceller,
+        private readonly GrantDriftCache $grantDriftCache
     ) {
     }
 
@@ -42,6 +67,7 @@ class TokenRepository
     public function save(Token $token): Token
     {
         $this->resource->save($token);
+        $this->grantDriftCache->invalidate();
         return $token;
     }
 
@@ -85,6 +111,7 @@ class TokenRepository
     {
         $token = $this->getById($id);
         $this->resource->delete($token);
+        $this->grantDriftCache->invalidate();
     }
 
     /**
@@ -100,13 +127,20 @@ class TokenRepository
         if (!$token->isRevoked()) {
             $token->setRevokedAt($this->dateTime->gmtDate());
             $this->resource->save($token);
+            $this->grantDriftCache->invalidate();
         }
         return $token;
     }
 
     /**
+     * Revokes every live token of an OAuth client and cancels the client's open background jobs.
+     *
+     * Every client-wide path goes through here (client disable, delete, secret rotation with revoke). OAuth
+     * refresh rotation never does: it revokes one token through {@see self::revoke()}, and the connection and
+     * its jobs live on.
+     *
      * @param int $oauthClientId
-     * @return int Number of rows updated.
+     * @return int Number of tokens revoked.
      */
     public function revokeAllForClient(int $oauthClientId): int
     {
@@ -122,6 +156,11 @@ class TokenRepository
                 $connection->quoteIdentifier('revoked_at') . ' IS NULL',
             ]
         );
+        if ($updated > 0) {
+            $this->grantDriftCache->invalidate();
+        }
+        // Also when no token was live: a rotated-away token's jobs belong to the client's connections. Never throws.
+        $this->jobCanceller->cancelForClient($oauthClientId);
         return (int) $updated;
     }
 
@@ -171,6 +210,89 @@ class TokenRepository
         $collection->addFieldToFilter('revoked_at', ['null' => true]);
         $items = $this->narrowItems($collection->getItems());
         return array_values(array_filter($items, static fn (Token $t): bool => !$t->isExpired()));
+    }
+
+    /**
+     * Live tokens (not revoked, not expired) whose grant lists tools by name, of every admin and client, in pages of
+     * {@see DRIFT_PAGE_SIZE}.
+     *
+     * Id-keyset paging (`id > last ORDER BY id LIMIT n`), so rows changing between pages never shift a page; each
+     * row carries only {@see DRIFT_COLUMNS}, and each page's collection is cleared once the caller moves on.
+     *
+     * @return \Generator<int, list<Token>, mixed, void>
+     */
+    public function getActiveWithLiteralGrantPages(): \Generator
+    {
+        $lastId = 0;
+        do {
+            $collection = $this->collectionFactory->create();
+            $collection->addFieldToFilter('revoked_at', ['null' => true]);
+            $collection->addFieldToFilter('scopes_json', ['notnull' => true]);
+            $collection->addFieldToFilter('expires_at', [['null' => true], ['gt' => $this->dateTime->gmtDate()]]);
+            $collection->addFieldToFilter(TokenInterface::ID, ['gt' => $lastId]);
+            $collection->addFieldToSelect(self::DRIFT_COLUMNS);
+            $collection->setOrder(TokenInterface::ID, Collection::SORT_ORDER_ASC);
+            $collection->setPageSize(self::DRIFT_PAGE_SIZE);
+            $items = $this->narrowItems($collection->getItems());
+            $rows = count($items);
+            if ($rows > 0) {
+                $id = $items[$rows - 1]->getId();
+                $lastId = is_scalar($id) ? (int) $id : $lastId;
+                // Safety net for a clock edge between the query and here.
+                yield array_values(array_filter($items, static fn (Token $t): bool => !$t->isExpired()));
+            }
+            $collection->clear();
+            unset($collection, $items);
+        } while ($rows === self::DRIFT_PAGE_SIZE);
+    }
+
+    /**
+     * The newest live (not revoked, not expired) token of one admin's OAuth connection, or null.
+     *
+     * Used when a background job outlives the access token that created it: the job belongs to the connection,
+     * whose current token then stands in for the deleted one.
+     *
+     * @param int $adminUserId
+     * @param int $oauthClientId
+     * @return Token|null
+     */
+    public function findNewestActiveForClient(int $adminUserId, int $oauthClientId): ?Token
+    {
+        $newest = null;
+        foreach ($this->getActiveByClientAndAdmin($oauthClientId, $adminUserId) as $token) {
+            if ($newest === null || (int) $token->getId() > (int) $newest->getId()) {
+                $newest = $token;
+            }
+        }
+        return $newest;
+    }
+
+    /**
+     * The newest unrevoked token of one admin's OAuth connection, expired or not, or null.
+     *
+     * Used when the access token that created a background job was revoked: OAuth rotation revokes it and the
+     * connection lives on in its successor, which an idle client may not have refreshed yet (access tokens live
+     * an hour). Expiry is ignored, as it is for the creating token itself; only a revoke ends the connection.
+     *
+     * @param int $adminUserId
+     * @param int $oauthClientId
+     * @return Token|null
+     */
+    public function findNewestUnrevokedForClient(int $adminUserId, int $oauthClientId): ?Token
+    {
+        $collection = $this->collectionFactory->create();
+        $collection->addFieldToFilter('oauth_client_id', ['eq' => $oauthClientId]);
+        $collection->addFieldToFilter('admin_user_id', ['eq' => $adminUserId]);
+        $collection->addFieldToFilter('revoked_at', ['null' => true]);
+        $collection->setOrder('id', 'DESC');
+        $collection->setPageSize(1);
+        $newest = null;
+        foreach ($this->narrowItems($collection->getItems()) as $token) {
+            if ($newest === null || (int) $token->getId() > (int) $newest->getId()) {
+                $newest = $token;
+            }
+        }
+        return $newest;
     }
 
     /**

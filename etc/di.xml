@@ -2,6 +2,7 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
+    <preference for="Magebit\Mcp\Api\JobSchedulerInterface" type="Magebit\Mcp\Model\Job\JobScheduler"/>
     <preference for="Magebit\Mcp\Api\ToolRegistryInterface"
                 type="Magebit\Mcp\Model\Tool\ToolRegistry"/>
     <preference for="Magebit\Mcp\Api\PromptRegistryInterface"
@@ -141,6 +142,20 @@
             <argument name="configStructure" xsi:type="object">
                 Magebit\Mcp\Model\Config\Structure\AdminhtmlLazy
             </argument>
+            <!-- Backend models whose beforeSave() changes something outside the model itself. A system.config.set
+                 dry run does not call them, so their value is not checked in a dry run (the real write still
+                 is). Subclasses match too. File-upload backends are refused outright and need no entry; the
+                 entries below sit under protected or redirected paths today and are listed as a second line. -->
+            <argument name="dryRunSkippedBackends" xsi:type="array">
+                <!-- Registers an admin redirect flag in the request registry. -->
+                <item name="admin_custompath" xsi:type="string">Magento\Config\Model\Config\Backend\Admin\Custompath</item>
+                <!-- Adds an admin session notice for each invalid IP. -->
+                <item name="dev_allowed_ips" xsi:type="string">Magento\Developer\Model\Config\Backend\AllowedIps</item>
+                <!-- Flushes Mollie's cache. -->
+                <item name="mollie_change_api_mode" xsi:type="string">Mollie\Payment\Model\Adminhtml\Backend\ChangeApiMode</item>
+                <!-- Calls the Mollie API, saves the key and cleans caches. -->
+                <item name="mollie_save_api_key" xsi:type="string">Mollie\Payment\Model\Adminhtml\Backend\SaveApiKey</item>
+            </argument>
         </arguments>
     </type>
 
@@ -259,6 +274,33 @@
         </arguments>
     </type>
 
+    <!-- TokenRepository runs on every authenticated request; the job canceller (and the registry it reaches)
+         is only built when a client-wide revoke actually cancels jobs. -->
+    <type name="Magebit\Mcp\Model\TokenRepository">
+        <arguments>
+            <argument name="jobCanceller" xsi:type="object">Magebit\Mcp\Model\Job\JobCanceller\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!-- The job tools are registered tools themselves, so anything they inject that reads the registry
+         must reach it lazily, or ToolRegistry -> tool -> registry is a circular dependency. -->
+    <type name="Magebit\Mcp\Model\Job\JobToolAccess">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+    <!-- Also reached from TokenRepository through JobCanceller. -->
+    <type name="Magebit\Mcp\Model\Job\JobItemKeys">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Magebit\Mcp\Tool\System\Job\ListJobs">
+        <arguments>
+            <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
+        </arguments>
+    </type>
+
     <type name="Magebit\Mcp\Console\Command\ListToolsCommand">
         <arguments>
             <argument name="toolRegistry" xsi:type="object">Magebit\Mcp\Api\ToolRegistryInterface\Proxy</argument>
@@ -309,11 +351,38 @@
         </arguments>
     </type>
 
+    <!-- Job snapshot providers (Api/JobSnapshotProviderInterface), keyed by canonical tool name.
+         Satellite modules add their entries to this array. -->
+    <type name="Magebit\Mcp\Model\Job\SnapshotProviderPool">
+        <arguments>
+            <argument name="providers" xsi:type="array"/>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapter">
+        <arguments>
+            <argument name="scheduler" xsi:type="object">Magebit\Mcp\Api\JobSchedulerInterface\Proxy</argument>
+        </arguments>
+    </type>
+
     <type name="Magebit\Mcp\Model\Tool\ToolRegistry">
         <arguments>
+            <argument name="adapterFactory" xsi:type="object">Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapterFactory</argument>
             <argument name="tools" xsi:type="array">
                 <item name="system.whoami" xsi:type="object">
                     Magebit\Mcp\Tool\System\WhoAmI
+                </item>
+                <item name="system.job.get" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Job\Get
+                </item>
+                <item name="system.job.list" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Job\ListJobs
+                </item>
+                <item name="system.job.cancel" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Job\Cancel
+                </item>
+                <item name="system.job.resume" xsi:type="object">
+                    Magebit\Mcp\Tool\System\Job\Resume
                 </item>
                 <item name="system.store.list" xsi:type="object">
                     Magebit\Mcp\Tool\System\StoreList
@@ -530,11 +599,16 @@
     <type name="Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler">
         <arguments>
             <argument name="toolAvailability" xsi:type="object">Magebit\Mcp\Model\Tool\ToolAvailability</argument>
+            <argument name="auditContext" xsi:type="object">Magebit\Mcp\Model\AuditLog\AuditContext</argument>
+            <argument name="structuredOutputPolicy" xsi:type="object">Magebit\Mcp\Model\JsonRpc\StructuredOutputPolicy</argument>
+            <argument name="jobToolGate" xsi:type="object">Magebit\Mcp\Model\Tool\Bulk\JobToolGate</argument>
         </arguments>
     </type>
     <type name="Magebit\Mcp\Model\JsonRpc\Handler\ToolsCallHandler">
         <arguments>
             <argument name="toolAvailability" xsi:type="object">Magebit\Mcp\Model\Tool\ToolAvailability</argument>
+            <argument name="structuredOutputPolicy" xsi:type="object">Magebit\Mcp\Model\JsonRpc\StructuredOutputPolicy</argument>
+            <argument name="jobToolGate" xsi:type="object">Magebit\Mcp\Model\Tool\Bulk\JobToolGate</argument>
         </arguments>
     </type>
 </config>

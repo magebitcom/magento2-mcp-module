@@ -12,6 +12,7 @@ use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Model\Auth\AdminUserLookup;
 use Magebit\Mcp\Model\Auth\TokenGenerator;
 use Magebit\Mcp\Model\Auth\TokenHasher;
+use Magebit\Mcp\Model\OAuth\ConsentOfferedTools;
 use Magebit\Mcp\Model\TokenFactory;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -42,6 +43,7 @@ class TokenCreateCommand extends Command
      * @param TokenHasher $tokenHasher
      * @param TokenRepository $tokenRepository
      * @param ToolRegistryInterface $toolRegistry
+     * @param ConsentOfferedTools $consentOfferedTools
      */
     public function __construct(
         private readonly AdminUserLookup $adminUserLookup,
@@ -49,7 +51,8 @@ class TokenCreateCommand extends Command
         private readonly TokenGenerator $tokenGenerator,
         private readonly TokenHasher $tokenHasher,
         private readonly TokenRepository $tokenRepository,
-        private readonly ToolRegistryInterface $toolRegistry
+        private readonly ToolRegistryInterface $toolRegistry,
+        private readonly ConsentOfferedTools $consentOfferedTools
     ) {
         parent::__construct();
     }
@@ -139,6 +142,8 @@ class TokenCreateCommand extends Command
         $token->setTokenHash($hash);
         $token->setAllowWrites($allowWrites);
         $token->setScopes($scopeList === [] ? null : $scopeList);
+        // What the admin form or consent would offer this admin, so grant drift later counts only newer tools.
+        $token->setOfferedTools($this->consentOfferedTools->forAdmin($admin));
         if ($expiresAt !== null) {
             $token->setExpiresAt($expiresAt);
         }

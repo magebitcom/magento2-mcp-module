@@ -11,6 +11,7 @@ namespace Magebit\Mcp\Model\OAuth;
 use Magebit\Mcp\Api\Data\OAuth\AuthCodeInterface;
 use Magebit\Mcp\Model\OAuth\ResourceModel\AuthCode as AuthCodeResource;
 use Magebit\Mcp\Model\Trait\ReturnsStrictTypedData;
+use Magebit\Mcp\Model\Util\OfferedToolsRecord;
 use Magento\Framework\Model\AbstractModel;
 
 /**
@@ -192,6 +193,26 @@ class AuthCode extends AbstractModel implements AuthCodeInterface
         }
         $encoded = json_encode($tools, JSON_UNESCAPED_SLASHES);
         $this->setData(self::GRANTED_TOOLS_JSON, $encoded === false ? null : $encoded);
+        return $this;
+    }
+
+    /**
+     * @return array<int, string>|null
+     */
+    public function getOfferedTools(): ?array
+    {
+        return OfferedToolsRecord::decode($this->getDataStringOrNull(self::OFFERED_TOOLS_JSON));
+    }
+
+    /**
+     * Null means "no record"; an empty list is stored as a record.
+     *
+     * @param array<int, string>|null $tools
+     * @return self
+     */
+    public function setOfferedTools(?array $tools): self
+    {
+        $this->setData(self::OFFERED_TOOLS_JSON, OfferedToolsRecord::encode($tools));
         return $this;
     }
 

@@ -54,6 +54,34 @@ class AuthCodeIssuerTest extends TestCase
         self::assertSame('plaintext-code', $code);
     }
 
+    public function testIssueStoresTheToolsOfferedAtConsent(): void
+    {
+        $authCode = $this->createMock(AuthCode::class);
+        $authCode->expects(self::once())->method('setGrantedTools')->with(['system.store.list']);
+        $authCode->expects(self::once())->method('setOfferedTools')
+            ->with(['system.store.list', 'catalog.product.get']);
+
+        $issuer = $this->issuerFor($authCode);
+        $issuer->issue(
+            oauthClientId: 1,
+            adminUserId: 1,
+            redirectUri: 'https://x/cb',
+            codeChallenge: 'c',
+            codeChallengeMethod: 'S256',
+            scope: 'mcp:read',
+            grantedTools: ['system.store.list'],
+            offeredTools: ['system.store.list', 'catalog.product.get']
+        );
+    }
+
+    public function testIssueWithoutOfferedToolsStoresNoRecord(): void
+    {
+        $authCode = $this->createMock(AuthCode::class);
+        $authCode->expects(self::once())->method('setOfferedTools')->with(null);
+
+        $this->issuerFor($authCode)->issue(1, 1, 'https://x/cb', 'c', 'S256', 'mcp:read', ['system.store.list']);
+    }
+
     public function testIssueAcceptsNullScope(): void
     {
         $authCode = $this->createMock(AuthCode::class);
@@ -93,5 +121,29 @@ class AuthCodeIssuerTest extends TestCase
 
         $issuer = new AuthCodeIssuer($factory, $repo, $generator, $hasher, $config);
         $issuer->issue(1, 1, 'https://x/cb', 'c', 'S256', 'mcp');
+    }
+
+    /**
+     * @param AuthCode $authCode
+     * @return AuthCodeIssuer
+     */
+    private function issuerFor(AuthCode $authCode): AuthCodeIssuer
+    {
+        $factory = $this->createMock(AuthCodeFactory::class);
+        $factory->method('create')->willReturn($authCode);
+        $generator = $this->createMock(TokenGenerator::class);
+        $generator->method('generate')->willReturn('p');
+        $hasher = $this->createMock(TokenHasher::class);
+        $hasher->method('hash')->willReturn('h');
+        $config = $this->createMock(ModuleConfig::class);
+        $config->method('getOAuthAuthCodeLifetime')->willReturn(60);
+
+        return new AuthCodeIssuer(
+            $factory,
+            $this->createMock(AuthCodeRepository::class),
+            $generator,
+            $hasher,
+            $config
+        );
     }
 }

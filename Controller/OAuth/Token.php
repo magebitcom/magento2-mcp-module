@@ -234,7 +234,8 @@ class Token implements
             oauthClientName: $client->getName(),
             adminUserId: $authCode->getAdminUserId(),
             allowWrites: $allowWrites,
-            toolNames: $toolNamesForIssue
+            toolNames: $toolNamesForIssue,
+            offeredTools: $authCode->getOfferedTools()
         );
 
         return $this->emitTokenResponse($pair, $pair->grantedScope);

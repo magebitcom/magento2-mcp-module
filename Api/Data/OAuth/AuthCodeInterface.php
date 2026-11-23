@@ -26,6 +26,7 @@ interface AuthCodeInterface
     public const CODE_CHALLENGE_METHOD = 'code_challenge_method';
     public const SCOPE = 'scope';
     public const GRANTED_TOOLS_JSON = 'granted_tools_json';
+    public const OFFERED_TOOLS_JSON = 'offered_tools_json';
     public const EXPIRES_AT = 'expires_at';
     public const USED_AT = 'used_at';
     public const CREATED_AT = 'created_at';
@@ -131,6 +132,14 @@ interface AuthCodeInterface
      * @return self
      */
     public function setGrantedTools(?array $tools): self;
+
+    /**
+     * Canonical tool names the consent screen offered (inside the client's cap). The token endpoint copies
+     * this record onto the access token. Null for codes written before the record existed.
+     *
+     * @return array<int, string>|null
+     */
+    public function getOfferedTools(): ?array;
 
     /**
      * GMT datetime in `Y-m-d H:i:s` format.

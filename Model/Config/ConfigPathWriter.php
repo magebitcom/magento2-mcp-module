@@ -17,12 +17,21 @@ use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Config\Model\ConfigFactory;
 use Magento\Framework\App\Config\ScopeCodeResolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\ScopeInterface as AppScopeInterface;
+use Magento\Framework\App\ScopeResolverPool;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Model\AbstractModel;
 use Magento\Store\Model\ScopeInterface;
 
 /**
  * Persists one config path through the admin save path, so the field's backend model and validation
  * run exactly as they would in Stores > Configuration.
+ *
+ * A dry run ({@see self::validate()}) makes the same refusals and runs the field's backend model up to the point
+ * where the save would write: validateBeforeSave() and beforeSave(), never save(), afterSave() or the resource
+ * model. Two kinds of check are therefore not covered: a backend that validates only in afterSave() (the currency
+ * backends Currency\Allow, Base and DefaultCurrency do), and a backend listed in `dryRunSkippedBackends` (di.xml),
+ * whose beforeSave() changes something outside the model itself, so its value is not checked in a dry run.
  */
 class ConfigPathWriter
 {
@@ -48,6 +57,9 @@ class ConfigPathWriter
      * @param SettingChecker $settingChecker
      * @param ScopeCodeResolver $scopeCodeResolver
      * @param ConfigPathFormat $pathFormat
+     * @param ScopeResolverPool $scopeResolverPool
+     * @param array<int|string, string> $dryRunSkippedBackends Backend model classes (subclasses included) whose
+     *                                                         beforeSave() has side effects; a dry run skips them.
      */
     public function __construct(
         private readonly ConfigFactory $configFactory,
@@ -55,8 +67,28 @@ class ConfigPathWriter
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly SettingChecker $settingChecker,
         private readonly ScopeCodeResolver $scopeCodeResolver,
-        private readonly ConfigPathFormat $pathFormat
+        private readonly ConfigPathFormat $pathFormat,
+        private readonly ScopeResolverPool $scopeResolverPool,
+        private readonly array $dryRunSkippedBackends = []
     ) {
+    }
+
+    /**
+     * Every check write() makes, without saving: the shape of the path, the scope, the system.xml declaration,
+     * redirects, file uploads and env locks, then the scope and the field's backend model the way the save runs
+     * them. A dry run calls only this, so a value the save would refuse is refused here with the same exception.
+     *
+     * @param string $path
+     * @param string $value
+     * @param string $scope
+     * @param string|null $scopeCode
+     * @return void
+     * @throws LocalizedException
+     */
+    public function validate(string $path, string $value, string $scope, ?string $scopeCode): void
+    {
+        $parsed = $this->validatedParts($path, $scope, $scopeCode);
+        $this->validateValue($path, $parsed, $value, $scope, $scopeCode);
     }
 
     /**
@@ -68,6 +100,130 @@ class ConfigPathWriter
      * @throws LocalizedException
      */
     public function write(string $path, string $value, string $scope, ?string $scopeCode): void
+    {
+        // The same refusals validate() makes, in one pass.
+        $parsed = $this->validatedParts($path, $scope, $scopeCode);
+
+        // Handing Config the same structure keeps these checks and the save that follows from
+        // resolving against two different ones; the data keys are what setSection()/setGroups() set.
+        $this->configFactory->create([
+            'configStructure' => $this->configStructure,
+            'data' => [
+                'section' => $parsed['section'],
+                'website' => $scope === ScopeInterface::SCOPE_WEBSITES ? (string) $scopeCode : '',
+                'store' => $scope === ScopeInterface::SCOPE_STORES ? (string) $scopeCode : '',
+                'groups' => $this->buildGroups($parsed['groups'], $parsed['field'], $value),
+            ],
+        ])->save();
+    }
+
+    /**
+     * What Config::save() does for this one field up to the row write: resolve the scope (Config::initScope()),
+     * build the backend model and hand it the data Config::_processGroup() hands it, then the two checks
+     * AbstractDb::save() runs before it writes. A field without a backend model gets a plain config value, which
+     * checks nothing, so there is nothing to run.
+     *
+     * @param string $path
+     * @param array{section: string, groups: list<string>, field: string} $parsed
+     * @param string $value
+     * @param string $scope
+     * @param string|null $scopeCode
+     * @return void
+     * @throws LocalizedException
+     */
+    private function validateValue(string $path, array $parsed, string $value, string $scope, ?string $scopeCode): void
+    {
+        $resolved = $this->resolvedScope($scope, $scopeCode);
+
+        $field = $this->configStructure->getElement($path);
+        if (!$field instanceof Field || !$field->hasBackendModel()) {
+            return;
+        }
+        $backend = $field->getBackendModel();
+        if (!$backend instanceof AbstractModel || $this->isSkippedInDryRun($backend)) {
+            return;
+        }
+
+        $groupIds = $parsed['groups'];
+        $backend->addData([
+            'field' => $parsed['field'],
+            'groups' => $this->buildGroups($groupIds, $parsed['field'], $value),
+            'group_id' => $groupIds[count($groupIds) - 1] ?? '',
+            'scope' => $scope,
+            'scope_id' => $resolved->getId(),
+            'scope_code' => $resolved->getCode(),
+            'field_config' => $field->getData(),
+            'fieldset_data' => [$parsed['field'] => $value],
+        ]);
+        $backend->setData('path', $path);
+        $backend->setData('value', $value);
+        $backend->validateBeforeSave();
+        $backend->beforeSave();
+    }
+
+    /**
+     * The id of the scope a write would land in, resolved the way the save resolves it, so an id and a code of the
+     * same website or store give the same answer. The default scope is 0. Never throws: null when the scope type is
+     * unknown, a website or store scope has no code (the resolver would read that as the current store), or the
+     * code names nothing; the write refuses those items itself.
+     *
+     * @param string $scope
+     * @param string|null $scopeCode
+     * @return int|null
+     */
+    public function canonicalScopeId(string $scope, ?string $scopeCode): ?int
+    {
+        if ($scope === ScopeConfigInterface::SCOPE_TYPE_DEFAULT) {
+            return 0;
+        }
+        if (!in_array($scope, self::SCOPE_TYPES, true) || (string) $scopeCode === '') {
+            return null;
+        }
+        try {
+            // Typed int, but a website or store model hands back the row's id as read from the database.
+            return (int) $this->resolvedScope($scope, $scopeCode)->getId();
+        } catch (LocalizedException | \InvalidArgumentException) {
+            return null;
+        }
+    }
+
+    /**
+     * Config::initScope()'s resolution.
+     *
+     * @param string $scope
+     * @param string|null $scopeCode
+     * @return AppScopeInterface
+     */
+    private function resolvedScope(string $scope, ?string $scopeCode): AppScopeInterface
+    {
+        $isDefault = $scope === ScopeConfigInterface::SCOPE_TYPE_DEFAULT;
+        // Config::retrieveScope() hands the resolvers a code too, although their docblock types an id.
+        // @phpstan-ignore argument.type
+        return $this->scopeResolverPool->get($scope)->getScope($isDefault ? null : $scopeCode);
+    }
+
+    /**
+     * @param AbstractModel $backend
+     * @return bool
+     */
+    private function isSkippedInDryRun(AbstractModel $backend): bool
+    {
+        foreach ($this->dryRunSkippedBackends as $class) {
+            if (is_a($backend, ltrim($class, '\\'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param string $path
+     * @param string $scope
+     * @param string|null $scopeCode
+     * @return array{section: string, groups: list<string>, field: string}
+     * @throws LocalizedException
+     */
+    private function validatedParts(string $path, string $scope, ?string $scopeCode): array
     {
         $parsed = $this->parse($path);
         if ($parsed === null) {
@@ -97,17 +253,7 @@ class ConfigPathWriter
         $this->assertNotFileUpload($path);
         $this->assertNotLocked($path, $scope, $scopeCode);
 
-        // Handing Config the same structure keeps these checks and the save that follows from
-        // resolving against two different ones; the data keys are what setSection()/setGroups() set.
-        $this->configFactory->create([
-            'configStructure' => $this->configStructure,
-            'data' => [
-                'section' => $parsed['section'],
-                'website' => $scope === ScopeInterface::SCOPE_WEBSITES ? (string) $scopeCode : '',
-                'store' => $scope === ScopeInterface::SCOPE_STORES ? (string) $scopeCode : '',
-                'groups' => $this->buildGroups($parsed['groups'], $parsed['field'], $value),
-            ],
-        ])->save();
+        return $parsed;
     }
 
     /**

@@ -50,9 +50,20 @@ class DisabledTools
             return $this->cache;
         }
 
-        $raw = $this->scopeConfig->getValue(self::XML_PATH_DISABLED_TOOLS);
+        return $this->cache = self::parse($this->scopeConfig->getValue(self::XML_PATH_DISABLED_TOOLS));
+    }
+
+    /**
+     * Parses the stored list (one tool name per line). Shared with readers that load the raw value themselves,
+     * such as the job claim check, which must see the value as it is now rather than this instance's memo.
+     *
+     * @param mixed $raw
+     * @return list<string>
+     */
+    public static function parse(mixed $raw): array
+    {
         if (!is_string($raw) || trim($raw) === '') {
-            return $this->cache = [];
+            return [];
         }
 
         $names = [];
@@ -63,7 +74,7 @@ class DisabledTools
             }
         }
 
-        return $this->cache = array_values(array_unique($names));
+        return array_values(array_unique($names));
     }
 
     /**

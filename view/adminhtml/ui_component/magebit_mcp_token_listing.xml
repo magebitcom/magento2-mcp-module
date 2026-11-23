@@ -122,7 +122,7 @@
         </column>
         <column name="scopes_json" sortOrder="60" class="Magebit\Mcp\Ui\Component\Listing\Column\TokenScopes">
             <settings>
-                <label translate="true">Scopes</label>
+                <label translate="true">Grant</label>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
                 <sortable>false</sortable>
             </settings>

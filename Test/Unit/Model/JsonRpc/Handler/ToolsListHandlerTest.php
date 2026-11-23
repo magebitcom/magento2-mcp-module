@@ -17,7 +17,11 @@ use Magebit\Mcp\Model\Acl\AclChecker;
 use Magebit\Mcp\Model\Auth\AuthenticatedContext;
 use Magebit\Mcp\Model\Config\ModuleConfig;
 use Magebit\Mcp\Model\JsonRpc\Handler\ToolsListHandler;
+use Magebit\Mcp\Model\AuditLog\AuditContext;
 use Magebit\Mcp\Model\JsonRpc\Request;
+use Magebit\Mcp\Model\JsonRpc\StructuredOutputPolicy;
+use Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapter;
+use Magebit\Mcp\Model\Tool\Bulk\JobToolGate;
 use Magebit\Mcp\Model\Tool\DisabledTools;
 use Magebit\Mcp\Model\Tool\SchemaSanitizer;
 use Magebit\Mcp\Model\Tool\WriteMode;
@@ -90,6 +94,47 @@ class ToolsListHandlerTest extends TestCase
         self::assertSame('System: System.store.list', $annotations[0]['title']);
         self::assertTrue($annotations[0]['readOnlyHint']);
         self::assertFalse($annotations[0]['destructiveHint']);
+    }
+
+    public function testOutputSchemaOnlyOnBulkTools(): void
+    {
+        $bulk = $this->createMock(BulkToolAdapter::class);
+        $this->stubToolBasics($bulk, 'catalog.product.bulk_update', 'Magebit_Mcp::tool_bulk');
+        $bulk->method('getOutputSchema')->willReturn(['type' => 'object', 'properties' => ['summary' => []]]);
+        $plain = $this->makeTool('system.store.list', 'Magebit_Mcp::tool_system_store_list');
+
+        $current = $this->listTools(
+            $this->makeHandler([$bulk, $plain], true, null, true, protocolVersion: '2025-06-18')
+        );
+        self::assertSame(
+            ['type' => 'object', 'properties' => ['summary' => []]],
+            $current[0]['outputSchema']
+        );
+        self::assertArrayNotHasKey('outputSchema', $current[1]);
+
+        foreach ([null, '2025-03-26'] as $old) {
+            $legacy = $this->listTools(
+                $this->makeHandler([$bulk, $plain], true, null, true, protocolVersion: $old)
+            );
+            self::assertArrayNotHasKey('outputSchema', $legacy[0]);
+            self::assertArrayNotHasKey('outputSchema', $legacy[1]);
+        }
+    }
+
+    /**
+     * @param ToolsListHandler $handler
+     * @return list<array<string, mixed>>
+     */
+    private function listTools(ToolsListHandler $handler): array
+    {
+        $response = $handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken(null, true), $this->createMock(User::class))
+        );
+        self::assertNotNull($response->result);
+        /** @var list<array<string, mixed>> $tools */
+        $tools = $response->result['tools'];
+        return $tools;
     }
 
     public function testDisplayTitleIsPrefixedWithDomainLabel(): void
@@ -253,6 +298,77 @@ class ToolsListHandlerTest extends TestCase
         self::assertSame(['system_store_list'], $names);
     }
 
+    public function testJobToolsListedForLiteralGrantWithAsyncTool(): void
+    {
+        $names = $this->listNamesForJobFixture(asyncCapable: true, scopes: ['catalog.product.bulk_update']);
+
+        self::assertSame(['catalog_product_bulk_update', 'system_job_get', 'system_job_cancel'], $names);
+    }
+
+    public function testJobToolsHiddenWithoutAsyncTool(): void
+    {
+        $names = $this->listNamesForJobFixture(
+            asyncCapable: false,
+            scopes: ['catalog.product.bulk_update', 'system.store.list']
+        );
+
+        self::assertSame(['catalog_product_bulk_update', 'system_store_list'], $names);
+    }
+
+    public function testJobToolsStillNeedTheRoleAclAndTheWriteGate(): void
+    {
+        $names = $this->listNamesForJobFixture(
+            asyncCapable: true,
+            scopes: ['catalog.product.bulk_update'],
+            allowWrites: false
+        );
+        // cancel is a WRITE tool: hidden while writes are off, even though the scope check passes.
+        self::assertSame(['catalog_product_bulk_update', 'system_job_get'], $names);
+
+        // The async bulk tool's own resource admits the role to the job tools without Magebit_Mcp::tools.
+        $names = $this->listNamesForJobFixture(
+            asyncCapable: true,
+            scopes: ['catalog.product.bulk_update'],
+            denied: ['Magebit_Mcp::tools']
+        );
+        self::assertSame(['catalog_product_bulk_update', 'system_job_get', 'system_job_cancel'], $names);
+
+        $names = $this->listNamesForJobFixture(
+            asyncCapable: true,
+            scopes: ['catalog.product.bulk_update', 'system.store.list'],
+            denied: ['Magebit_Mcp::tools', 'Magebit_Mcp::tool_bulk']
+        );
+        self::assertSame(['system_store_list'], $names);
+    }
+
+    /**
+     * @phpstan-param list<string> $scopes
+     * @phpstan-param list<string> $denied
+     * @phpstan-return list<string>
+     */
+    private function listNamesForJobFixture(
+        bool $asyncCapable,
+        array $scopes,
+        bool $allowWrites = true,
+        array $denied = []
+    ): array {
+        $bulk = $this->createMock(BulkToolAdapter::class);
+        $this->stubToolBasics($bulk, 'catalog.product.bulk_update', 'Magebit_Mcp::tool_bulk');
+        $bulk->method('isAsyncCapable')->willReturn($asyncCapable);
+        $tools = [
+            $bulk,
+            $this->makeTool('system.store.list', 'Magebit_Mcp::tool_system_store_list'),
+            $this->makeTool('system.job.get', 'Magebit_Mcp::tools'),
+            $this->makeTool('system.job.cancel', 'Magebit_Mcp::tools', WriteMode::WRITE, true),
+        ];
+        $handler = $this->makeHandler($tools, $allowWrites, $scopes, true, denied: $denied);
+
+        return $this->extractToolNames($handler->handle(
+            new Request(1, false, 'tools/list', []),
+            new AuthenticatedContext($this->makeToken($scopes, $allowWrites), $this->createMock(User::class))
+        ));
+    }
+
     /**
      * Extracts the emitted tool names from a tools/list response in a way
      * PHPStan can narrow — the Response::result type is array<string, mixed>.
@@ -286,7 +402,8 @@ class ToolsListHandlerTest extends TestCase
         ?array $scopes,
         bool $aclAllow,
         array $disabled = [],
-        array $denied = []
+        array $denied = [],
+        ?string $protocolVersion = null
     ): ToolsListHandler {
         $byName = [];
         foreach ($tools as $tool) {
@@ -294,6 +411,8 @@ class ToolsListHandlerTest extends TestCase
         }
         $registry = $this->createMock(ToolRegistryInterface::class);
         $registry->method('all')->willReturn($byName);
+        $registry->method('has')->willReturnCallback(static fn (string $name): bool => isset($byName[$name]));
+        $registry->method('get')->willReturnCallback(static fn (string $name): ToolInterface => $byName[$name]);
 
         $aclChecker = $this->createMock(AclChecker::class);
         $aclChecker->method('isAllowed')->willReturnCallback(
@@ -316,6 +435,9 @@ class ToolsListHandlerTest extends TestCase
             static fn (string $name): bool => in_array($name, $disabled, true)
         );
 
+        $auditContext = new AuditContext();
+        $auditContext->protocolVersion = $protocolVersion;
+
         return new ToolsListHandler(
             $registry,
             $aclChecker,
@@ -323,7 +445,11 @@ class ToolsListHandlerTest extends TestCase
             $sanitizer,
             $logger,
             $toolDomain,
-            $disabledTools
+            $disabledTools,
+            null,
+            $auditContext,
+            new StructuredOutputPolicy(),
+            new JobToolGate($registry, $aclChecker)
         );
     }
 

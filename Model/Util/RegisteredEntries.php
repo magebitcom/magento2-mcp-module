@@ -23,7 +23,8 @@ class RegisteredEntries
 
     /**
      * @param array<int|string, mixed> $entries
-     * @param array<int, class-string> $requiredInterfaces
+     * @param array<int, class-string|array<int, class-string>> $requiredInterfaces Each element is a required
+     *        interface; an element that is itself a list means "any one of these".
      * @param string $entryLabel
      * @return void
      * @throws InvalidArgumentException
@@ -39,13 +40,14 @@ class RegisteredEntries
                     get_debug_type($entry)
                 ));
             }
-            foreach ($requiredInterfaces as $iface) {
-                if (!$entry instanceof $iface) {
+            foreach ($requiredInterfaces as $required) {
+                $alternatives = (array) $required;
+                if (!self::implementsAny($entry, $alternatives)) {
                     throw new InvalidArgumentException(sprintf(
                         '%s "%s" must implement %s, got %s.',
                         $entryLabel,
                         (string) $key,
-                        $iface,
+                        implode(' or ', $alternatives),
                         get_debug_type($entry)
                     ));
                 }
@@ -68,5 +70,20 @@ class RegisteredEntries
                 ));
             }
         }
+    }
+
+    /**
+     * @param object $entry
+     * @param array<int, class-string> $interfaces
+     * @return bool
+     */
+    private static function implementsAny(object $entry, array $interfaces): bool
+    {
+        foreach ($interfaces as $iface) {
+            if ($entry instanceof $iface) {
+                return true;
+            }
+        }
+        return false;
     }
 }

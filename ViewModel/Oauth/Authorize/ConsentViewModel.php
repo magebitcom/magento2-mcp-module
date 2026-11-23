@@ -11,6 +11,7 @@ namespace Magebit\Mcp\ViewModel\Oauth\Authorize;
 use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Helper\Acl\ToolResourceTree;
 use Magebit\Mcp\Model\OAuth\AuthMode;
+use Magebit\Mcp\Model\OAuth\ConsentOfferedTools;
 use Magebit\Mcp\Model\OAuth\Client;
 use Magebit\Mcp\Model\OAuth\ToolGrantResolver;
 use Magento\Backend\Model\Auth;
@@ -26,14 +27,14 @@ use Magento\User\Model\User;
 class ConsentViewModel implements ArgumentInterface
 {
     /**
-     * @param ToolResourceTree $toolResourceTree
+     * @param ConsentOfferedTools $consentOfferedTools
      * @param ToolRegistryInterface $toolRegistry
      * @param Auth $auth
      * @param Json $jsonSerializer
      * @param CollectionFactory $userCollectionFactory
      */
     public function __construct(
-        private readonly ToolResourceTree $toolResourceTree,
+        private readonly ConsentOfferedTools $consentOfferedTools,
         private readonly ToolRegistryInterface $toolRegistry,
         private readonly Auth $auth,
         private readonly Json $jsonSerializer,
@@ -96,7 +97,8 @@ class ConsentViewModel implements ArgumentInterface
      */
     public function getTreeForRender(?Client $client): array
     {
-        $tree = $this->toolResourceTree->build($this->resolveAdminUserId());
+        // Same tree ToolGrantResolver::grantsAllAdminAccessibleTools() reads the offered set from.
+        $tree = $this->consentOfferedTools->tree($this->resolveAdminUserId());
         $allowedAclIds = $this->buildAllowedAclIdSet($client);
         $this->applyClientAllowedFilter($tree, $allowedAclIds);
         return $tree;

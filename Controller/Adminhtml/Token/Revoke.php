@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Controller\Adminhtml\Token;
 
+use Magebit\Mcp\Model\Job\JobCanceller;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
@@ -27,10 +28,12 @@ class Revoke extends Action implements HttpPostActionInterface
     /**
      * @param Context $context
      * @param TokenRepository $tokenRepository
+     * @param JobCanceller $jobCanceller
      */
     public function __construct(
         Context $context,
-        private readonly TokenRepository $tokenRepository
+        private readonly TokenRepository $tokenRepository,
+        private readonly JobCanceller $jobCanceller
     ) {
         parent::__construct($context);
     }
@@ -51,6 +54,7 @@ class Revoke extends Action implements HttpPostActionInterface
         $id = (int) $raw;
 
         try {
+            $wasActive = $this->tokenRepository->getById($id)->getRevokedAt() === null;
             $token = $this->tokenRepository->revoke($id);
         } catch (NoSuchEntityException) {
             $this->messageManager->addErrorMessage(
@@ -64,9 +68,13 @@ class Revoke extends Action implements HttpPostActionInterface
             return $redirect->setPath('*/*/index');
         }
 
-        $this->messageManager->addSuccessMessage(
-            (string) __('Connection "%1" revoked.', $token->getName())
-        );
+        // An already-revoked token (e.g. rotated away) says nothing about the live connection's jobs.
+        $cancelled = $wasActive ? $this->jobCanceller->cancelForRevokedToken($token) : 0;
+        $message = (string) __('Connection "%1" revoked.', $token->getName());
+        if ($cancelled > 0) {
+            $message .= ' ' . (string) __('%1 background job(s) were cancelled.', $cancelled);
+        }
+        $this->messageManager->addSuccessMessage($message);
         return $redirect->setPath('*/*/index');
     }
 }

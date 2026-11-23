@@ -115,16 +115,48 @@ class AccessTokenIssuerTest extends TestCase
     }
 
     /**
+     * The record of what consent offered travels from the auth code (or the rotated token) onto the new token.
+     */
+    public function testIssueStoresTheToolsOfferedAtConsent(): void
+    {
+        $token = $this->createMock(Token::class);
+        $token->method('getId')->willReturn(1);
+        $token->expects(self::once())->method('setOfferedTools')
+            ->with(['catalog.product.list', 'sales.order.get']);
+
+        $this->buildIssuerWithNullTools($token)->issue(
+            oauthClientId: 7,
+            oauthClientName: 'Claude Web',
+            adminUserId: 42,
+            allowWrites: false,
+            toolNames: null,
+            offeredTools: ['catalog.product.list', 'sales.order.get']
+        );
+    }
+
+    public function testIssueWithoutOfferedToolsStoresNoRecord(): void
+    {
+        $token = $this->createMock(Token::class);
+        $token->method('getId')->willReturn(1);
+        $token->expects(self::once())->method('setOfferedTools')->with(null);
+
+        $this->buildIssuerWithNullTools($token)->issue(7, 'Claude Web', 42, false, null);
+    }
+
+    /**
      * Wildcard tokens skip the per-tool scope summary; the protocol echo is
      * derived from the allow_writes flag alone.
      *
+     * @param Token|null $token
      * @return AccessTokenIssuer
      */
-    private function buildIssuerWithNullTools(): AccessTokenIssuer
+    private function buildIssuerWithNullTools(?Token $token = null): AccessTokenIssuer
     {
-        $token = $this->createMock(Token::class);
-        $token->expects(self::once())->method('setScopes')->with(null);
-        $token->method('getId')->willReturn(1);
+        if ($token === null) {
+            $token = $this->createMock(Token::class);
+            $token->expects(self::once())->method('setScopes')->with(null);
+            $token->method('getId')->willReturn(1);
+        }
 
         $tokenFactory = $this->createMock(TokenFactory::class);
         $tokenFactory->method('create')->willReturn($token);

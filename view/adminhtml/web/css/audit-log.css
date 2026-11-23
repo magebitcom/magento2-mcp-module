@@ -33,6 +33,16 @@
     text-transform: uppercase;
 }
 
+/* Connections grid: a literal grant that misses tools offered since it was made. Quiet amber chip;
+   text #5c3d00 on #fff3cd is 8.9:1 (WCAG AA and AAA). The border keeps the chip the same size. */
+.mcp-scope-count.mcp-scope-drift {
+    background: #fff3cd;
+    border: 1px solid #e0a800;
+    color: #5c3d00;
+    cursor: help;
+    padding: 1px 7px;
+}
+
 .mcp-scope-domain {
     background: #f4f4f4;
     border: 1px solid #e3e3e3;

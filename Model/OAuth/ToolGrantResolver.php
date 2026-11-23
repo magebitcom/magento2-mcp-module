@@ -24,10 +24,12 @@ class ToolGrantResolver
     /**
      * @param ToolRegistryInterface $toolRegistry
      * @param AclChecker $aclChecker
+     * @param ConsentOfferedTools $consentOfferedTools
      */
     public function __construct(
         private readonly ToolRegistryInterface $toolRegistry,
-        private readonly AclChecker $aclChecker
+        private readonly AclChecker $aclChecker,
+        private readonly ConsentOfferedTools $consentOfferedTools
     ) {
     }
 
@@ -78,6 +80,20 @@ class ToolGrantResolver
             $granted[] = $toolName;
         }
         return $granted;
+    }
+
+    /**
+     * What the consent screen offers this admin for this client: the consent tree's tools inside the client's cap,
+     * through the same intersection the grant uses (as if the admin ticked everything). Kept on the auth code as
+     * the "offered at grant" record, so grant drift later counts only tools that appeared since.
+     *
+     * @param array<int, string> $clientAllowedTools
+     * @param User $admin
+     * @return array<int, string>
+     */
+    public function offeredTools(array $clientAllowedTools, User $admin): array
+    {
+        return $this->intersect($clientAllowedTools, $this->consentOfferedTools->forAdmin($admin), $admin);
     }
 
     /**
@@ -148,9 +164,11 @@ class ToolGrantResolver
     }
 
     /**
-     * `true` when granted set covers every tool the admin's role permits —
-     * used to decide whether to forward the wildcard sentinel onto the issued
-     * token vs. snapshotting the explicit list.
+     * `true` when the granted set is exactly what the consent screen offered this admin, i.e. the admin
+     * accepted everything — used to decide whether to forward the wildcard sentinel onto the issued
+     * token vs. snapshotting the explicit list. Compared against the offered set rather than the whole
+     * registry: tools the tree cannot offer (shared ACL resources, resources outside the tools node)
+     * would otherwise turn every accept-all into a frozen literal grant.
      *
      * @param array<int, string> $grantedTools
      * @param User $admin
@@ -158,18 +176,13 @@ class ToolGrantResolver
      */
     public function grantsAllAdminAccessibleTools(array $grantedTools, User $admin): bool
     {
-        $adminAccessible = [];
-        foreach ($this->toolRegistry->all() as $tool) {
-            if ($this->aclChecker->isAllowed($admin, $tool->getAclResource())) {
-                $adminAccessible[] = $tool->getName();
-            }
-        }
-        if ($adminAccessible === []) {
+        $offered = array_values(array_unique($this->consentOfferedTools->forAdmin($admin)));
+        if ($offered === []) {
             return false;
         }
-        sort($adminAccessible);
-        $granted = array_values($grantedTools);
+        sort($offered);
+        $granted = array_values(array_unique($grantedTools));
         sort($granted);
-        return $granted === $adminAccessible;
+        return $granted === $offered;
     }
 }

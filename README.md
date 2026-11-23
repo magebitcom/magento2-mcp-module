@@ -28,11 +28,13 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - [Setup](#setup)
 - [Managing tools](#managing-tools)
 - [Configuration writing](#configuration-writing)
+- [Background jobs](#background-jobs)
 - [Connecting an AI agent](#connecting-an-ai-agent)
   - [Bearer token](#bearer-token)
   - [OAuth 2.1](#oauth-21)
 - [Security](#security)
 - [Extending](#extending)
+- [Upgrading to 2.0](#upgrading-to-20)
 - [Contributing](#contributing)
 
 ## What the base module gives you
@@ -44,6 +46,7 @@ The base module ships the transport, authentication, ACL, audit log, and tool re
 - An origin allowlist with sensible defaults for major AI clients
 - Core tools for the authenticated identity, cache types, indexers, store views, installed modules (`system.module.list`, for checking what the store actually supports before picking a tool), system configuration values and admin notifications
 - Configuration writing (`system.config.set`), off by default and allowlist-only — see [Configuration writing](#configuration-writing)
+- A bulk tool contract and background jobs: a bulk tool takes `items[]`, reports one result per item, and runs as a queued job above its synchronous cap. The core ships the four job tools (`system.job.get`, `system.job.list`, `system.job.cancel`, `system.job.resume`) — see [Background jobs](#background-jobs)
 - Scheduled-job diagnostics (`system.cron.status`), so the AI can answer "why didn't that run automatically?" — per-job last success/error, stuck-job detection, and per-group retention. Absent run history is not evidence a job never ran: Magento prunes successful cron rows aggressively (60 minutes by default), so `no_run_history` is normal for most of the day on any job that doesn't run every few minutes
 - Read-only log diagnostics (`system.log.list` / `system.log.tail` / `system.log.grep`), so the AI can read `var/log` without shell access — basename-only, `.log` files only. Every read is bounded (line and match caps, a total byte budget) and never loads a whole file. Log lines routinely contain customer PII, tokens, or credentials, so grant the underlying tool ACLs to admin roles accordingly
 - MCP prompt support (see examples in [Prompt/System](Prompt/System/) directory)
@@ -248,7 +251,7 @@ Configuration lives under **Stores → Configuration → Magebit → MCP Server*
 | **General → Server Name** | `Magento MCP` | Advertised to MCP clients during the `initialize` handshake. |
 | **General → Server Description** | empty | Optional free-text hint advertised alongside the server name. |
 | **General → Allow Write Tools** | Yes | Global toggle. A token's per-row write flag is only honoured when this is on. |
-| **General → Max Request Body (KB)** | `256` | Largest accepted `POST /mcp` body, clamped to 64–32768. Raise only if you upload product images through MCP — base64 inflates a file by about a third, so an 8 MB photo needs roughly `11000`. Your web server's own limit (nginx `client_max_body_size`, Apache `LimitRequestBody`) applies first and must be raised to match. |
+| **General → Max Request Body (KB)** | `256` | Largest accepted `POST /mcp` body, clamped to 64–32768. Raise only if you upload product images through MCP — base64 inflates a file by about a third, so an 8 MB photo needs roughly `11000`. Your web server's own limit (nginx `client_max_body_size`, Apache `LimitRequestBody`) applies first and must be raised to match. A bulk call above a tool's sync cap is stored as one database row holding its items, so raising this far above the default also needs the database's `max_allowed_packet` large enough for that row (up to about three times the body for non-ASCII text). |
 | **Security → Allowed Origins** | localhost + Claude, ChatGPT, Gemini, Copilot, Grok and Perplexity | One origin per line. Trailing `*` is allowed. Tighten for production. |
 | **Audit Log → Retention (days)** | `90` | Older rows are purged by the `magebit_mcp_audit_purge` cron. `0` disables purging. |
 | **Rate Limiting → Enabled** | No | Caps `tools/call` requests per (admin, tool) per minute. Recommended for production. |
@@ -294,7 +297,15 @@ The disabled set is stored as a newline-separated list of tool names at `magebit
 
 ## Configuration writing
 
-`system.config.set` writes a single store-configuration value. It is the only tool that can change how the store behaves without touching the catalog, so it is gated more tightly than anything else in the module.
+`system.config.set` writes store-configuration values, up to 50 per call as `items[]` (each item: `path`, `value`, optional `scope` and `scope_code`; the old single `path` input is gone in 2.0). Items are written in order and checked one by one, two items for the same path and scope refuse the whole call (a website's or store's id and its code are the same scope), and `dry_run` runs every check the write runs, the field's own backend-model validation included, without saving (not covered: checks Magento makes only after the row is saved, such as the allowed, base and default currencies, and the few backends listed in `dryRunSkippedBackends` in `etc/di.xml` because their check itself changes something). It is the only tool that can change how the store behaves without touching the catalog, so it is gated more tightly than anything else in the module.
+
+It is a bulk tool: the core builds its input schema (`items[]` plus `dry_run`) and its result envelope.
+
+| Limit | Value |
+|---|---|
+| Items per call, run immediately (sync cap) | 50 |
+| Items per call accepted at all (async ceiling) | 50, so every call is synchronous and never becomes a background job |
+| Duplicate `path` + `scope` + `scope_code` in one call | the whole call is refused before any write |
 
 **Both write layers still apply first.** Like every write tool it needs *General → Allow Write Tools* **and** the calling token's own write flag, plus the `Magebit_Mcp::tool_system_config_set` ACL on the admin role behind the token. On top of that:
 
@@ -306,7 +317,7 @@ The disabled set is stored as a newline-separated list of tool names at `magebit
 | **`system.xml` field** | Magento's own config structure | A path with no field declared in `system.xml` is refused. |
 | **Section ACL** | the target section's own `<resource>` | The admin role behind the token must also hold the permission that guards that section in the admin UI. A section that declares no `<resource>` is refused outright — the admin UI refuses to save it for every role, so the tool does too. |
 
-The write itself goes through Magento's admin save path, so the field's backend model, validation and cache invalidation run exactly as they would in *Stores → Configuration*. The result and the audit row both carry the previous value, which is the only undo trail a config change gets. As in the admin UI, Magento commits the row *before* it dispatches the section's `admin_system_config_changed_section_*` observers, so an observer that fails is reported as a tool error against a value that was in fact written.
+The write itself goes through Magento's admin save path, so the field's backend model, validation and cache invalidation run exactly as they would in *Stores → Configuration*. Each written row of the result carries the previous value (`previous: <value>`). The audit row keeps the batch summary plus one `items` entry per item, `{index, key, status, detail}`, where `detail` is `{path, scope, scope_code, previous, value}`; dry runs get the same entries, with `previous` as the current value and `value` as the one that would be written. An item refused before its current value was read (a missing field, the protected set, the allowlist, a sensitive field, the section check, or a dry-run writer refusal) has no `previous`, because a refused path is never read; for a password, encrypted or similar sensitive path the `value` is recorded as `[sensitive]` in that per-item detail. The request arguments the same audit row keeps in `arguments_json` are not masked this way, so a value an agent sent to such a path is still stored there. The detail passes through the same PII redaction as the rest of the audit row. The audit summary has a 32 KiB budget, which holds 50 items with values of a few hundred bytes; when the entries do not fit, the leading ones that do are kept and `items_truncated` counts the rest. Request arguments keep their 4 KiB budget; arguments over it, such as most full 50-item calls, are stored as `{"__truncated__": true, "original_bytes": N, "head": "…"}`, so the audit row is always valid JSON. As in the admin UI, Magento commits the row *before* it dispatches the section's `admin_system_config_changed_section_*` observers, so an observer that fails is reported as a tool error against a value that was in fact written.
 
 **The protected set** is `admin/*`, `payment/*` (including Magento_Paypal's `payment_<country>` alias sections), `web/secure/*`, `web/unsecure/*`, `system/*`, `dev/*`, `oauth/*` and `magebit_mcp/*`. It lives in `di.xml`, not in store configuration, so weakening it takes filesystem write access plus `bin/magento setup:di:compile` — neither an admin session nor the MCP surface itself can widen it. `magebit_mcp/*` is on the list for exactly that reason: without it the tool would be a one-call privilege escalation, able to add paths to its own allowlist or flip *Allow Write Tools*.
 
@@ -315,6 +326,44 @@ Password, encrypted and obscured fields are refused as well, as are file- and im
 **Not everything in `core_config_data` is writable, by design.** A stock install declares roughly 11,000 field paths and the gates above refuse the great majority of them, whatever the allowlist says: most store their value under a different `<config_path>`, are not declared in `system.xml` at all, or are a password, an obscured value or a file upload. Allowlisting such a path does not help — the refusal is not the allowlist's. The most common surprise is the `design/*` family (`design/header/logo_alt`, `design/head/default_title`, …): those are Design Configuration entries under *Content → Design → Configuration*, not `system.xml` fields, so they are refused as undeclared. Use the admin UI for them.
 
 **Reading is a separate, wider surface.** `system.config.get` returns the *effective* value, merged from `config.xml` module defaults, so a path with no `core_config_data` row still reports a value. Reading the same path straight from the database, or with `bin/magento config:show`, returns nothing — that difference is expected and does not mean the setting is unset.
+
+## Background jobs
+
+A bulk tool (see [docs/EXTENDING.md](docs/EXTENDING.md#bulk-tools)) runs up to its sync cap immediately. A larger batch, up to the tool's async ceiling, is stored as a job and the call returns `{ job_id, state: "queued", total, sync_cap, message }`. A queue consumer then runs the job item by item. `system.config.set` never becomes a job (its cap and ceiling are both 50); background jobs are for the bulk tools of the satellite modules.
+
+**Job tools.** All four ship in the core, are listed here by wire name, and reuse the parent `Magebit_Mcp::tools` resource instead of declaring one each: a role that may start a job must be able to follow it, so a role also reaches them through the resource of any bulk tool that can run as a background job, even one outside `Magebit_Mcp::tools`. An admin sees and controls only their own jobs, from any of their connections, and only for tools their role still allows.
+
+| Tool | Mode | What it does |
+|---|---|---|
+| `system_job_get` | read | State, counters, `next_index`, the stored error and the item results (`page`, `page_size`). A job queued for more than 5 minutes (since it was created or last resumed) carries a notice that no worker has picked it up. |
+| `system_job_list` | read | The caller's jobs, newest first, filtered by `state` and `tool_name`, paged. |
+| `system_job_cancel` | write | A queued job becomes `cancelled` at once; a running one stops after the current item. Items already saved stay saved; the rest are `skipped` with `CANCELLED` (an `INTERRUPTED` item keeps its row). |
+| `system_job_resume` | write | `failed` or `cancelled` jobs only. The job is queued again and continues from `next_index`; items that already ran are never repeated. |
+
+**Each item runs at most once.** Before an item runs, the worker records that it is in progress. If the worker stops while the item runs (it dies, or the item's result cannot be saved), that item may already have been applied, so it is never run again: it is reported as `error` with the code `INTERRUPTED` and the message *"The worker stopped while this item was running; it may already have been applied. Check it and send it again in a new call if needed."*, counts as failed, and a resume continues with the next item. An item still in progress on a running job is not shown in `system_job_get` and not counted until its result is saved.
+
+A job's states are `queued`, `running`, `completed` (every item ran, whatever their statuses), `failed` (the job stopped before the end) and `cancelled`. When the tool's follow-up step after the batch fails, a `completed` or `cancelled` job keeps the same `notice` a synchronous call returns, and `system_job_get` and `system_job_list` show it as `notice` with `error` null.
+
+**Queue worker.** Jobs run on the topic `magebit.mcp.job.run`, handled by the consumer `magebit_mcp_job_runner`, on the store's default queue transport (the database unless you configured another). Stores that run consumers from cron (`cron_consumers_runner`) need nothing extra. Otherwise start a worker, normally under a supervisor:
+
+```bash
+bin/magento queue:consumers:start magebit_mcp_job_runner
+```
+
+Without a worker, jobs stay `queued`. The response that starts a job says so when the store does not start consumers from cron.
+
+**Crons.**
+
+| Job | Schedule | What it does |
+|---|---|---|
+| `magebit_mcp_job_mark_stale` | every 5 minutes | A `running` job with no heartbeat for 10 minutes becomes `failed` (the worker died), so it can be resumed. Nothing restarts it automatically. |
+| `magebit_mcp_job_purge` | daily 03:30 | Deletes jobs, their item rows and snapshots created more than 30 days ago (counted from `created_at`). |
+
+**Raw job input is personal data.** A job stores its validated input (`items_json`) so it can run later. The audit log redacts arguments; a job cannot. The input is cleared when a job ends `completed`. **Failed and cancelled jobs keep it until the job is resumed and completes, or until the purge removes it 30 days after the job was created**, because both can be resumed. Plan retention accordingly.
+
+**Revoking a connection.** Revoking or deleting a token in the admin grid, by mass action, or with `magebit:mcp:token:revoke` / `magebit:mcp:token:delete` cancels that connection's queued and running jobs; so does any client-wide revoke of an OAuth client (disabling it, deleting it, or rotating its secret with token revocation), for every admin. OAuth refresh rotation does not: a job belongs to the admin and the connection, not to one access token. A worker also refuses, when it picks the job up, a job whose personal token has been revoked, or whose OAuth connection has no unrevoked token left (an expired one still counts), even if the revoke could not cancel it or the job was stored just after it; the job ends `failed`. A queued job is also refused when a worker picks it up if the MCP server has been turned off, write tools have been switched off, the tool has been disabled or its OAuth client has been disabled since (a long-running worker reads these settings for each job from `CONFIG__DEFAULT__*` environment variables, `app/etc` and the database, not from its cached configuration); it ends `failed`, so it can be resumed once the setting or client is back on.
+
+**Literal OAuth grants.** A connection whose grant lists tools by name (not the accept-all grant) sees the job tools only when the grant includes a bulk tool that can run as a job, and then only for jobs of the tools in its grant.
 
 ## Connecting an AI agent
 
@@ -376,7 +425,7 @@ bin/magento magebit:mcp:oauth:client:rotate-secret <id> [--revoke-tokens]
 bin/magento magebit:mcp:oauth:client:delete <id> [--keep-tokens]
 ```
 
-Two things worth knowing about revocation. Disabling a client blocks new grants, and the access tokens it already issued are refused on their next request because `/mcp` checks the client's disabled flag; `set-status --disabled` also revokes them, so they stay dead if the client is enabled again. Deleting a client, from the admin panel or the CLI, revokes its access tokens first, because the foreign key only clears the token's link to the client and would otherwise leave the token working. Only the CLI's `delete --keep-tokens` skips this and leaves them valid until they expire.
+Two things worth knowing about revocation. Disabling a client blocks new grants, and the access tokens it already issued are refused on their next request because `/mcp` checks the client's disabled flag; `set-status --disabled` also revokes them, so they stay dead if the client is enabled again. Deleting a client, from the admin panel or the CLI, revokes its access tokens first, because the foreign key only clears the token's link to the client and would otherwise leave the token working. Only the CLI's `delete --keep-tokens` skips this and leaves them valid until they expire. Those tokens keep working as unlinked tokens: the foreign key clears their client link, so `/mcp` no longer has a client to check and their refresh tokens are deleted with the client, so they cannot be renewed. Their background jobs keep running too, since the job loses its client link the same way and is then checked like a personal token's job.
 
 The module exposes:
 
@@ -425,11 +474,32 @@ The contract surface is:
 3. For write tools that wrap a Magento service contract, optionally implement `Magebit\Mcp\Api\UnderlyingAclAwareInterface` so the dispatcher also enforces the equivalent admin-UI permission. `tools/list` applies the same check, so a role that lacks the underlying permission is never offered the tool.
 4. If the tool needs an optional module, implement `Magebit\Mcp\Api\AvailabilityAwareInterface`; while `isAvailable()` is false the tool is hidden and answers `-32010` like an unregistered one.
 5. If `execute()` finds that the caller may not act on the entity (for example it is outside the admin's store scope), throw `Magebit\Mcp\Exception\ForbiddenException`. It answers `-32004 FORBIDDEN` with your message and `error.data`. Use a soft error (`isError: true`) for anything else.
-6. Run `bin/magento magebit:mcp:tools:validate-acl` to confirm every tool's ACL resource resolves. It also warns about underlying resources that do not resolve on this install — those tools stay hidden from `tools/list` for every role.
+6. For tools that change many records at once, implement `Magebit\Mcp\Api\BulkToolInterface` instead of `ToolInterface` and register it in the same `tools` array. The core builds the `items[]` schema, runs the items, returns one result per item and moves large batches into a background job. See [Bulk tools](docs/EXTENDING.md#bulk-tools).
+7. Run `bin/magento magebit:mcp:tools:validate` (the old name `magebit:mcp:tools:validate-acl` still works as an alias) to confirm every tool's ACL resource resolves, no description names a tool with dots, and every bulk tool meets the contract. It also warns about underlying resources that do not resolve on this install — those tools stay hidden from `tools/list` for every role.
 
 Publishing your module? Add the [`magebit-mcp-tools`](https://github.com/topics/magebit-mcp-tools) topic to its GitHub repository so it turns up alongside the rest of the ecosystem.
 
 See [docs/EXTENDING.md](docs/EXTENDING.md) for the full contract, the schema-builder DSL, schema presets, the field-resolver pattern, lifecycle events, and a complete worked example.
+
+## Upgrading to 2.0
+
+2.0 is a hard switch for `system.config.set` and adds the bulk tool contract. Nothing else in the 1.x tool surface changes.
+
+**Module authors**
+
+1. Tools that write many records implement `Magebit\Mcp\Api\BulkToolInterface` and register in the same `ToolRegistry` `tools` array. Stop building `items[]` input schemas, per-item loops and result envelopes by hand: the core does that, and it is the only way a tool gets background jobs, `structuredContent` and the shared `outputSchema`.
+2. Add the two shared tests to the module (`BulkToolContractTestCase` and `WireNameTextTestCase`, both shipped in the core's `Test/` directory). See [Add these two tests to your module](docs/EXTENDING.md#add-these-two-tests-to-your-module).
+3. Agent-facing text (descriptions, messages, prompt bodies) must name tools with underscores (`catalog_product_list`), never dots. The dotted name stays the registry key.
+4. The validate command is now `magebit:mcp:tools:validate`. `magebit:mcp:tools:validate-acl` remains as an alias through 2.x. Its success line reads "OK — every registered MCP tool has its ACL resource declared and meets the contract."
+5. Callers of `system.config.set` send `items[]` (each `path`, `value`, `scope`, `scope_code`). The old single-path input is gone.
+
+**Store owners**
+
+- **A queue worker is needed for background jobs.** If your store runs consumers from cron, nothing to do. Otherwise start `bin/magento queue:consumers:start magebit_mcp_job_runner` under a supervisor. See [Background jobs](#background-jobs). Run `bin/magento setup:upgrade` to create the three job tables and the `offered_tools_json` columns that grant drift uses.
+- **Existing OAuth grants stay frozen.** Grants that list tools by name are not migrated, so they do not see tools added by newer modules. The admin must re-authorise the connection to get them. From 2.0, accept-all consents record the wildcard, so they pick up new tools by themselves; a refresh also drops tools that are no longer registered from a literal grant and never adds any. A grant left empty by that must be re-authorised.
+  The **System → MCP → Connections** grid shows each fixed grant's size in its **Grant** column, with "N tools, M missing" (an amber chip) when a re-authorisation would offer tools the grant lacks (tools the admin's role allows, within the OAuth client's own tool list, and only read tools for a read-only connection), and an admin notice says how many live connections miss tools; re-authorise those connections to pick the tools up. The notice count is cached for an hour and refreshed whenever a token is issued, revoked or deleted, or a client is saved.
+  **Drift counts only tools that appeared after the grant.** From 2.0 every grant records the tools it was offered: the consent screen's tools within the client's own tool list (kept through code exchange and every refresh), or, for a personal token, the scope tree the admin form shows for that admin (the CLI records the same set). A grant the admin narrowed on purpose, by unticking tools or picking a few, therefore shows no missing tools until a new tool is offered. Connections created before 2.0 have no such record and keep the old rule: every tool a re-authorisation would offer counts, so a deliberately narrowed older grant still shows as missing tools until it is re-authorised or replaced.
+- **Raw job input is kept** for failed and cancelled jobs for up to 30 days (until resumed and completed, or purged). See [Background jobs](#background-jobs).
 
 ## Contributing
 
