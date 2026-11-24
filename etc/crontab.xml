@@ -11,5 +11,11 @@
         <job name="magebit_mcp_check_module_updates" instance="Magebit\Mcp\Cron\CheckModuleUpdates" method="execute">
             <schedule>0 5 * * *</schedule>
         </job>
+        <job name="magebit_mcp_job_mark_stale" instance="Magebit\Mcp\Cron\MarkStaleJobs" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+        <job name="magebit_mcp_job_purge" instance="Magebit\Mcp\Cron\PurgeJobs" method="execute">
+            <schedule>30 3 * * *</schedule>
+        </job>
     </group>
 </config>

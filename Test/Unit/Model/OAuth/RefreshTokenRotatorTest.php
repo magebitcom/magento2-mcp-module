@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Test\Unit\Model\OAuth;
 
 use Magebit\Mcp\Api\LoggerInterface;
+use Magebit\Mcp\Api\ToolRegistryInterface;
 use Magebit\Mcp\Exception\OAuthException;
 use Magebit\Mcp\Model\Auth\TokenHasher;
 use Magebit\Mcp\Model\OAuth\AccessTokenIssuer;
@@ -21,10 +22,25 @@ use Magebit\Mcp\Model\OAuth\RefreshTokenRotator;
 use Magebit\Mcp\Model\Token;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class RefreshTokenRotatorTest extends TestCase
 {
+    public function testRotationDoesNotCancelJobs(): void
+    {
+        $constructor = (new \ReflectionClass(RefreshTokenRotator::class))->getConstructor();
+        self::assertNotNull($constructor);
+        foreach ($constructor->getParameters() as $parameter) {
+            $type = $parameter->getType();
+            self::assertInstanceOf(\ReflectionNamedType::class, $type);
+            self::assertNotContains(
+                $type->getName(),
+                [\Magebit\Mcp\Model\Job\JobCanceller::class, \Magebit\Mcp\Model\Job\JobRepository::class]
+            );
+        }
+    }
+
     public function testRotateRejectsUnknownRefreshToken(): void
     {
         $hasher = $this->createMock(TokenHasher::class);
@@ -40,7 +56,8 @@ class RefreshTokenRotatorTest extends TestCase
             $this->createMock(TokenRepository::class),
             $this->createMock(ClientRepository::class),
             $this->createMock(AccessTokenIssuer::class),
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -77,7 +94,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $this->createMock(ClientRepository::class),
             $issuer,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -116,7 +134,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $this->createMock(ClientRepository::class),
             $issuer,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -165,7 +184,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $this->createMock(ClientRepository::class),
             $issuer,
-            $logger
+            $logger,
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -215,7 +235,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $this->createMock(ClientRepository::class),
             $issuer,
-            $logger
+            $logger,
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -265,7 +286,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $clientRepo,
             $issuer,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -307,7 +329,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $this->createMock(ClientRepository::class),
             $issuer,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -355,7 +378,8 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $clientRepo,
             $issuer,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         try {
@@ -421,11 +445,217 @@ class RefreshTokenRotatorTest extends TestCase
             $tokenRepo,
             $clientRepo,
             $issuer,
-            $this->createMock(LoggerInterface::class)
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith(['catalog.product.list'])
         );
 
         $pair = $rotator->rotate('presented', 7);
 
         self::assertSame($expectedPair, $pair);
+    }
+
+    public function testWildcardStaysNull(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::once())
+            ->method('issue')
+            ->with(7, 'Claude', 42, true, null, 33)
+            ->willReturn($this->issuedPair());
+
+        $this->rotatorForScopes(null, ['catalog.product.list'], $issuer)->rotate('presented', 7);
+    }
+
+    public function testLiteralDropsUnregisteredNames(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::once())
+            ->method('issue')
+            ->with(7, 'Claude', 42, true, ['catalog.product.list', 'sales.order.get'], 33)
+            ->willReturn($this->issuedPair());
+
+        $this->rotatorForScopes(
+            ['catalog.product.list', 'cms.page.removed', 'sales.order.get'],
+            ['sales.order.get', 'catalog.product.list'],
+            $issuer
+        )->rotate('presented', 7);
+    }
+
+    public function testLiteralNeverGainsNames(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::once())
+            ->method('issue')
+            ->with(7, 'Claude', 42, true, ['catalog.product.list'], 33)
+            ->willReturn($this->issuedPair());
+
+        $this->rotatorForScopes(
+            ['catalog.product.list'],
+            ['catalog.product.list', 'catalog.product.bulk_update', 'system.job.get'],
+            $issuer
+        )->rotate('presented', 7);
+    }
+
+    /**
+     * The record of what consent offered survives rotation unchanged, so drift keeps counting from the grant.
+     */
+    public function testOfferedRecordIsCopiedOntoTheNewToken(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::once())
+            ->method('issue')
+            ->with(7, 'Claude', 42, true, ['catalog.product.list'], 33, ['catalog.product.list', 'sales.order.get'])
+            ->willReturn($this->issuedPair());
+
+        $this->rotatorForScopes(
+            ['catalog.product.list'],
+            ['catalog.product.list'],
+            $issuer,
+            offered: ['catalog.product.list', 'sales.order.get']
+        )->rotate('presented', 7);
+    }
+
+    public function testLegacyTokenWithoutRecordRotatesWithoutRecord(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::once())
+            ->method('issue')
+            ->with(7, 'Claude', 42, true, ['catalog.product.list'], 33, null)
+            ->willReturn($this->issuedPair());
+
+        $this->rotatorForScopes(['catalog.product.list'], ['catalog.product.list'], $issuer)->rotate('presented', 7);
+    }
+
+    /**
+     * Review Focus 1: an emptied literal grant must never be replayed as `[]`, which the issuer
+     * would store as the wildcard. The refresh is refused before anything is revoked.
+     */
+    public function testLiteralEmptiedFailsInvalidGrant(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::never())->method('issue');
+
+        $refreshRepo = $this->createMock(RefreshTokenRepository::class);
+        $refreshRepo->expects(self::never())->method('revoke');
+        $tokenRepo = $this->createMock(TokenRepository::class);
+        $tokenRepo->expects(self::never())->method('revoke');
+
+        $rotator = $this->rotatorForScopes(
+            ['cms.page.removed', 'cms.block.removed'],
+            ['catalog.product.list'],
+            $issuer,
+            $refreshRepo,
+            $tokenRepo
+        );
+
+        try {
+            $rotator->rotate('presented', 7);
+            self::fail('Expected OAuthException');
+        } catch (OAuthException $e) {
+            self::assertSame('invalid_grant', $e->oauthError);
+            self::assertSame(400, $e->httpStatus);
+            self::assertSame(
+                'None of the tools this connection was granted exist any more; re-authorise the connection.',
+                $e->getMessage()
+            );
+        }
+    }
+
+    /**
+     * A stored `[]` is legacy data the issuer already treats as the wildcard; it is passed through unchanged.
+     */
+    public function testLegacyEmptyLiteralIsPassedThroughUnchanged(): void
+    {
+        $issuer = $this->createMock(AccessTokenIssuer::class);
+        $issuer->expects(self::once())
+            ->method('issue')
+            ->with(7, 'Claude', 42, true, [], 33)
+            ->willReturn($this->issuedPair());
+
+        $this->rotatorForScopes([], ['catalog.product.list'], $issuer)->rotate('presented', 7);
+    }
+
+    /**
+     * @param array<int, string>|null $scopes
+     * @param array<int, string> $registered
+     * @param AccessTokenIssuer $issuer
+     * @param (RefreshTokenRepository&MockObject)|null $refreshRepo Pre-built mock carrying `revoke` expectations.
+     * @param (TokenRepository&MockObject)|null $tokenRepo Pre-built mock carrying `revoke` expectations.
+     * @param array<int, string>|null $offered
+     * @return RefreshTokenRotator
+     */
+    private function rotatorForScopes(
+        ?array $scopes,
+        array $registered,
+        AccessTokenIssuer $issuer,
+        ?RefreshTokenRepository $refreshRepo = null,
+        ?TokenRepository $tokenRepo = null,
+        ?array $offered = null
+    ): RefreshTokenRotator {
+        $hasher = $this->createMock(TokenHasher::class);
+        $hasher->method('hash')->willReturn('h');
+
+        $refresh = $this->createMock(RefreshToken::class);
+        $refresh->method('getId')->willReturn(33);
+        $refresh->method('getOAuthClientId')->willReturn(7);
+        $refresh->method('isExpired')->willReturn(false);
+        $refresh->method('isRevoked')->willReturn(false);
+        $refresh->method('getAccessTokenId')->willReturn(99);
+
+        $refreshRepo ??= $this->createMock(RefreshTokenRepository::class);
+        $refreshRepo->method('getByHash')->willReturn($refresh);
+        $refreshRepo->method('revoke')->willReturn(true);
+
+        $accessToken = $this->createMock(Token::class);
+        $accessToken->method('getId')->willReturn(99);
+        $accessToken->method('getAdminUserId')->willReturn(42);
+        $accessToken->method('getAllowWrites')->willReturn(true);
+        $accessToken->method('getScopes')->willReturn($scopes);
+        $accessToken->method('getOfferedTools')->willReturn($offered);
+
+        $tokenRepo ??= $this->createMock(TokenRepository::class);
+        $tokenRepo->method('getById')->willReturn($accessToken);
+
+        $client = $this->createMock(Client::class);
+        $client->method('getName')->willReturn('Claude');
+        $clientRepo = $this->createMock(ClientRepository::class);
+        $clientRepo->method('getById')->willReturn($client);
+
+        return new RefreshTokenRotator(
+            $hasher,
+            $refreshRepo,
+            $tokenRepo,
+            $clientRepo,
+            $issuer,
+            $this->createMock(LoggerInterface::class),
+            $this->registryWith($registered)
+        );
+    }
+
+    /**
+     * @return IssuedTokenPair
+     */
+    private function issuedPair(): IssuedTokenPair
+    {
+        return new IssuedTokenPair(
+            accessToken: 'new-access',
+            accessTokenId: 100,
+            expiresIn: 3600,
+            refreshToken: 'new-refresh',
+            refreshTokenId: 34,
+            grantedScope: 'mcp:read'
+        );
+    }
+
+    /**
+     * @param array<int, string> $names
+     * @return ToolRegistryInterface
+     */
+    private function registryWith(array $names): ToolRegistryInterface
+    {
+        $registry = $this->createMock(ToolRegistryInterface::class);
+        $registry->method('has')->willReturnCallback(
+            static fn (string $name): bool => in_array($name, $names, true)
+        );
+        return $registry;
     }
 }

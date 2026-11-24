@@ -24,6 +24,7 @@ interface TokenInterface
     public const REVOKED_AT = 'revoked_at';
     public const CREATED_AT = 'created_at';
     public const OAUTH_CLIENT_ID = 'oauth_client_id';
+    public const OFFERED_TOOLS_JSON = 'offered_tools_json';
 
     /**
      * @return int|null
@@ -142,6 +143,15 @@ interface TokenInterface
      * @return self
      */
     public function setOAuthClientId(?int $id): self;
+
+    /**
+     * Canonical tool names that were offered when this grant was made (the consent screen, or the admin form's
+     * scope tree). Grant drift counts only tools offered since. Null for rows written before the record existed;
+     * an empty list is a record too.
+     *
+     * @return array<int, string>|null
+     */
+    public function getOfferedTools(): ?array;
 
     /**
      * @return bool

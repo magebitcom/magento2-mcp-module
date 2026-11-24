@@ -25,12 +25,14 @@ class ClientRepository
      * @param ClientResource $resource
      * @param CollectionFactory $collectionFactory
      * @param TokenRepository $tokenRepository
+     * @param GrantDriftCache $grantDriftCache
      */
     public function __construct(
         private readonly ClientFactory $clientFactory,
         private readonly ClientResource $resource,
         private readonly CollectionFactory $collectionFactory,
-        private readonly TokenRepository $tokenRepository
+        private readonly TokenRepository $tokenRepository,
+        private readonly GrantDriftCache $grantDriftCache
     ) {
     }
 
@@ -41,6 +43,8 @@ class ClientRepository
     public function save(Client $client): Client
     {
         $this->resource->save($client);
+        // The client's allowed-tools cap bounds its tokens' grant drift; the cached notice count must follow it.
+        $this->grantDriftCache->invalidate();
         return $client;
     }
 

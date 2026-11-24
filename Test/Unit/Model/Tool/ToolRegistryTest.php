@@ -9,7 +9,10 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Test\Unit\Model\Tool;
 
 use InvalidArgumentException;
+use Magebit\Mcp\Api\BulkToolInterface;
 use Magebit\Mcp\Api\ToolInterface;
+use Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapter;
+use Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapterFactory;
 use Magebit\Mcp\Model\Tool\ToolRegistry;
 use Magebit\Mcp\Model\Tool\WriteMode;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -85,6 +88,48 @@ class ToolRegistryTest extends TestCase
 
         $this->expectException(NoSuchEntityException::class);
         $registry->get('does.not.exist');
+    }
+
+    public function testRegistryWrapsBulkEntries(): void
+    {
+        $bulk = $this->createMock(BulkToolInterface::class);
+        $bulk->method('getName')->willReturn('catalog.product.bulk_update');
+        $adapter = $this->createMock(BulkToolAdapter::class);
+        $factory = $this->createMock(BulkToolAdapterFactory::class);
+        $factory->expects(self::once())->method('create')->with(['tool' => $bulk])->willReturn($adapter);
+        $plain = $this->makeTool('system.store.list');
+
+        $registry = new ToolRegistry(
+            ['system.store.list' => $plain, 'catalog.product.bulk_update' => $bulk],
+            $factory
+        );
+
+        self::assertSame($adapter, $registry->get('catalog.product.bulk_update'));
+        self::assertSame($plain, $registry->get('system.store.list'));
+        self::assertTrue($registry->has('catalog.product.bulk_update'));
+        self::assertSame(['system.store.list', 'catalog.product.bulk_update'], array_keys($registry->all()));
+        self::assertSame(
+            'catalog.product.bulk_update',
+            $registry->getCanonicalName('catalog_product_bulk_update')
+        );
+    }
+
+    public function testBulkEntryKeyMustMatchName(): void
+    {
+        $bulk = $this->createMock(BulkToolInterface::class);
+        $bulk->method('getName')->willReturn('catalog.product.bulk_update');
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('registration mismatch');
+        new ToolRegistry(['other.name' => $bulk], $this->createMock(BulkToolAdapterFactory::class));
+    }
+
+    public function testRegistryRejectsOtherObjects(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/ToolInterface or .*BulkToolInterface/');
+        /** @phpstan-ignore argument.type */
+        new ToolRegistry(['a.b' => new \stdClass()]);
     }
 
     private function makeTool(string $name): ToolInterface

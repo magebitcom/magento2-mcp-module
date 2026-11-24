@@ -134,9 +134,12 @@ class ToolResourceTree
     }
 
     /**
+     * One tool per ACL resource: when several tools share a resource the last registered wins, which is
+     * also how a submitted consent selection maps back to tool names.
+     *
      * @return array<string, string> ACL resource ID → tool name
      */
-    private function indexToolsByAclResource(): array
+    public function indexToolsByAclResource(): array
     {
         $map = [];
         foreach ($this->toolRegistry->all() as $tool) {

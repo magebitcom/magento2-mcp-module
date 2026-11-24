@@ -280,7 +280,9 @@ class Authorize extends Action implements HttpGetActionInterface, HttpPostAction
                     PkceVerifier::METHOD_S256
                 ),
                 scope: $grantedScopeString,
-                grantedTools: $grantedToolsForIssue
+                grantedTools: $grantedToolsForIssue,
+                // What this screen offered, so grant drift later counts only tools that appeared since.
+                offeredTools: $this->toolGrantResolver->offeredTools($client->getAllowedTools(), $admin)
             );
         } catch (OAuthException $e) {
             return $this->redirectToClient($redirectUri, [

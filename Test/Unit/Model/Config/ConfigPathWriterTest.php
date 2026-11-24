@@ -20,9 +20,17 @@ use Magento\Config\Model\Config\Structure\Element\Field;
 use Magento\Config\Model\Config\Structure\Element\Group;
 use Magento\Config\Model\Config\Structure\Element\Section;
 use Magento\Config\Model\ConfigFactory;
+use Magento\Config\Model\Config\Backend\Admin\Custompath;
 use Magento\Framework\App\Config\ScopeCodeResolver;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\Config\Value;
+use Magento\Framework\App\Config\ValueInterface;
+use Magento\Framework\App\ScopeInterface as AppScopeInterface;
+use Magento\Framework\App\ScopeResolverInterface;
+use Magento\Framework\App\ScopeResolverPool;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Phrase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -140,6 +148,9 @@ class ConfigPathWriterTest extends TestCase
      * @param Structure|null $structure
      * @param ScopeConfigInterface|null $scopeConfig
      * @param SettingChecker|null $settingChecker
+     * @param ScopeCodeResolver|null $scopeCodeResolver
+     * @param ScopeResolverPool|null $scopeResolverPool
+     * @param array<int|string, string> $dryRunSkippedBackends
      * @return ConfigPathWriter
      */
     private function writer(
@@ -147,7 +158,9 @@ class ConfigPathWriterTest extends TestCase
         ?Structure $structure = null,
         ?ScopeConfigInterface $scopeConfig = null,
         ?SettingChecker $settingChecker = null,
-        ?ScopeCodeResolver $scopeCodeResolver = null
+        ?ScopeCodeResolver $scopeCodeResolver = null,
+        ?ScopeResolverPool $scopeResolverPool = null,
+        array $dryRunSkippedBackends = []
     ): ConfigPathWriter {
         if ($settingChecker === null) {
             $settingChecker = $this->createMock(SettingChecker::class);
@@ -164,8 +177,78 @@ class ConfigPathWriterTest extends TestCase
             $scopeConfig ?? $this->createMock(ScopeConfigInterface::class),
             $settingChecker,
             $scopeCodeResolver,
-            new ConfigPathFormat()
+            new ConfigPathFormat(),
+            $scopeResolverPool ?? $this->scopeResolverPool(),
+            $dryRunSkippedBackends
         );
+    }
+
+    /**
+     * Resolves every scope type: the default scope to id 0, a website or store code to id 1 with that code.
+     *
+     * @param list<array{0: string, 1: mixed}>|null $asked Collects [scope type, identifier] per resolution.
+     * @return ScopeResolverPool&MockObject
+     */
+    private function scopeResolverPool(?array &$asked = null): ScopeResolverPool
+    {
+        $pool = $this->createMock(ScopeResolverPool::class);
+        $pool->method('get')->willReturnCallback(function (string $type) use (&$asked): ScopeResolverInterface {
+            $resolver = $this->createMock(ScopeResolverInterface::class);
+            $resolver->method('getScope')->willReturnCallback(
+                function ($id = null) use ($type, &$asked): AppScopeInterface {
+                    $asked[] = [$type, $id];
+                    if ($id === 'missing') {
+                        throw NoSuchEntityException::singleField('code', $id);
+                    }
+                    $scope = $this->createMock(AppScopeInterface::class);
+                    $scope->method('getId')->willReturn($id === null ? 0 : 1);
+                    $scope->method('getCode')->willReturn($id === null ? 'default' : (string) $id);
+                    return $scope;
+                }
+            );
+            return $resolver;
+        });
+
+        return $pool;
+    }
+
+    /**
+     * A config value backend whose own methods are real except the save-path ones, which the test watches.
+     *
+     * @param string|null $refusal Message beforeSave() throws as a LocalizedException, or null to accept.
+     * @return Value&MockObject
+     */
+    private function backend(?string $refusal = null): Value
+    {
+        $backend = $this->getMockBuilder(Value::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['validateBeforeSave', 'beforeSave', 'save', 'afterSave', 'getResource'])
+            ->getMock();
+        $backend->expects($this->never())->method('save');
+        $backend->expects($this->never())->method('afterSave');
+        $backend->expects($this->never())->method('getResource');
+        if ($refusal !== null) {
+            $backend->method('beforeSave')->willThrowException(new LocalizedException(new Phrase($refusal)));
+        }
+
+        return $backend;
+    }
+
+    /**
+     * @param ValueInterface $backend
+     * @return Structure&MockObject
+     */
+    private function structureWithBackend(ValueInterface $backend): Structure
+    {
+        $field = $this->createMock(Field::class);
+        $field->method('getConfigPath')->willReturn(null);
+        $field->method('getAttribute')->willReturn(null);
+        $field->method('getType')->willReturn('select');
+        $field->method('hasBackendModel')->willReturn(true);
+        $field->method('getBackendModel')->willReturn($backend);
+        $field->method('getData')->willReturn(['id' => 'based_on', 'label' => 'Tax Calculation Based On']);
+
+        return $this->structure(null, [], ['tax/calculation/based_on' => $field]);
     }
 
     /**
@@ -543,6 +626,186 @@ class ConfigPathWriterTest extends TestCase
         $writer->write('tax/calculation/algorithm', 'garbage', 'default', null);
     }
 
+    public function testValidateRefusesAnUndeclaredPathWithoutSaving(): void
+    {
+        $writer = $this->writerRefusingToCreate();
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage('is not declared as a field in system.xml');
+        $writer->validate('tax/calculation/algorithm', 'garbage', 'default', null);
+    }
+
+    /**
+     * PR #48 review round 3 (R3): the dry run hands the field's backend model what Config::_processGroup() hands
+     * it, then runs the two checks the resource save runs before writing, and nothing after them.
+     *
+     * @return void
+     */
+    public function testValidateRunsTheBackendModelChecksWithoutSaving(): void
+    {
+        $backend = $this->backend();
+        $calls = [];
+        $backend->expects($this->once())->method('validateBeforeSave')
+            ->willReturnCallback(function () use (&$calls, $backend): Value {
+                $calls[] = 'validateBeforeSave';
+                return $backend;
+            });
+        $backend->expects($this->once())->method('beforeSave')
+            ->willReturnCallback(function () use (&$calls, $backend): Value {
+                $calls[] = 'beforeSave';
+                return $backend;
+            });
+        $asked = [];
+        $writer = $this->writer(
+            $this->neverCreatingFactory(),
+            $this->structureWithBackend($backend),
+            null,
+            null,
+            null,
+            $this->scopeResolverPool($asked)
+        );
+
+        $writer->validate('tax/calculation/based_on', 'billing', 'websites', 'base');
+
+        $this->assertSame(['validateBeforeSave', 'beforeSave'], $calls);
+        $this->assertSame([['websites', 'base']], $asked);
+        $this->assertSame('tax/calculation/based_on', $backend->getData('path'));
+        $this->assertSame('billing', $backend->getData('value'));
+        $this->assertSame('based_on', $backend->getData('field'));
+        $this->assertSame('calculation', $backend->getData('group_id'));
+        $this->assertSame('websites', $backend->getData('scope'));
+        $this->assertSame(1, $backend->getData('scope_id'));
+        $this->assertSame('base', $backend->getData('scope_code'));
+        $this->assertSame(['based_on' => 'billing'], $backend->getData('fieldset_data'));
+        $this->assertSame(
+            ['calculation' => ['fields' => ['based_on' => ['value' => 'billing']]]],
+            $backend->getData('groups')
+        );
+        $this->assertSame(
+            ['id' => 'based_on', 'label' => 'Tax Calculation Based On'],
+            $backend->getData('field_config')
+        );
+    }
+
+    /**
+     * @return void
+     */
+    public function testValidateResolvesTheDefaultScopeWithoutACode(): void
+    {
+        $backend = $this->backend();
+        $asked = [];
+        $writer = $this->writer(
+            $this->neverCreatingFactory(),
+            $this->structureWithBackend($backend),
+            null,
+            null,
+            null,
+            $this->scopeResolverPool($asked)
+        );
+
+        $writer->validate('tax/calculation/based_on', 'billing', 'default', null);
+
+        $this->assertSame([['default', null]], $asked);
+        $this->assertSame(0, $backend->getData('scope_id'));
+        $this->assertSame('default', $backend->getData('scope'));
+    }
+
+    /**
+     * The backend's refusal reaches the caller as the same LocalizedException the save would raise.
+     *
+     * @return void
+     */
+    public function testValidateRaisesTheBackendModelsRefusal(): void
+    {
+        $writer = $this->writer(
+            $this->neverCreatingFactory(),
+            $this->structureWithBackend($this->backend('The tax basis "nowhere" is not an option.'))
+        );
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage('The tax basis "nowhere" is not an option.');
+        $writer->validate('tax/calculation/based_on', 'nowhere', 'default', null);
+    }
+
+    /**
+     * The save resolves the scope first (Config::initScope()), so an unknown scope code fails a dry run as well.
+     *
+     * @return void
+     */
+    public function testValidateRefusesAnUnknownScopeCodeLikeTheSave(): void
+    {
+        $writer = $this->writer($this->neverCreatingFactory(), $this->structure());
+
+        $this->expectException(NoSuchEntityException::class);
+        $writer->validate('tax/calculation/based_on', 'billing', 'stores', 'missing');
+    }
+
+    /**
+     * A backend whose beforeSave() changes something outside itself is not called in a dry run; the path checks
+     * still run.
+     *
+     * @return void
+     */
+    public function testValidateSkipsTheValueCheckOfABackendWithSideEffects(): void
+    {
+        $backend = $this->getMockBuilder(Custompath::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['validateBeforeSave', 'beforeSave', 'save', 'afterSave'])
+            ->getMock();
+        $backend->expects($this->never())->method('validateBeforeSave');
+        $backend->expects($this->never())->method('beforeSave');
+        $backend->expects($this->never())->method('save');
+        $writer = $this->writer(
+            $this->neverCreatingFactory(),
+            $this->structureWithBackend($backend),
+            null,
+            null,
+            null,
+            null,
+            [Custompath::class]
+        );
+
+        $writer->validate('tax/calculation/based_on', 'secret-admin', 'default', null);
+    }
+
+    /**
+     * A field without a backend model gets a plain config value, which checks nothing.
+     *
+     * @return void
+     */
+    public function testValidateSkipsTheValueCheckWithoutABackendModel(): void
+    {
+        $field = $this->createMock(Field::class);
+        $field->method('hasBackendModel')->willReturn(false);
+        $field->expects($this->never())->method('getBackendModel');
+        $writer = $this->writer(
+            $this->neverCreatingFactory(),
+            $this->structure(null, [], ['tax/calculation/based_on' => $field])
+        );
+
+        $writer->validate('tax/calculation/based_on', 'billing', 'default', null);
+    }
+
+    /**
+     * @return ConfigFactory&MockObject
+     */
+    private function neverCreatingFactory(): ConfigFactory
+    {
+        $factory = $this->createMock(ConfigFactory::class);
+        $factory->expects($this->never())->method('create');
+
+        return $factory;
+    }
+
+    public function testValidateAcceptsAWritablePathWithoutSaving(): void
+    {
+        $writer = $this->writerRefusingToCreate();
+
+        $writer->validate('tax/calculation/based_on', 'total', 'default', null);
+
+        $this->addToAssertionCount(1);
+    }
+
     /**
      * Existence comes from getFieldPaths(), so a flyweight alone must not make a path writable.
      *
@@ -670,6 +933,62 @@ class ConfigPathWriterTest extends TestCase
 
         $writer = $this->writer($this->savingFactory(), null, null, $settingChecker);
         $writer->write('tax/calculation/based_on', 'total', 'websites', 'base');
+    }
+
+    /**
+     * PR #48 review round 4 (C1): the canonical id of a scope comes from the resolver the save uses, for an id and
+     * a code alike; the default scope is 0 without asking it.
+     *
+     * @return void
+     */
+    public function testCanonicalScopeIdResolvesIdsAndCodesThroughTheSavesResolver(): void
+    {
+        $asked = [];
+        $pool = $this->createMock(ScopeResolverPool::class);
+        $pool->method('get')->willReturnCallback(function (string $type) use (&$asked): ScopeResolverInterface {
+            $resolver = $this->createMock(ScopeResolverInterface::class);
+            $resolver->method('getScope')->willReturnCallback(
+                function ($id = null) use ($type, &$asked): AppScopeInterface {
+                    $asked[] = [$type, $id];
+                    $known = ['websites' => ['1' => 1, 'base' => 1], 'stores' => ['1' => 1, 'default' => 1]];
+                    if (!isset($known[$type][(string) $id])) {
+                        throw NoSuchEntityException::singleField('code', $id);
+                    }
+                    $scope = $this->createMock(AppScopeInterface::class);
+                    $scope->method('getId')->willReturn($known[$type][(string) $id]);
+                    return $scope;
+                }
+            );
+            return $resolver;
+        });
+        $writer = $this->writer(null, null, null, null, null, $pool);
+
+        $this->assertSame(0, $writer->canonicalScopeId('default', null));
+        $this->assertSame(0, $writer->canonicalScopeId('default', 'base'));
+        $this->assertSame([], $asked, 'the default scope is never resolved');
+        $this->assertSame(1, $writer->canonicalScopeId('websites', '1'));
+        $this->assertSame(1, $writer->canonicalScopeId('websites', 'base'));
+        $this->assertSame(1, $writer->canonicalScopeId('stores', 'default'));
+        $this->assertSame([['websites', '1'], ['websites', 'base'], ['stores', 'default']], $asked);
+    }
+
+    /**
+     * Never throws: an unknown code or scope type, or a missing code (which the resolver would read as the current
+     * store), is null and is left to the item's own error.
+     *
+     * @return void
+     */
+    public function testCanonicalScopeIdIsNullWhenTheScopeDoesNotResolve(): void
+    {
+        $asked = [];
+        $pool = $this->scopeResolverPool($asked);
+        $writer = $this->writer(null, null, null, null, null, $pool);
+
+        $this->assertNull($writer->canonicalScopeId('websites', 'missing'));
+        $this->assertNull($writer->canonicalScopeId('websites', null));
+        $this->assertNull($writer->canonicalScopeId('stores', ''));
+        $this->assertNull($writer->canonicalScopeId('groups', '1'));
+        $this->assertSame([['websites', 'missing']], $asked);
     }
 
     /**

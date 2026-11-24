@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Magebit\Mcp\Console\Command;
 
+use Magebit\Mcp\Model\Job\JobCanceller;
 use Magebit\Mcp\Model\TokenRepository;
 use Magento\Framework\Exception\NoSuchEntityException;
 use RuntimeException;
@@ -20,14 +21,21 @@ use Symfony\Component\Console\Output\OutputInterface;
  * `bin/magento magebit:mcp:token:delete <id>` — hard-remove a token row.
  *
  * Audit rows survive via FK ON DELETE SET NULL. Prefer `token:revoke` for
- * day-to-day use — deletion is for housekeeping / GDPR requests.
+ * day-to-day use — deletion is for housekeeping / GDPR requests. A live
+ * token's background jobs are cancelled first, while the job rows still
+ * point at it.
  */
 class TokenDeleteCommand extends Command
 {
     private const ARG_ID = 'id';
 
+    /**
+     * @param TokenRepository $tokenRepository
+     * @param JobCanceller $jobCanceller
+     */
     public function __construct(
-        private readonly TokenRepository $tokenRepository
+        private readonly TokenRepository $tokenRepository,
+        private readonly JobCanceller $jobCanceller
     ) {
         parent::__construct();
     }
@@ -49,13 +57,22 @@ class TokenDeleteCommand extends Command
         }
         $id = (int) $raw;
 
+        $cancelled = 0;
         try {
+            $token = $this->tokenRepository->getById($id);
+            // The FK clears job.token_id on delete, so cancel now; never throws, so it cannot block the delete.
+            if ($token->getRevokedAt() === null) {
+                $cancelled = $this->jobCanceller->cancelForRevokedToken($token);
+            }
             $this->tokenRepository->deleteById($id);
         } catch (NoSuchEntityException) {
             throw new RuntimeException(sprintf('Token %d not found.', $id));
         }
 
         $output->writeln(sprintf('<info>Token %d deleted.</info>', $id));
+        if ($cancelled > 0) {
+            $output->writeln(sprintf('%d background job(s) were cancelled.', $cancelled));
+        }
 
         return Command::SUCCESS;
     }

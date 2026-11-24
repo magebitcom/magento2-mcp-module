@@ -43,6 +43,7 @@ class AuthCodeIssuer
      * @param string $codeChallengeMethod
      * @param string|null $scope
      * @param array<int, string>|null $grantedTools
+     * @param array<int, string>|null $offeredTools What the consent screen offered; null keeps no record.
      * @return string
      */
     public function issue(
@@ -52,7 +53,8 @@ class AuthCodeIssuer
         string $codeChallenge,
         string $codeChallengeMethod,
         ?string $scope,
-        ?array $grantedTools = null
+        ?array $grantedTools = null,
+        ?array $offeredTools = null
     ): string {
         $plaintext = $this->tokenGenerator->generate();
         $hash = $this->tokenHasher->hash($plaintext);
@@ -68,6 +70,7 @@ class AuthCodeIssuer
         $authCode->setCodeChallengeMethod($codeChallengeMethod);
         $authCode->setScope($scope);
         $authCode->setGrantedTools($grantedTools);
+        $authCode->setOfferedTools($offeredTools);
         $authCode->setExpiresAt($expiresAt);
 
         $this->authCodeRepository->save($authCode);

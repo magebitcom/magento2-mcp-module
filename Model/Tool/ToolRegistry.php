@@ -9,8 +9,10 @@ declare(strict_types=1);
 namespace Magebit\Mcp\Model\Tool;
 
 use InvalidArgumentException;
+use Magebit\Mcp\Api\BulkToolInterface;
 use Magebit\Mcp\Api\ToolInterface;
 use Magebit\Mcp\Api\ToolRegistryInterface;
+use Magebit\Mcp\Model\Tool\Bulk\BulkToolAdapterFactory;
 use Magebit\Mcp\Model\Util\RegisteredEntries;
 use Magento\Framework\Exception\NoSuchEntityException;
 
@@ -35,13 +37,21 @@ class ToolRegistry implements ToolRegistryInterface
     private array $wireToCanonical;
 
     /**
-     * @param array<string, ToolInterface> $tools
+     * Entries are plain tools or bulk tools; bulk tools are wrapped in a core adapter so every registry consumer
+     * keeps seeing a ToolInterface.
+     *
+     * @param array<string, ToolInterface|BulkToolInterface> $tools
+     * @param BulkToolAdapterFactory|null $adapterFactory Wired in di.xml; only null in tests without bulk entries.
      * @return void
      */
-    public function __construct(array $tools = [])
+    public function __construct(array $tools = [], private readonly ?BulkToolAdapterFactory $adapterFactory = null)
     {
-        RegisteredEntries::assertValid($tools, [ToolInterface::class], 'MCP tool');
-        $this->tools = $tools;
+        RegisteredEntries::assertValid(
+            $tools,
+            [[ToolInterface::class, BulkToolInterface::class]],
+            'MCP tool'
+        );
+        $this->tools = $this->wrapBulkEntries($tools);
         $this->wireToCanonical = $this->buildWireMap($tools);
     }
 
@@ -84,11 +94,34 @@ class ToolRegistry implements ToolRegistryInterface
     }
 
     /**
+     * @param array<string, ToolInterface|BulkToolInterface> $tools
+     * @return array<string, ToolInterface>
+     */
+    private function wrapBulkEntries(array $tools): array
+    {
+        $wrapped = [];
+        foreach ($tools as $name => $tool) {
+            if ($tool instanceof ToolInterface) {
+                $wrapped[$name] = $tool;
+                continue;
+            }
+            if ($this->adapterFactory === null) {
+                throw new InvalidArgumentException(sprintf(
+                    'MCP tool "%s" is a bulk tool but no BulkToolAdapterFactory is wired.',
+                    $name
+                ));
+            }
+            $wrapped[$name] = $this->adapterFactory->create(['tool' => $tool]);
+        }
+        return $wrapped;
+    }
+
+    /**
      * Maps the dot→underscore wire form back to the canonical name. Throws on
      * collisions (two distinct canonicals projecting to the same wire form),
      * which would otherwise let `tools/call` route nondeterministically.
      *
-     * @param array<string, ToolInterface> $tools
+     * @param array<string, ToolInterface|BulkToolInterface> $tools
      * @return array<string, string>
      */
     private function buildWireMap(array $tools): array

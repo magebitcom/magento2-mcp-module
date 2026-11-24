@@ -26,6 +26,8 @@
                 default="CURRENT_TIMESTAMP" comment="Creation timestamp"/>
         <column xsi:type="int" name="oauth_client_id" unsigned="true" nullable="true"
                 comment="FK to magebit_mcp_oauth_client when issued via OAuth"/>
+        <column xsi:type="json" name="offered_tools_json" nullable="true"
+                comment="JSON array of tool names offered when the grant was made; NULL for rows written before 2.0"/>
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="id"/>
@@ -202,6 +204,8 @@
                 comment="Space-separated OAuth scope summary (e.g. 'mcp:read mcp:write'), derived from granted_tools_json"/>
         <column xsi:type="text" name="granted_tools_json" nullable="true"
                 comment="JSON array of MCP tool names granted at consent; replayed into the access token's scopes_json at exchange time"/>
+        <column xsi:type="text" name="offered_tools_json" nullable="true"
+                comment="JSON array of MCP tool names the consent screen offered; copied onto the access token at exchange time"/>
         <column xsi:type="datetime" name="expires_at" on_update="false" nullable="false"
                 comment="UTC expiry; datetime so the first-timestamp-column auto ON UPDATE rule never resets it"/>
         <column xsi:type="timestamp" name="used_at" on_update="false" nullable="true"
@@ -338,6 +342,127 @@
         <index referenceId="MAGEBIT_MCP_OAUTH_AUTHORIZE_HANDOFF_EXPIRES_AT" indexType="btree">
             <column name="expires_at"/>
         </index>
+    </table>
+
+    <table name="magebit_mcp_job" resource="default" engine="innodb"
+           comment="Background bulk jobs started by MCP tool calls above a tool's sync cap">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true"
+                comment="Entity ID"/>
+        <column xsi:type="varchar" name="job_id" length="36" nullable="false"
+                comment="Public job identifier (UUID)"/>
+        <column xsi:type="varchar" name="tool_name" length="255" nullable="false"
+                comment="Canonical tool name"/>
+        <column xsi:type="int" name="admin_user_id" unsigned="true" nullable="false"
+                comment="Admin user owning the job"/>
+        <column xsi:type="int" name="token_id" unsigned="true" nullable="true"
+                comment="Creating token (audit trail)"/>
+        <column xsi:type="int" name="oauth_client_id" unsigned="true" nullable="true"
+                comment="OAuth client; NULL for personal tokens"/>
+        <column xsi:type="varchar" name="state" length="16" nullable="false"
+                comment="queued, running, completed, failed or cancelled"/>
+        <column xsi:type="varchar" name="run_id" length="36" nullable="true"
+                comment="Token of the worker run that owns a running job; NULL while queued"/>
+        <column xsi:type="smallint" name="dry_run" unsigned="true" nullable="false" default="0"
+                comment="Dry-run job"/>
+        <column xsi:type="longtext" name="items_json" nullable="true"
+                comment="Validated input items; cleared when the job completes"/>
+        <column xsi:type="int" name="total" unsigned="true" nullable="false" default="0" comment="Items total"/>
+        <column xsi:type="int" name="ok" unsigned="true" nullable="false" default="0" comment="Items ok"/>
+        <column xsi:type="int" name="failed" unsigned="true" nullable="false" default="0" comment="Items failed"/>
+        <column xsi:type="int" name="skipped" unsigned="true" nullable="false" default="0" comment="Items skipped"/>
+        <column xsi:type="int" name="next_index" unsigned="true" nullable="false" default="0"
+                comment="Next item index to run"/>
+        <column xsi:type="smallint" name="cancel_requested" unsigned="true" nullable="false" default="0"
+                comment="Cancellation requested"/>
+        <column xsi:type="text" name="error" nullable="true" comment="Job-level error"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Created at"/>
+        <column xsi:type="timestamp" name="started_at" on_update="false" nullable="true" comment="Started at"/>
+        <column xsi:type="timestamp" name="heartbeat_at" on_update="false" nullable="true" comment="Heartbeat at"/>
+        <column xsi:type="timestamp" name="finished_at" on_update="false" nullable="true" comment="Finished at"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_JOB_JOB_ID">
+            <column name="job_id"/>
+        </constraint>
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_JOB_ADMIN_USER_ID_ADMIN_USER_USER_ID"
+                    table="magebit_mcp_job" column="admin_user_id"
+                    referenceTable="admin_user" referenceColumn="user_id"
+                    onDelete="CASCADE"/>
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_JOB_TOKEN_ID_MAGEBIT_MCP_TOKEN_ID"
+                    table="magebit_mcp_job" column="token_id"
+                    referenceTable="magebit_mcp_token" referenceColumn="id"
+                    onDelete="SET NULL"/>
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_JOB_OAUTH_CLIENT_ID_MAGEBIT_MCP_OAUTH_CLIENT_ID"
+                    table="magebit_mcp_job" column="oauth_client_id"
+                    referenceTable="magebit_mcp_oauth_client" referenceColumn="id"
+                    onDelete="SET NULL"/>
+
+        <index referenceId="MAGEBIT_MCP_JOB_ADMIN_USER_ID_CREATED_AT" indexType="btree">
+            <column name="admin_user_id"/>
+            <column name="created_at"/>
+        </index>
+        <index referenceId="MAGEBIT_MCP_JOB_STATE_HEARTBEAT_AT" indexType="btree">
+            <column name="state"/>
+            <column name="heartbeat_at"/>
+        </index>
+        <index referenceId="MAGEBIT_MCP_JOB_CREATED_AT" indexType="btree">
+            <column name="created_at"/>
+        </index>
+    </table>
+
+    <table name="magebit_mcp_job_item" resource="default" engine="innodb"
+           comment="Per-item results of background bulk jobs">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true"
+                comment="Entity ID"/>
+        <column xsi:type="varchar" name="job_id" length="36" nullable="false" comment="Job UUID"/>
+        <column xsi:type="int" name="item_index" unsigned="true" nullable="false" comment="Item position"/>
+        <column xsi:type="varchar" name="item_key" length="255" nullable="true" comment="Item key"/>
+        <column xsi:type="varchar" name="status" length="16" nullable="false" comment="Item status"/>
+        <column xsi:type="varchar" name="error_code" length="64" nullable="true" comment="Item error code"/>
+        <column xsi:type="text" name="message" nullable="true" comment="Item message"/>
+        <column xsi:type="varchar" name="result_id" length="64" nullable="true" comment="Created or updated id"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_JOB_ITEM_JOB_ID_ITEM_INDEX">
+            <column name="job_id"/>
+            <column name="item_index"/>
+        </constraint>
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_JOB_ITEM_JOB_ID_MAGEBIT_MCP_JOB_JOB_ID"
+                    table="magebit_mcp_job_item" column="job_id"
+                    referenceTable="magebit_mcp_job" referenceColumn="job_id"
+                    onDelete="CASCADE"/>
+    </table>
+
+    <table name="magebit_mcp_job_snapshot" resource="default" engine="innodb"
+           comment="Pre-run snapshots of background bulk jobs">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true"
+                comment="Entity ID"/>
+        <column xsi:type="varchar" name="job_id" length="36" nullable="false" comment="Job UUID"/>
+        <column xsi:type="varchar" name="format" length="32" nullable="false" comment="Snapshot format"/>
+        <column xsi:type="longtext" name="payload" nullable="false" comment="Snapshot payload"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Created at"/>
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="MAGEBIT_MCP_JOB_SNAPSHOT_JOB_ID">
+            <column name="job_id"/>
+        </constraint>
+        <constraint xsi:type="foreign"
+                    referenceId="MAGEBIT_MCP_JOB_SNAPSHOT_JOB_ID_MAGEBIT_MCP_JOB_JOB_ID"
+                    table="magebit_mcp_job_snapshot" column="job_id"
+                    referenceTable="magebit_mcp_job" referenceColumn="job_id"
+                    onDelete="CASCADE"/>
     </table>
 
 </schema>
